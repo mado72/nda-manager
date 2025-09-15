@@ -25,7 +25,7 @@
           <td>{{ contract.clientId }}</td>
           <td>{{ contract.supplierId }}</td>
           <td>
-            <a [routerLink]="['/contracts', contract.hash]">Edit</a>
+            <a [routerLink]="['/contracts/edit', contract.hash]">Edit</a>
           </td>
         </tr>
       }
@@ -35,3 +35,4 @@
 @if (!contracts().length && !loading()) {
   <div>No contracts found.</div>
 }
+<pre>{{ contracts() | json }}</pre>

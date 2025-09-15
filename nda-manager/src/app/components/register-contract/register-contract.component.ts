@@ -62,7 +62,7 @@ export class RegisterContractComponent implements OnInit {
           this.message.set('Contract updated successfully!');
           this.loading.set(false);
           setTimeout(() => {
-            this.router.navigate(['/contract-master-detail']);
+            this.router.navigate(['/contracts']);
           }, 1200);
         },
         error: err => {
@@ -85,7 +85,7 @@ export class RegisterContractComponent implements OnInit {
           this.hash.set('');
           this.loading.set(false);
           setTimeout(() => {
-            this.router.navigate(['/contract-master-detail']);
+            this.router.navigate(['/contracts']);
           }, 1200);
         },
         error: err => {

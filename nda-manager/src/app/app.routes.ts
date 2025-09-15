@@ -3,8 +3,20 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
     {
         path: '',
-        redirectTo: 'login',
+        redirectTo: 'contracts',
         pathMatch: 'full'
+    },
+    {
+        path: 'contracts',
+        loadComponent: () => import('./components/contracts-master-detail/contracts-master-detail.component').then(m => m.ContractsMasterDetailComponent)
+    },
+    {
+        path: 'contracts/add',
+        loadComponent: () => import('./components/contracts-master-detail/contracts-master-detail.component').then(m => m.ContractsMasterDetailComponent)
+    },
+    {
+        path: 'contracts/edit/:contractId',
+        loadComponent: () => import('./components/contracts-master-detail/contracts-master-detail.component').then(m => m.ContractsMasterDetailComponent)
     },
     {
         path: 'login',
@@ -13,21 +25,5 @@ export const routes: Routes = [
     {
         path: 'register',
         loadComponent: () => import('./components/register-user/register-user.component').then(m => m.RegisterUserComponent)
-    },
-    {
-        path: 'register-contract',
-        loadComponent: () => import('./components/register-contract/register-contract.component').then(m => m.RegisterContractComponent)
-    },
-    {
-        path: 'list-contracts',
-        loadComponent: () => import('./components/list-contracts/list-contracts.component').then(m => m.ListContractsComponent)
-    },
-    {
-        path: 'contracts',
-        loadComponent: () => import('./components/contracts-master-detail/contracts-master-detail.component').then(m => m.ContractsMasterDetailComponent)
-    },
-    {
-        path: 'contracts/:contractId',
-        loadComponent: () => import('./components/contracts-master-detail/contracts-master-detail.component').then(m => m.ContractsMasterDetailComponent)
     }
 ];
