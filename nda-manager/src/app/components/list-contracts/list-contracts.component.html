@@ -1,0 +1,26 @@
+<h2>Contract List</h2>
+<div *ngIf="loading()">Loading...</div>
+<div *ngIf="error()">Error: {{ error() }}</div>
+<table *ngIf="contracts().length">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Status</th>
+      <th>Client</th>
+      <th>Supplier</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (contract of contracts(); track contract.id) {
+      <tr>
+        <td>{{ contract.id }}</td>
+        <td>{{ contract.title }}</td>
+        <td>{{ contract.status }}</td>
+        <td>{{ contract.clientId }}</td>
+        <td>{{ contract.supplierId }}</td>
+      </tr>
+    }
+  </tbody>
+</table>
+<div *ngIf="!contracts().length && !loading()">No contracts found.</div>

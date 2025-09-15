@@ -17,5 +17,9 @@ export const routes: Routes = [
     {
         path: 'register-contract',
         loadComponent: () => import('./components/register-contract/register-contract.component').then(m => m.RegisterContractComponent)
+    },
+    {
+        path: 'list-contracts',
+        loadComponent: () => import('./components/list-contracts/list-contracts.component').then(m => m.ListContractsComponent)
     }
 ];
