@@ -1,0 +1,16 @@
+<form (ngSubmit)="register()" class="register-form">
+  <label>
+    Name:
+    <input [ngModel]="name()" (ngModelChange)="name.set($event)" name="name" required />
+  </label>
+  <label>
+    Email:
+    <input [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" required />
+  </label>
+  <label>
+    Password:
+    <input [ngModel]="password()" (ngModelChange)="password.set($event)" name="password" type="password" required />
+  </label>
+  <button type="submit">Register</button>
+</form>
+<div *ngIf="message()" class="message">{{ message() }}</div>
