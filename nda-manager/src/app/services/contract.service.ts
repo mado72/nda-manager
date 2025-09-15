@@ -60,4 +60,23 @@ export class ContractService {
     this.loading.set(false);
     return of(this.contracts());
   }
+
+  updateContract(contractId: string, contractData: Partial<Contract>): Observable<Contract | null> {
+    this.loading.set(true);
+    const contracts = this.contracts();
+    const idx = contracts.findIndex(c => c.id === contractId);
+    if (idx === -1) {
+      this.loading.set(false);
+      return of(null);
+    }
+    const updated: Contract = {
+      ...contracts[idx],
+      ...contractData,
+      id: contractId // garantir que o id não seja alterado
+    };
+    contracts[idx] = updated;
+    this.contracts.set([...contracts]);
+    this.loading.set(false);
+    return of(updated);
+  }
 }
