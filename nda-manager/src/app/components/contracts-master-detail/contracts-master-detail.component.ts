@@ -1,5 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { ListContractsComponent } from '../list-contracts/list-contracts.component';
 import { RegisterContractComponent } from '../register-contract/register-contract.component';
 
@@ -12,6 +12,12 @@ import { RegisterContractComponent } from '../register-contract/register-contrac
 })
 export class ContractsMasterDetailComponent {
   selectedContractId = signal<string | null>(null);
+
+  constructor(private route: ActivatedRoute) {
+    this.route.paramMap.subscribe(params => {
+      this.selectedContractId.set(params.get('contractId'));
+    });
+  }
 
   selectContract(id: string) {
     this.selectedContractId.set(id);

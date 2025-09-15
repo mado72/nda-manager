@@ -14,6 +14,7 @@ import { ContractService } from '../../services/contract.service';
 })
 export class RegisterContractComponent implements OnInit {
   contractId = input<string | null>(null);
+  userId = input<string>('');
   title = signal('');
   description = signal('');
   hash = signal('');
@@ -72,6 +73,7 @@ export class RegisterContractComponent implements OnInit {
     } else {
       // Criar novo contrato
       this.contractService.createContract({
+        clientId: this.userId(),
         title: this.title(),
         description: this.description(),
         hash: this.hash()

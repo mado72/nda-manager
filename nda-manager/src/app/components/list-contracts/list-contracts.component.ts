@@ -1,11 +1,11 @@
-import { Component, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ContractService, Contract } from '../../services/contract.service';
+import { Component, signal } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { Contract, ContractService } from '../../services/contract.service';
 
 @Component({
   selector: 'app-list-contracts',
   standalone: true,
-  imports: [CommonModule],
+  imports: [RouterModule],
   templateUrl: './list-contracts.component.html',
   styleUrl: './list-contracts.component.scss'
 })

@@ -25,5 +25,9 @@ export const routes: Routes = [
     {
         path: 'contracts',
         loadComponent: () => import('./components/contracts-master-detail/contracts-master-detail.component').then(m => m.ContractsMasterDetailComponent)
+    },
+    {
+        path: 'contracts/:contractId',
+        loadComponent: () => import('./components/contracts-master-detail/contracts-master-detail.component').then(m => m.ContractsMasterDetailComponent)
     }
 ];
