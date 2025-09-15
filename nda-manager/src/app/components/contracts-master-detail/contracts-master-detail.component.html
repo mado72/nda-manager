@@ -1,0 +1,13 @@
+<div class="master-detail-container">
+  <div class="master">
+    <a routerLink="/register-contract" class="new-contract-link">New Contract</a>
+    <app-list-contracts (click)="clearSelection()"></app-list-contracts>
+  </div>
+  <div class="detail">
+    @if (selectedContractId()) {
+      <app-register-contract [contractId]="selectedContractId()"></app-register-contract>
+    } @else {
+      <div class="placeholder">Select a contract to view details.</div>
+    }
+  </div>
+</div>

@@ -1,0 +1,18 @@
+.master-detail-container {
+  display: flex;
+  gap: 2rem;
+}
+.master {
+  flex: 1;
+  border-right: 1px solid #eee;
+  padding-right: 1rem;
+}
+.detail {
+  flex: 2;
+  padding-left: 1rem;
+}
+.placeholder {
+  color: #888;
+  font-style: italic;
+  margin-top: 2rem;
+}
