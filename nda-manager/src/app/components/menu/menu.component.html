@@ -1,0 +1,12 @@
+<nav class="menu">
+	<ul>
+		<li><a routerLink="/contracts">Listar Contratos</a></li>
+		<li><a routerLink="/contracts/add">Novo Contrato</a></li>
+	</ul>
+		@if (userName) {
+			<div class="user-info">
+				<span>Usuário: {{ userName }}</span>
+				<button (click)="logout()">Logout</button>
+			</div>
+		}
+</nav>

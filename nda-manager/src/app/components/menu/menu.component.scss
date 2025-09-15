@@ -1,0 +1,66 @@
+// Menu suspenso superior estilizado
+.menu {
+	width: 100vw;
+	background: linear-gradient(90deg, #6a11cb 0%, #2575fc 100%);
+	color: #fff;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0.5rem 2rem;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 1000;
+}
+
+.menu ul {
+	list-style: none;
+	display: flex;
+	gap: 2rem;
+	margin: 0;
+	padding: 0;
+}
+
+.menu ul li a {
+	color: #fff;
+	text-decoration: none;
+	font-weight: 500;
+	font-size: 1.1rem;
+	transition: color 0.2s;
+}
+
+.menu ul li a:hover {
+	color: #ffe082;
+}
+
+.user-info {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	background: rgba(255,255,255,0.08);
+	padding: 0.4rem 1rem;
+	border-radius: 2rem;
+	font-size: 1rem;
+	position: relative;
+	right: 50px;
+	max-width: calc(100vw - 120px);
+	overflow-x: auto;
+	white-space: nowrap;
+}
+
+.user-info button {
+	background: #fff;
+	color: #2575fc;
+	border: none;
+	border-radius: 1rem;
+	padding: 0.3rem 1rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s, color 0.2s;
+}
+
+.user-info button:hover {
+	background: #ffe082;
+	color: #6a11cb;
+}
