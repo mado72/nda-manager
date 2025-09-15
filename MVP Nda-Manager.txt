@@ -58,3 +58,4 @@ Desenvolva uma aplicação MVP baseada em Blockchain para controle de entrega de
 **Importante**
 1. Utilize o inglês para definir métodos, variáveis e classes.
 2. Os componentes devem ser standalone e fazer uso de signals.
+3. Use a sintaxe @if, @for evitando usar o CommonModule.
