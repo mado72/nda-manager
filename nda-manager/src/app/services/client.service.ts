@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 export interface Client {
-  id: number;
+  id: string;
   name: string;
   email: string;
   password: string;
@@ -43,7 +43,7 @@ export class ClientService {
 
   registerClient(name: string, email: string, password: string): Client {
     const newClient: Client = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       name,
       email,
       password

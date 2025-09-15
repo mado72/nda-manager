@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContractService } from '../../services/contract.service';
+import { ClientService } from '../../services/client.service';
 
 
 @Component({
@@ -14,14 +15,13 @@ import { ContractService } from '../../services/contract.service';
 })
 export class RegisterContractComponent implements OnInit {
   contractId = input<string | null>(null);
-  userId = input<string>('');
   title = signal('');
   description = signal('');
   hash = signal('');
   message = signal('');
   loading = signal(false);
 
-  constructor(private contractService: ContractService, private router: Router) {}
+  constructor(private contractService: ContractService, private router: Router, private clientService: ClientService) {}
 
   ngOnInit() {
     const contractIdValue = this.contractId();
@@ -73,7 +73,7 @@ export class RegisterContractComponent implements OnInit {
     } else {
       // Criar novo contrato
       this.contractService.createContract({
-        clientId: this.userId(),
+        clientId: this.clientService.getLoggedClient()?.id || '',
         title: this.title(),
         description: this.description(),
         hash: this.hash()

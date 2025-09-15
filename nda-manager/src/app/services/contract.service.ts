@@ -25,6 +25,7 @@ export class ContractService {
 
 
   createContract(contractData: Partial<Contract>): Observable<Contract> {
+    debugger;
     this.loading.set(true);
     // O id do contrato será o hash informado
     const newContract: Contract = {
