@@ -1,12 +1,11 @@
 import { Component, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Contract, ContractService } from '../../services/contract.service';
-import { JsonPipe } from '@angular/common';
 
 @Component({
   selector: 'app-list-contracts',
   standalone: true,
-  imports: [RouterModule, JsonPipe],
+  imports: [RouterModule],
   templateUrl: './list-contracts.component.html',
   styleUrl: './list-contracts.component.scss'
 })
