@@ -180,6 +180,10 @@
 <main class="main">
   <div class="content">
     <div class="left-side">
+      <!-- Link para contratos, visível apenas se logado -->
+       @if (!!clientService.getLoggedClient()) {
+         <a routerLink="/register-contract" class="pill">Contracts</a>
+       }
     </div>
     <div class="divider" role="separator" aria-label="Divider"></div>
     <div class="right-side">
@@ -197,3 +201,4 @@
 
 
 <router-outlet />
+
