@@ -1,0 +1,16 @@
+<form (ngSubmit)="registerContract()" class="register-contract-form">
+  <label>
+    Title:
+    <input [ngModel]="title()" (ngModelChange)="title.set($event)" name="title" required />
+  </label>
+  <label>
+    Description:
+    <textarea [ngModel]="description()" (ngModelChange)="description.set($event)" name="description" required></textarea>
+  </label>
+  <label>
+    Hash:
+    <input [ngModel]="hash()" (ngModelChange)="hash.set($event)" name="hash" required />
+  </label>
+  <button type="submit" [disabled]="loading()">Register Contract</button>
+</form>
+<div *ngIf="message()" class="message">{{ message() }}</div>
