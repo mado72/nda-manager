@@ -43,3 +43,4 @@
 nda-manager/.angular/cache/*
 .vscode/chrome-debug-profile/*
 nda-manager/package-lock.json
+html/*
