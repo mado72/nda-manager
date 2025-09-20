@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy, ViewChild, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, HostListener, inject, computed } from '@angular/core';
 import { RouterModule, Router } from '@angular/router'; // ✅ Adicionar Router
-import { NgTemplateOutlet } from '@angular/common'; // ✅ Adicionar NgTemplateOutlet
+import { JsonPipe, NgTemplateOutlet } from '@angular/common'; // ✅ Adicionar NgTemplateOutlet
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +11,8 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSidenav } from '@angular/material/sidenav';
 import { ContractService } from '../../services/contract.service'; // ✅ Adicionar
 import { User, UserType } from '../../models/user.model';
+import { UserService } from '../../services/user.service';
+
 
 @Component({
   selector: 'app-menu',
@@ -24,31 +26,76 @@ import { User, UserType } from '../../models/user.model';
     MatMenuModule,
     MatSidenavModule,
     MatListModule,
-    MatDividerModule
+    MatDividerModule,
+    JsonPipe
   ],
   templateUrl: './menu.component.html',
   styleUrls: ['./menu.component.scss']
 })
 export class MenuComponent implements OnInit, OnDestroy {
+
+  private router: Router = inject(Router);
+  private userService = inject(UserService);
+  private contractService = inject(ContractService);
+
   @ViewChild('sidenav') sidenav!: MatSidenav;
   
   // ✅ ATUALIZAR: Usar dados dinâmicos do usuário
   isMobile = false;
   
   // ✅ NOVO: Propriedades para controle de permissões
-  currentUser: User | null = null;
   canCreateContracts = false;
   canShareContracts = false;
 
-  constructor(
-    private router: Router, // ✅ Adicionar
-    private contractService: ContractService // ✅ Adicionar
-  ) {}
 
   ngOnInit() {
     this.checkScreenSize();
-    this.loadUserInfo(); // ✅ Carregar informações do usuário
   }
+
+  currentUser = computed(() => {
+    const currentUser = this.userService.currentUser();
+    if (currentUser) {
+      this.contractService.getPermissions().subscribe(permissions => {
+        this.canCreateContracts = permissions.canCreate;
+        this.canShareContracts = permissions.canShare;
+      });
+    } else {
+      // Fallback se não houver usuário logado
+      this.canCreateContracts = false;
+      this.canShareContracts = false;
+    }
+
+    console.log('👤 User loaded:', currentUser);
+    console.log('🔨 Can create contracts:', this.canCreateContracts);
+    console.log('🔗 Can share contracts:', this.canShareContracts);
+    return currentUser;
+  });
+
+  userName = computed(() => {
+    const currentUser = this.currentUser();
+    return currentUser ? currentUser.username : 'Guest';
+  });
+
+  userTypeDisplay = computed(() => {
+    const currentUser = this.currentUser();
+    return currentUser ? currentUser.user_type : 'Guest';
+  });
+
+  userTypeIcon = computed(() => {
+    const currentUser = this.currentUser();
+    if (!currentUser) {
+      return 'person';
+    }
+    return currentUser.user_type === UserType.client ? 'business' : 'inventory';
+  });
+
+  displaySwitchUserTypeLabel = computed(() => {
+    const currentUser = this.currentUser();
+    if (!currentUser) {
+      return 'Switch User Type';
+    }
+    return currentUser.user_type === UserType.client ? 'Switch to Supplier' : 'Switch to Client';
+  });
 
   ngOnDestroy() {}
 
@@ -59,45 +106,6 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   private checkScreenSize() {
     this.isMobile = window.innerWidth < 768;
-  }
-
-  // ✅ NOVO: Carregar informações do usuário
-  loadUserInfo() {
-    const user = this.contractService.getCurrentUser();
-    this.currentUser = user;
-    
-    if (this.currentUser) {
-      this.canCreateContracts = this.contractService.canCreateContracts();
-      this.canShareContracts = this.contractService.canShareContracts();
-      
-      console.log('👤 User loaded:', user);
-      console.log('🔨 Can create contracts:', this.canCreateContracts);
-      console.log('🔗 Can share contracts:', this.canShareContracts);
-    } else {
-      // Fallback se não houver usuário logado
-      this.canCreateContracts = false;
-      this.canShareContracts = false;
-    }
-  }
-
-  get userName(): string {
-    return this.currentUser ? this.currentUser.username : 'Guest';
-  }
-
-  // ✅ NOVO: Obter tipo de usuário para exibição
-  getUserTypeDisplay(): string {
-    if (!this.currentUser) {
-      return 'Guest';
-    }
-    return this.currentUser.user_type === UserType.client ? 'Client' : 'Supplier';
-  }
-
-  // ✅ NOVO: Obter ícone do tipo de usuário
-  getUserTypeIcon(): string {
-    if (!this.currentUser) {
-      return 'person';
-    }
-    return this.currentUser.user_type === UserType.client ? 'business' : 'inventory';
   }
 
   toggleSidenav() {
@@ -112,23 +120,16 @@ export class MenuComponent implements OnInit, OnDestroy {
     this.router.navigate(['/login']);
   }
 
-  displaySwitchUserTypeLabel(): string {
-    if (!this.currentUser) {
-      return 'Switch User Type';
-    }
-    return this.currentUser.user_type === UserType.client ? 'Switch to Supplier' : 'Switch to Client';
-  }
-
   // ✅ NOVO: Método para debug - trocar tipo de usuário (remover em produção)
   switchUserType() {
-    if (this.currentUser) {
-      const newType = this.currentUser.user_type === UserType.client ? UserType.supplier : UserType.client;
+    const currentUser = this.currentUser();
+    if (currentUser) {
+      const newType = currentUser.user_type === UserType.client ? UserType.supplier : UserType.client;
       const newUser: User = {
-        ...this.currentUser,
+        ...currentUser,
         user_type: newType
       };
-      this.contractService.setCurrentUser(newUser);
-      this.loadUserInfo();
+      this.userService.currentUser.set(newUser);
       console.log('🔄 Switched user type to:', newType);
     }
   }

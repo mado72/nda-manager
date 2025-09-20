@@ -1,7 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 // import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { User } from '../models/user.model';
 
 export interface Contract {
   clientId: string;
@@ -77,18 +76,13 @@ export class ContractService {
     return of(updated);
   }
 
-  getCurrentUser() : User{
-    throw new Error('Method not implemented.');
-  }
-
-  canShareContracts(): boolean {
-    throw new Error('Method not implemented.');
-  }
-  canCreateContracts(): boolean {
-    throw new Error('Method not implemented.');
-  }
-  setCurrentUser(newUser: User) {
-    throw new Error('Method not implemented.');
+  getPermissions(): Observable<{ canCreate: boolean; canShare: boolean }> {
+    // Simulação de verificação de permissões
+    const permissions = {
+      canCreate: true,
+      canShare: true
+    };
+    return of(permissions);
   }
 
 }

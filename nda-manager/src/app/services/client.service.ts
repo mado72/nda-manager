@@ -1,10 +1,8 @@
 import { Injectable } from '@angular/core';
+import { of } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
 import { UserService } from './user.service';
-import { map } from 'rxjs/internal/operators/map';
-import { catchError } from 'rxjs/internal/operators/catchError';
-import { throwError } from 'rxjs/internal/observable/throwError';
-import { of } from 'rxjs';
+import { User, UserType } from '../models/user.model';
 
 export interface Client {
   id: string;
@@ -72,14 +70,24 @@ export class ClientService {
     // );
   }
 
-  authenticateClient(email: string, password: string): boolean {
+  authenticateClient(email: string, password: string): Observable<User | null> {
     const client = this.clients.find(c => c.email === email && c.password === password);
     if (client) {
       this.loggedClient = client;
       this.saveLoggedClient();
-      return true;
+
+      // Simulate returning a User object (mock)
+      let user : User = {
+        username: client.name,
+        user_type: UserType.client,
+        id: client.id || '',
+        created_at: new Date().toISOString(),
+        stellar_public_key: client.id
+      }
+      this.userService.currentUser.set(user);
+      return of(user);
     }
-    return false;
+    return of(null);
   }
 
   getLoggedClient(): Client | null {

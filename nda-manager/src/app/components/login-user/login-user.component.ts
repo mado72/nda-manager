@@ -27,13 +27,18 @@ export class LoginUserComponent {
       this.message.set('Please enter email and password.');
       return;
     }
-    const success = this.clientService.authenticateClient(this.email(), this.password());
-    if (success) {
-      this.loggedIn.set(true);
-      this.message.set('Login successful!');
-    } else {
-      this.message.set('Invalid credentials.');
-      this.loggedIn.set(false);
-    }
+    this.clientService.authenticateClient(this.email(), this.password()).subscribe({
+      next: (user) => {
+        if (user) {
+          this.loggedIn.set(true);
+          this.message.set('Login successful!');
+        } else {
+          this.message.set('Invalid credentials.');
+        }
+      },
+      error: () => {
+        this.message.set('An error occurred. Please try again.');
+      }
+    });
   }
 }

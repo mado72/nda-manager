@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -7,6 +7,8 @@ import { User, UserRegisterRequest, UserLoginRequest, UserResponse } from '../mo
 @Injectable({ providedIn: 'root' })
 export class UserService {
     private apiUrl = environment.apiUrl;
+
+    currentUser = signal<User | null>(null);
 
     constructor(private http: HttpClient) { }
 
@@ -19,4 +21,5 @@ export class UserService {
     login(data: UserLoginRequest): Observable<UserResponse> {
         return this.http.post<UserResponse>(`${this.apiUrl}/api/login`, data);
     }
+
 }
