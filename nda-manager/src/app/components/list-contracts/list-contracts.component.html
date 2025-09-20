@@ -1,38 +1,145 @@
-<h2>Contract List</h2>
-@if (loading()) {
-  <div>Loading...</div>
-}
-@if (error()) {
-  <div>Error: {{ error() }}</div>
-}
-@if (contracts().length) {
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Title</th>
-        <th>Status</th>
-        <th>Client</th>
-        <th>Supplier</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (contract of contracts(); track contract.hash) {
-        <tr>
-          <td>{{ contract.hash }}</td>
-          <td>{{ contract.title }}</td>
-          <td>{{ contract.status }}</td>
-          <td>{{ contract.clientId }}</td>
-          <td>{{ contract.supplierId }}</td>
-          <td>
-            <a [routerLink]="['/contracts/edit', contract.hash]">Edit</a>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
-}
-@if (!contracts().length && !loading()) {
-  <div>No contracts found.</div>
-}
-<pre>{{ contracts() }}</pre>
+<div class="contracts-list-container">
+  <!-- Header -->
+  <div class="list-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h2 class="list-title">
+          <svg class="title-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6.5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 014 11.5V5z" clip-rule="evenodd"/>
+          </svg>
+          Contracts List
+        </h2>
+        <div class="contracts-count" *ngIf="!loading() && contracts().length">
+          {{ contracts().length }} contract{{ contracts().length !== 1 ? 's' : '' }} found
+        </div>
+      </div>
+      
+      <a routerLink="/contracts/add" class="new-contract-button">
+        <svg fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+        </svg>
+        New Contract
+      </a>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Loading contracts...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-state">
+      <svg class="error-icon" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+      </svg>
+      <h3>Error Loading Contracts</h3>
+      <p>{{ error() }}</p>
+      <button class="retry-button" (click)="fetchContracts()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Try Again
+      </button>
+    </div>
+  }
+
+  <!-- Contracts Table -->
+  @if (contracts().length > 0 && !loading()) {
+    <div class="table-container">
+      <table class="contracts-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Client ID</th>
+            <th>Supplier ID</th>
+            <th>Hash</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (contract of contracts(); track contract.hash) {
+            <tr class="contract-row">
+              <!-- Title -->
+              <td class="title-cell">
+                <div class="title-content">
+                  <span class="contract-title">{{ contract.title || 'Untitled Contract' }}</span>
+                  <span class="contract-id">Hash: {{ contract.hash | slice:0:8 }}...</span>
+                </div>
+              </td>
+              
+              <!-- Status -->
+              <td class="status-cell">
+                <span class="status-badge" [ngClass]="'status-' + (contract.status || 'unknown')">
+                  {{ contract.status || 'Unknown' }}
+                </span>
+              </td>
+              
+              <!-- Client ID -->
+              <td class="client-cell">
+                <span class="client-id">{{ contract.clientId || 'N/A' }}</span>
+              </td>
+              
+              <!-- Supplier ID -->
+              <td class="supplier-cell">
+                <span class="supplier-id">{{ contract.supplierId || 'N/A' }}</span>
+              </td>
+              
+              <!-- Hash -->
+              <td class="hash-cell">
+                <div class="hash-preview">
+                  <code>{{ contract.hash | slice:0:16 }}...</code>
+                </div>
+              </td>
+              
+              <!-- Actions -->
+              <td class="actions-cell">
+                <div class="action-buttons">
+                  <a [routerLink]="['/contracts/edit', contract.hash]" class="action-btn edit-btn" title="Edit Contract">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </a>
+                  
+                  <button 
+                    class="action-btn copy-btn" 
+                    (click)="copyContractInfo(contract)"
+                    title="Copy Contract Info">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!contracts().length && !loading() && !error()) {
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <h3>No Contracts Found</h3>
+      <p>You haven't created any contracts yet.</p>
+      <a routerLink="/contracts/add" class="empty-action-button">
+        <svg fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+        </svg>
+        Create First Contract
+      </a>
+    </div>
+  }
+</div>
