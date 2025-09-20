@@ -1,3 +1,44 @@
+<!-- Templates reutilizáveis -->
+<ng-template #desktopMenuButton let-route="route" let-icon="icon" let-text="text" let-condition="condition" let-exactMatch="exactMatch">
+  @if (condition) {
+    <button 
+      mat-button 
+      [routerLink]="route" 
+      routerLinkActive="active-link"
+      [routerLinkActiveOptions]="exactMatch ? {exact: false} : {exact: true}">
+      <mat-icon>{{ icon }}</mat-icon>
+      <span>{{ text }}</span>
+    </button>
+  }
+</ng-template>
+
+<ng-template #mobileNavItem let-route="route" let-icon="icon" let-text="text" let-condition="condition" let-sidenav="sidenav">
+  @if (condition) {
+    <a
+      mat-list-item
+      [routerLink]="route"
+      routerLinkActive="active-link"
+      (click)="sidenav.close()">
+      <mat-icon matListItemIcon>{{ icon }}</mat-icon>
+      <span matListItemTitle>{{ text }}</span>
+    </a>
+  }
+</ng-template>
+
+<ng-template #menuItem let-action="action" let-icon="icon" let-text="text" let-class="class">
+  <button mat-menu-item (click)="action()" [class]="class">
+    <mat-icon>{{ icon }}</mat-icon>
+    <span>{{ text }}</span>
+  </button>
+</ng-template>
+
+<ng-template #mobileMenuItem let-action="action" let-icon="icon" let-text="text" let-class="class" let-sidenav="sidenav">
+  <a mat-list-item (click)="action(); sidenav?.close()" [class]="class">
+    <mat-icon matListItemIcon>{{ icon }}</mat-icon>
+    <span matListItemTitle>{{ text }}</span>
+  </a>
+</ng-template>
+
 <mat-toolbar class="main-toolbar">
   <!-- Logo/Brand -->
   <div class="brand-section">
@@ -18,36 +59,37 @@
 	  @if (!isMobile) {
 		<div class="desktop-menu">
 		  <!-- Contracts (sempre visível) -->
-		  <button 
-			mat-button 
-			routerLink="/contracts" 
-			routerLinkActive="active-link"
-			[routerLinkActiveOptions]="{exact: false}">
-			<mat-icon>description</mat-icon>
-			<span>Contracts</span>
-		  </button>
+		  <ng-container 
+			*ngTemplateOutlet="desktopMenuButton; context: {
+			  route: '/contracts', 
+			  icon: 'description', 
+			  text: 'Contracts', 
+			  condition: true,
+			  exactMatch: true
+			}">
+		  </ng-container>
 	
-		  <!-- ✅ NOVO: New Contract (apenas para clients) -->
-		  @if (canCreateContracts) {
-			<button 
-			  mat-button 
-			  routerLink="/contracts/add" 
-			  routerLinkActive="active-link">
-			  <mat-icon>add_circle</mat-icon>
-			  <span>New Contract</span>
-			</button>
-		  }
+		  <!-- New Contract (apenas para clients) -->
+		  <ng-container 
+			*ngTemplateOutlet="desktopMenuButton; context: {
+			  route: '/contracts/add', 
+			  icon: 'add_circle', 
+			  text: 'New Contract', 
+			  condition: canCreateContracts,
+			  exactMatch: false
+			}">
+		  </ng-container>
 	
-		  <!-- ✅ NOVO: Share Contract (apenas para clients) -->
-		  @if (canShareContracts) {
-			<button 
-			  mat-button 
-			  routerLink="/contracts/share" 
-			  routerLinkActive="active-link">
-			  <mat-icon>share</mat-icon>
-			  <span>Share Contract</span>
-			</button>
-		  }
+		  <!-- Share Contract (apenas para clients) -->
+		  <ng-container 
+			*ngTemplateOutlet="desktopMenuButton; context: {
+			  route: '/contracts/share', 
+			  icon: 'share', 
+			  text: 'Share Contract', 
+			  condition: canShareContracts,
+			  exactMatch: false
+			}">
+		  </ng-container>
 		</div>
 	  }
 	
@@ -101,18 +143,26 @@
 	
 			<!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
 			@if (currentUser) {
-			  <button mat-menu-item (click)="switchUserType()" class="debug-item">
-				<mat-icon>swap_horiz</mat-icon>
-				<span>Switch to {{ displaySwitchUserTypeLabel() }}</span>
-			  </button>
+			  <ng-container 
+				*ngTemplateOutlet="menuItem; context: {
+				  action: switchUserType, 
+				  icon: 'swap_horiz', 
+				  text: 'Switch to ' + displaySwitchUserTypeLabel(), 
+				  class: 'debug-item'
+				}">
+			  </ng-container>
 			  <mat-divider></mat-divider>
 			}
 	
 			<!-- Logout -->
-			<button mat-menu-item (click)="logout()" class="logout-item">
-			  <mat-icon>logout</mat-icon>
-			  <span>Logout</span>
-			</button>
+			<ng-container 
+			  *ngTemplateOutlet="menuItem; context: {
+				action: logout, 
+				icon: 'logout', 
+				text: 'Logout', 
+				class: 'logout-item'
+			  }">
+			</ng-container>
 		  </mat-menu>
 		</div>
 	  }
@@ -135,38 +185,37 @@
 			<h3 matSubheader>Main Menu</h3>
 	
 			<!-- Contracts (sempre visível) -->
-			<a
-			  mat-list-item
-			  routerLink="/contracts"
-			  routerLinkActive="active-link"
-			  (click)="sidenav.close()">
-			  <mat-icon matListItemIcon>description</mat-icon>
-			  <span matListItemTitle>Contracts</span>
-			</a>
+			<ng-container 
+			  *ngTemplateOutlet="mobileNavItem; context: {
+				route: '/contracts', 
+				icon: 'description', 
+				text: 'Contracts', 
+				condition: true,
+				sidenav: sidenav
+			  }">
+			</ng-container>
 	
-			<!-- ✅ NOVO: New Contract (apenas para clients) -->
-			@if (canCreateContracts) {
-			  <a
-				mat-list-item
-				routerLink="/contracts/add"
-				routerLinkActive="active-link"
-				(click)="sidenav.close()">
-				<mat-icon matListItemIcon>add_circle</mat-icon>
-				<span matListItemTitle>New Contract</span>
-			  </a>
-			}
+			<!-- New Contract (apenas para clients) -->
+			<ng-container 
+			  *ngTemplateOutlet="mobileNavItem; context: {
+				route: '/contracts/add', 
+				icon: 'add_circle', 
+				text: 'New Contract', 
+				condition: canCreateContracts,
+				sidenav: sidenav
+			  }">
+			</ng-container>
 	
-			<!-- ✅ NOVO: Share Contract (apenas para clients) -->
-			@if (canShareContracts) {
-			  <a
-				mat-list-item
-				routerLink="/contracts/share"
-				routerLinkActive="active-link"
-				(click)="sidenav.close()">
-				<mat-icon matListItemIcon>share</mat-icon>
-				<span matListItemTitle>Share Contract</span>
-			  </a>
-			}
+			<!-- Share Contract (apenas para clients) -->
+			<ng-container 
+			  *ngTemplateOutlet="mobileNavItem; context: {
+				route: '/contracts/share', 
+				icon: 'share', 
+				text: 'Share Contract', 
+				condition: canShareContracts,
+				sidenav: sidenav
+			  }">
+			</ng-container>
 	
 			<mat-divider></mat-divider>
 	
@@ -189,18 +238,28 @@
 	
 			<!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
 			@if (currentUser) {
-			  <a mat-list-item (click)="switchUserType(); sidenav.close()" class="debug-item">
-				<mat-icon matListItemIcon>swap_horiz</mat-icon>
-				<span matListItemTitle>Switch to {{ displaySwitchUserTypeLabel() }}</span>
-			  </a>
+			  <ng-container 
+				*ngTemplateOutlet="mobileMenuItem; context: {
+				  action: switchUserType, 
+				  icon: 'swap_horiz', 
+				  text: 'Switch to ' + displaySwitchUserTypeLabel(), 
+				  class: 'debug-item',
+				  sidenav: sidenav
+				}">
+			  </ng-container>
 			  <mat-divider></mat-divider>
 			}
 	
 			<!-- Logout -->
-			<a mat-list-item (click)="logout(); sidenav.close()" class="logout-item">
-			  <mat-icon matListItemIcon>logout</mat-icon>
-			  <span matListItemTitle>Logout</span>
-			</a>
+			<ng-container 
+			  *ngTemplateOutlet="mobileMenuItem; context: {
+				action: logout, 
+				icon: 'logout', 
+				text: 'Logout', 
+				class: 'logout-item',
+				sidenav: sidenav
+			  }">
+			</ng-container>
 		  </mat-nav-list>
 	  }
     </mat-sidenav>

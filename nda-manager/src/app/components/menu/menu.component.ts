@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, HostListener } from '@angular/core';
 import { RouterModule, Router } from '@angular/router'; // ✅ Adicionar Router
+import { NgTemplateOutlet } from '@angular/common'; // ✅ Adicionar NgTemplateOutlet
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,6 +17,7 @@ import { User, UserType } from '../../models/user.model';
   standalone: true,
   imports: [
     RouterModule,
+    NgTemplateOutlet, // ✅ Adicionar NgTemplateOutlet
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
