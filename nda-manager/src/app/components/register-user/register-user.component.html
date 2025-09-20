@@ -13,4 +13,6 @@
   </label>
   <button type="submit">Register</button>
 </form>
-<div *ngIf="message()" class="message">{{ message() }}</div>
+@if (message()) {
+  <div class="message">{{ message() }}</div>
+}

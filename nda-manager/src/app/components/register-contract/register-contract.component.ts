@@ -1,6 +1,5 @@
 import { Component, signal, Input, OnInit, input } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContractService } from '../../services/contract.service';
 import { ClientService } from '../../services/client.service';
@@ -9,7 +8,7 @@ import { ClientService } from '../../services/client.service';
 @Component({
   selector: 'app-register-contract',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './register-contract.component.html',
   styleUrl: './register-contract.component.scss'
 })

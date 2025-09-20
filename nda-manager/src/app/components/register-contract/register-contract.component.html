@@ -13,4 +13,6 @@
   </label>
   <button type="submit" [disabled]="loading()">Register Contract</button>
 </form>
-<div *ngIf="message()" class="message">{{ message() }}</div>
+@if (message()) {
+  <div class="message">{{ message() }}</div>
+}

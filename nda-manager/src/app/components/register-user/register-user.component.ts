@@ -1,5 +1,4 @@
 import { Component, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ClientService } from '../../services/client.service';
 import { Router } from '@angular/router';
@@ -7,7 +6,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-register-user',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './register-user.component.html',
   styleUrl: './register-user.component.scss'
 })
@@ -24,18 +23,16 @@ export class RegisterUserComponent {
       this.message.set('Please fill all fields.');
       return;
     }
-    const client = this.clientService.registerClient(
+    this.clientService.registerClient(
       this.name(),
       this.email(),
       this.password()
-    );
-    this.message.set(`User registered: ${client.name}`);
-    this.name.set('');
-    this.email.set('');
-    this.password.set('');
-    setTimeout(() => {
-      this.router.navigate(['/login']);
-    }, 1200);
+    ).subscribe(client => {
+      this.message.set(`User registered: ${client.name}`);
+      this.name.set('');
+      this.email.set('');
+      this.password.set('');
+    })
   }
 
 }

@@ -10,10 +10,10 @@
 	<button type="submit">Login</button>
 </form>
 @if (message()) {
-	<div *ngIf="message()" class="message">{{ message() }}</div>
+	<div class="message">{{ message() }}</div>
 }
 @if (loggedIn()) {
-	<div *ngIf="loggedIn()" class="success">Welcome!</div>
+	<div class="success">Welcome!</div>
 }
 <div class="register-link">
 	<a routerLink="/register">Don't have an account? Register here.</a>

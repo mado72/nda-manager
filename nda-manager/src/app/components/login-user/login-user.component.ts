@@ -1,6 +1,5 @@
 import { Component, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ClientService } from '../../services/client.service';
@@ -8,7 +7,7 @@ import { ClientService } from '../../services/client.service';
 @Component({
   selector: 'app-login-user',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './login-user.component.html',
   styleUrl: './login-user.component.scss'
 })
