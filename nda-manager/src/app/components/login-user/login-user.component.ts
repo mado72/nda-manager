@@ -32,6 +32,9 @@ export class LoginUserComponent {
         if (user) {
           this.loggedIn.set(true);
           this.message.set('Login successful!');
+          setTimeout(() => {
+            this.router.navigate(['/']);
+          }, 500);
         } else {
           this.message.set('Invalid credentials.');
         }
