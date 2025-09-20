@@ -45,3 +45,4 @@ nda-manager/.angular/cache/*
 nda-manager/package-lock.json
 html/*
 alterado/*
+nda-manager/dist/*
