@@ -1,16 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 // import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-
-export interface Contract {
-  clientId: string;
-  supplierId: string;
-  status: string;
-  data: any;
-  title: string;
-  description: string;
-  hash: string;
-}
+import { catchError, Observable, of, tap } from 'rxjs';
+import { Contract, ShareRequest, ShareResponse } from '../models/contract.model';
+import { environment } from '../../environments/environment';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class ContractService {

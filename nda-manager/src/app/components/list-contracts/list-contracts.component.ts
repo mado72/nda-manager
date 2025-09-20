@@ -2,7 +2,8 @@ import { Component, signal, OnInit, OnDestroy } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
-import { Contract, ContractService } from '../../services/contract.service';
+import { ContractService } from '../../services/contract.service';
+import { Contract } from '../../models/contract.model';
 
 @Component({
   selector: 'app-list-contracts',
