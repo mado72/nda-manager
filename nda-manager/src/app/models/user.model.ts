@@ -1,8 +1,13 @@
+export enum UserType {
+    client = 'client',
+    supplier = 'supplier'
+}
+
 export interface User {
     id: string;
     username: string;
     stellar_public_key: string;
-    user_type: string; // "client" ou "supplier"
+    user_type: UserType; // "client" ou "supplier"
     created_at: string; // ISO date string
 }
 

@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 // import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
+import { User } from '../models/user.model';
 
 export interface Contract {
   clientId: string;
@@ -14,8 +15,6 @@ export interface Contract {
 
 @Injectable({ providedIn: 'root' })
 export class ContractService {
-  private apiUrl = 'http://localhost:8000/api'; // Rust API base URL
-
   contracts = signal<Contract[]>([]);
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
@@ -25,7 +24,6 @@ export class ContractService {
 
 
   createContract(contractData: Partial<Contract>): Observable<Contract> {
-    debugger;
     this.loading.set(true);
     // O id do contrato será o hash informado
     const newContract: Contract = {
@@ -78,4 +76,19 @@ export class ContractService {
     this.loading.set(false);
     return of(updated);
   }
+
+  getCurrentUser() : User{
+    throw new Error('Method not implemented.');
+  }
+
+  canShareContracts(): boolean {
+    throw new Error('Method not implemented.');
+  }
+  canCreateContracts(): boolean {
+    throw new Error('Method not implemented.');
+  }
+  setCurrentUser(newUser: User) {
+    throw new Error('Method not implemented.');
+  }
+
 }

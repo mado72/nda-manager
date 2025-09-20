@@ -11,6 +11,8 @@ export class UserService {
     constructor(private http: HttpClient) { }
 
     register(data: UserRegisterRequest): Observable<UserResponse> {
+        console.log(data);
+        debugger;
         return this.http.post<UserResponse>(`${this.apiUrl}/api/register`, data);
     }
 
