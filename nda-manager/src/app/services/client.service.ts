@@ -1,10 +1,17 @@
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs/internal/Observable';
+import { UserService } from './user.service';
+import { map } from 'rxjs/internal/operators/map';
+import { catchError } from 'rxjs/internal/operators/catchError';
+import { throwError } from 'rxjs/internal/observable/throwError';
+import { of } from 'rxjs';
 
 export interface Client {
   id: string;
   name: string;
   email: string;
   password: string;
+  stellar_public_key?: string;
 }
 
 @Injectable({
@@ -14,7 +21,7 @@ export class ClientService {
   private clients: Client[] = [];
   private loggedClient: Client | null = null;
 
-  constructor() {
+  constructor(private userService: UserService) {
     this.loadClients();
     this.loadLoggedClient();
   }
@@ -41,16 +48,28 @@ export class ClientService {
     }
   }
 
-  registerClient(name: string, email: string, password: string): Client {
+  registerClient(name: string, email: string, password: string): Observable<Client> {
     const newClient: Client = {
-      id: crypto.randomUUID(),
+      id: '',
       name,
       email,
       password
     };
+
     this.clients.push(newClient);
-    this.saveClients();
-    return newClient;
+    return of(newClient);
+
+    // return this.userService.register({ username: email, password, user_type: 'client' }).pipe(
+    //   map((response) => {
+    //     newClient.id = response.stellar_public_key; // Using stellar_public_key as id for simplicity
+    //     this.clients.push(newClient);
+    //     return newClient;
+    //   }),
+    //   catchError((error) => {
+    //     console.error('Error registering user:', error);
+    //     return throwError(() => new Error('Registration failed'));
+    //   })
+    // );
   }
 
   authenticateClient(email: string, password: string): boolean {
