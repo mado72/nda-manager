@@ -13,107 +13,109 @@
     <span class="brand-title">NDA Manager</span>
   </div>
 
-  <!-- Desktop Menu - COM OPÇÕES CONDICIONAIS -->
-  @if (!isMobile) {
-    <div class="desktop-menu">
-      <!-- Contracts (sempre visível) -->
-      <button 
-        mat-button 
-        routerLink="/contracts" 
-        routerLinkActive="active-link"
-        [routerLinkActiveOptions]="{exact: false}">
-        <mat-icon>description</mat-icon>
-        <span>Contracts</span>
-      </button>
-
-      <!-- ✅ NOVO: New Contract (apenas para clients) -->
-      @if (canCreateContracts) {
-        <button 
-          mat-button 
-          routerLink="/contracts/add" 
-          routerLinkActive="active-link">
-          <mat-icon>add_circle</mat-icon>
-          <span>New Contract</span>
-        </button>
-      }
-
-      <!-- ✅ NOVO: Share Contract (apenas para clients) -->
-      @if (canShareContracts) {
-        <button 
-          mat-button 
-          routerLink="/contracts/share" 
-          routerLinkActive="active-link">
-          <mat-icon>share</mat-icon>
-          <span>Share Contract</span>
-        </button>
-      }
-    </div>
-  }
-
-  <!-- Spacer -->
-  <span class="spacer"></span>
-
-  <!-- User Info - COM TIPO DE USUÁRIO -->
-  @if (userName) {
-    <div class="user-section">
-      <button
-        mat-button
-        [matMenuTriggerFor]="userMenu"
-        class="user-button"
-        aria-label="User menu">
-        <mat-icon>account_circle</mat-icon>
-        @if (!isMobile) {
-          <span class="user-name">{{ userName }}</span>
-        }
-        <!-- ✅ NOVO: Mostrar tipo de usuário -->
-        @if (!isMobile && currentUser) {
-          <span class="user-type">
-            ({{ getUserTypeDisplay() }})
-          </span>
-        }
-        <mat-icon>arrow_drop_down</mat-icon>
-      </button>
-
-      <mat-menu #userMenu="matMenu" class="user-menu">
-        <!-- Header do usuário com tipo -->
-        @if (isMobile) {
-          <div class="user-info-header">
-            <mat-icon>account_circle</mat-icon>
-            <div class="user-details">
-              <span class="user-name-mobile">{{ userName }}</span>
-              <span class="user-type-mobile">{{ getUserTypeDisplay() }}</span>
-            </div>
-          </div>
-          <mat-divider></mat-divider>
-        }
-
-        <!-- ✅ NOVO: Informações do usuário (desktop) -->
-        @if (!isMobile && currentUser) {
-          <div class="user-info-desktop">
-            <div class="user-type-badge" [class]="'badge-' + currentUser.user_type">
-              <mat-icon>{{ getUserTypeIcon() }}</mat-icon>
-              <span>{{ getUserTypeDisplay() }}</span>
-            </div>
-          </div>
-          <mat-divider></mat-divider>
-        }
-
-        <!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
-        @if (currentUser) {
-          <button mat-menu-item (click)="switchUserType()" class="debug-item">
-            <mat-icon>swap_horiz</mat-icon>
-            <span>Switch to {{ displaySwitchUserTypeLabel() }}</span>
-          </button>
-          <mat-divider></mat-divider>
-        }
-
-        <!-- Logout -->
-        <button mat-menu-item (click)="logout()" class="logout-item">
-          <mat-icon>logout</mat-icon>
-          <span>Logout</span>
-        </button>
-      </mat-menu>
-    </div>
+  @if(currentUser) {
+	  <!-- Desktop Menu - COM OPÇÕES CONDICIONAIS -->
+	  @if (!isMobile) {
+		<div class="desktop-menu">
+		  <!-- Contracts (sempre visível) -->
+		  <button 
+			mat-button 
+			routerLink="/contracts" 
+			routerLinkActive="active-link"
+			[routerLinkActiveOptions]="{exact: false}">
+			<mat-icon>description</mat-icon>
+			<span>Contracts</span>
+		  </button>
+	
+		  <!-- ✅ NOVO: New Contract (apenas para clients) -->
+		  @if (canCreateContracts) {
+			<button 
+			  mat-button 
+			  routerLink="/contracts/add" 
+			  routerLinkActive="active-link">
+			  <mat-icon>add_circle</mat-icon>
+			  <span>New Contract</span>
+			</button>
+		  }
+	
+		  <!-- ✅ NOVO: Share Contract (apenas para clients) -->
+		  @if (canShareContracts) {
+			<button 
+			  mat-button 
+			  routerLink="/contracts/share" 
+			  routerLinkActive="active-link">
+			  <mat-icon>share</mat-icon>
+			  <span>Share Contract</span>
+			</button>
+		  }
+		</div>
+	  }
+	
+	  <!-- Spacer -->
+	  <span class="spacer"></span>
+	
+	  <!-- User Info - COM TIPO DE USUÁRIO -->
+	  @if (userName) {
+		<div class="user-section">
+		  <button
+			mat-button
+			[matMenuTriggerFor]="userMenu"
+			class="user-button"
+			aria-label="User menu">
+			<mat-icon>account_circle</mat-icon>
+			@if (!isMobile) {
+			  <span class="user-name">{{ userName }}</span>
+			}
+			<!-- ✅ NOVO: Mostrar tipo de usuário -->
+			@if (!isMobile && currentUser) {
+			  <span class="user-type">
+				({{ getUserTypeDisplay() }})
+			  </span>
+			}
+			<mat-icon>arrow_drop_down</mat-icon>
+		  </button>
+	
+		  <mat-menu #userMenu="matMenu" class="user-menu">
+			<!-- Header do usuário com tipo -->
+			@if (isMobile) {
+			  <div class="user-info-header">
+				<mat-icon>account_circle</mat-icon>
+				<div class="user-details">
+				  <span class="user-name-mobile">{{ userName }}</span>
+				  <span class="user-type-mobile">{{ getUserTypeDisplay() }}</span>
+				</div>
+			  </div>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- ✅ NOVO: Informações do usuário (desktop) -->
+			@if (!isMobile && currentUser) {
+			  <div class="user-info-desktop">
+				<div class="user-type-badge" [class]="'badge-' + currentUser.user_type">
+				  <mat-icon>{{ getUserTypeIcon() }}</mat-icon>
+				  <span>{{ getUserTypeDisplay() }}</span>
+				</div>
+			  </div>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
+			@if (currentUser) {
+			  <button mat-menu-item (click)="switchUserType()" class="debug-item">
+				<mat-icon>swap_horiz</mat-icon>
+				<span>Switch to {{ displaySwitchUserTypeLabel() }}</span>
+			  </button>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- Logout -->
+			<button mat-menu-item (click)="logout()" class="logout-item">
+			  <mat-icon>logout</mat-icon>
+			  <span>Logout</span>
+			</button>
+		  </mat-menu>
+		</div>
+	  }
   }
 </mat-toolbar>
 
@@ -128,77 +130,79 @@
         </button>
       </div>
 
-      <mat-nav-list>
-        <h3 matSubheader>Main Menu</h3>
-
-        <!-- Contracts (sempre visível) -->
-        <a
-          mat-list-item
-          routerLink="/contracts"
-          routerLinkActive="active-link"
-          (click)="sidenav.close()">
-          <mat-icon matListItemIcon>description</mat-icon>
-          <span matListItemTitle>Contracts</span>
-        </a>
-
-        <!-- ✅ NOVO: New Contract (apenas para clients) -->
-        @if (canCreateContracts) {
-          <a
-            mat-list-item
-            routerLink="/contracts/add"
-            routerLinkActive="active-link"
-            (click)="sidenav.close()">
-            <mat-icon matListItemIcon>add_circle</mat-icon>
-            <span matListItemTitle>New Contract</span>
-          </a>
-        }
-
-        <!-- ✅ NOVO: Share Contract (apenas para clients) -->
-        @if (canShareContracts) {
-          <a
-            mat-list-item
-            routerLink="/contracts/share"
-            routerLinkActive="active-link"
-            (click)="sidenav.close()">
-            <mat-icon matListItemIcon>share</mat-icon>
-            <span matListItemTitle>Share Contract</span>
-          </a>
-        }
-
-        <mat-divider></mat-divider>
-
-        <!-- Account Section -->
-        <h3 matSubheader>Account</h3>
-
-        <!-- ✅ NOVO: User Info no mobile -->
-        @if (currentUser) {
-          <div class="mobile-user-info">
-            <mat-list-item class="user-info-item">
-              <mat-icon matListItemIcon>{{ getUserTypeIcon() }}</mat-icon>
-              <div matListItemTitle>
-                <span class="user-type-label">Account Type</span>
-                <span class="user-type-value">{{ getUserTypeDisplay() }}</span>
-              </div>
-            </mat-list-item>
-          </div>
-          <mat-divider></mat-divider>
-        }
-
-        <!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
-        @if (currentUser) {
-          <a mat-list-item (click)="switchUserType(); sidenav.close()" class="debug-item">
-            <mat-icon matListItemIcon>swap_horiz</mat-icon>
-            <span matListItemTitle>Switch to {{ displaySwitchUserTypeLabel() }}</span>
-          </a>
-          <mat-divider></mat-divider>
-        }
-
-        <!-- Logout -->
-        <a mat-list-item (click)="logout(); sidenav.close()" class="logout-item">
-          <mat-icon matListItemIcon>logout</mat-icon>
-          <span matListItemTitle>Logout</span>
-        </a>
-      </mat-nav-list>
+	  @if (currentUser) {
+		  <mat-nav-list>
+			<h3 matSubheader>Main Menu</h3>
+	
+			<!-- Contracts (sempre visível) -->
+			<a
+			  mat-list-item
+			  routerLink="/contracts"
+			  routerLinkActive="active-link"
+			  (click)="sidenav.close()">
+			  <mat-icon matListItemIcon>description</mat-icon>
+			  <span matListItemTitle>Contracts</span>
+			</a>
+	
+			<!-- ✅ NOVO: New Contract (apenas para clients) -->
+			@if (canCreateContracts) {
+			  <a
+				mat-list-item
+				routerLink="/contracts/add"
+				routerLinkActive="active-link"
+				(click)="sidenav.close()">
+				<mat-icon matListItemIcon>add_circle</mat-icon>
+				<span matListItemTitle>New Contract</span>
+			  </a>
+			}
+	
+			<!-- ✅ NOVO: Share Contract (apenas para clients) -->
+			@if (canShareContracts) {
+			  <a
+				mat-list-item
+				routerLink="/contracts/share"
+				routerLinkActive="active-link"
+				(click)="sidenav.close()">
+				<mat-icon matListItemIcon>share</mat-icon>
+				<span matListItemTitle>Share Contract</span>
+			  </a>
+			}
+	
+			<mat-divider></mat-divider>
+	
+			<!-- Account Section -->
+			<h3 matSubheader>Account</h3>
+	
+			<!-- ✅ NOVO: User Info no mobile -->
+			@if (currentUser) {
+			  <div class="mobile-user-info">
+				<mat-list-item class="user-info-item">
+				  <mat-icon matListItemIcon>{{ getUserTypeIcon() }}</mat-icon>
+				  <div matListItemTitle>
+					<span class="user-type-label">Account Type</span>
+					<span class="user-type-value">{{ getUserTypeDisplay() }}</span>
+				  </div>
+				</mat-list-item>
+			  </div>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
+			@if (currentUser) {
+			  <a mat-list-item (click)="switchUserType(); sidenav.close()" class="debug-item">
+				<mat-icon matListItemIcon>swap_horiz</mat-icon>
+				<span matListItemTitle>Switch to {{ displaySwitchUserTypeLabel() }}</span>
+			  </a>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- Logout -->
+			<a mat-list-item (click)="logout(); sidenav.close()" class="logout-item">
+			  <mat-icon matListItemIcon>logout</mat-icon>
+			  <span matListItemTitle>Logout</span>
+			</a>
+		  </mat-nav-list>
+	  }
     </mat-sidenav>
   </mat-sidenav-container>
 }

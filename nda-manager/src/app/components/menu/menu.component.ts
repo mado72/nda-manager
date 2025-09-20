@@ -31,7 +31,6 @@ export class MenuComponent implements OnInit, OnDestroy {
   @ViewChild('sidenav') sidenav!: MatSidenav;
   
   // ✅ ATUALIZAR: Usar dados dinâmicos do usuário
-  userName = 'João Silva'; // Será atualizado dinamicamente
   isMobile = false;
   
   // ✅ NOVO: Propriedades para controle de permissões
@@ -65,8 +64,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     const user = this.contractService.getCurrentUser();
     this.currentUser = user;
     
-    if (user) {
-      this.userName = user.username;
+    if (this.currentUser) {
       this.canCreateContracts = this.contractService.canCreateContracts();
       this.canShareContracts = this.contractService.canShareContracts();
       
@@ -75,10 +73,13 @@ export class MenuComponent implements OnInit, OnDestroy {
       console.log('🔗 Can share contracts:', this.canShareContracts);
     } else {
       // Fallback se não houver usuário logado
-      this.userName = 'Guest';
       this.canCreateContracts = false;
       this.canShareContracts = false;
     }
+  }
+
+  get userName(): string {
+    return this.currentUser ? this.currentUser.username : 'Guest';
   }
 
   // ✅ NOVO: Obter tipo de usuário para exibição
