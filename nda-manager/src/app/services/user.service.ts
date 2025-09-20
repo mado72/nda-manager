@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { User, UserRegisterRequest, UserLoginRequest, UserResponse, UserType } from '../models/user.model';
 
@@ -40,9 +40,10 @@ export class UserService {
             );
     }
 
-    logout(): void {
+    logout(): Observable<void> {
         this.currentUser.set(null);
         localStorage.removeItem(this.STORAGE_KEY);
+        return of(undefined);
     }
 
     setCurrentUser(user: User): void {

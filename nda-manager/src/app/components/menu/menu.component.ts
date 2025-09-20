@@ -34,7 +34,7 @@ import { UserService } from '../../services/user.service';
 })
 export class MenuComponent implements OnInit, OnDestroy {
 
-  private router: Router = inject(Router);
+  private router = inject(Router);
   private userService = inject(UserService);
   private contractService = inject(ContractService);
 
@@ -114,14 +114,16 @@ export class MenuComponent implements OnInit, OnDestroy {
     }
   }
 
-  logout() {
+  logout = () => {
     console.log('🚪 Logging out...');
-    localStorage.removeItem('currentUser');
-    this.router.navigate(['/login']);
+    this.userService.logout().subscribe(() => {
+      this.userService.currentUser.set(null);
+      this.router.navigate(['/login']);
+    });
   }
 
   // ✅ NOVO: Método para debug - trocar tipo de usuário (remover em produção)
-  switchUserType() {
+  switchUserType = () => {
     const currentUser = this.currentUser();
     if (currentUser) {
       const newType = currentUser.user_type === UserType.client ? UserType.supplier : UserType.client;
