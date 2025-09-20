@@ -24,6 +24,11 @@ export const routes: Routes = [
         canActivate: [authGuard]
     },
     {
+        path: 'contracts/share',
+        loadComponent: () => import('./components/share-contract/share-contract.component').then(m => m.ShareContractComponent),
+        canActivate: [authGuard]
+    },
+    {
         path: 'contracts/edit/:contractId',
         loadComponent: () => import('./components/contracts-master-detail/contracts-master-detail.component').then(m => m.ContractsMasterDetailComponent),
         canActivate: [authGuard]
