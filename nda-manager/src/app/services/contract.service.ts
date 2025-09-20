@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 // import { HttpClient } from '@angular/common/http';
 import { catchError, Observable, of, tap } from 'rxjs';
 import { Contract, ShareRequest, ShareResponse } from '../models/contract.model';
@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 
 @Injectable({ providedIn: 'root' })
 export class ContractService {
+  private http = inject(HttpClient);
   contracts = signal<Contract[]>([]);
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
@@ -68,6 +69,33 @@ export class ContractService {
     this.loading.set(false);
     return of(updated);
   }
+
+  
+  shareContract(shareData: ShareRequest): Observable<ShareResponse> {
+    console.log('🔗 Sharing contract:', shareData);
+
+    const response: ShareResponse = {
+      success: true,
+      message: 'Contract shared successfully',
+      shared_at: new Date().toISOString()
+    };
+
+    return of(response);
+
+    // Descomente o código abaixo para fazer a chamada real à API
+    //
+    
+    // return this.http.post<ShareResponse>(`${environment.apiUrl}/processes/share`, shareData).pipe(
+    //   tap(response => {
+    //     console.log('✅ Contract shared successfully:', response);
+    //   }),
+    //   catchError(error => {
+    //     console.error('❌ Error sharing contract:', error);
+    //     throw error;
+    //   })
+    // );
+  }
+
 
   getPermissions(): Observable<{ canCreate: boolean; canShare: boolean }> {
     // Simulação de verificação de permissões
