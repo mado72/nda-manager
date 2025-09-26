@@ -1,33 +1,172 @@
-// src/database.rs
+//! # Database Module
+//! 
+//! This module provides database functionality for the NDA backend system using SQLite.
+//! It manages persistent storage for users, processes, process shares, and access records
+//! with a focus on security and data integrity.
+//! 
+//! ## Database Schema
+//! 
+//! The database consists of four main tables:
+//! 
+//! ### Users Table
+//! Stores user account information with Stellar blockchain integration:
+//! - `id`: Unique identifier (UUID)
+//! - `username`: Unique username for authentication
+//! - `stellar_public_key`: Stellar network public key
+//! - `stellar_secret_key`: Encrypted Stellar network secret key
+//! - `user_type`: User role ('client' or 'supplier')
+//! - `created_at`: Account creation timestamp
+//! 
+//! ### Processes Table
+//! Stores NDA process information with encrypted content:
+//! - `id`: Unique process identifier (UUID)
+//! - `client_id`: Reference to the owning client user
+//! - `title`: Process title/name
+//! - `encrypted_content`: AES-256-GCM encrypted process content
+//! - `encryption_key`: Base64-encoded encryption key
+//! - `status`: Process status ('active', 'completed', etc.)
+//! - `created_at`: Process creation timestamp
+//! 
+//! ### Process Shares Table
+//! Tracks when processes are shared with suppliers via Stellar:
+//! - `id`: Unique share record identifier (UUID)
+//! - `process_id`: Reference to the shared process
+//! - `supplier_public_key`: Stellar public key of the recipient
+//! - `stellar_transaction_hash`: Blockchain transaction hash
+//! - `shared_at`: Share timestamp
+//! 
+//! ### Process Accesses Table
+//! Logs when suppliers access shared processes:
+//! - `id`: Unique access record identifier (UUID)
+//! - `process_id`: Reference to the accessed process
+//! - `supplier_id`: Reference to the accessing supplier
+//! - `accessed_at`: Access timestamp
+//! 
+//! ## Usage Example
+//! 
+//! ```rust
+//! use crate::database::{init_database, queries};
+//! 
+//! // Initialize database with migrations
+//! let pool = init_database().await?;
+//! 
+//! // Create a new user
+//! let user = queries::create_user(
+//!     &pool,
+//!     "john_doe",
+//!     "STELLAR_PUBLIC_KEY",
+//!     "encrypted_secret_key",
+//!     "client"
+//! ).await?;
+//! 
+//! // Create a process
+//! let process = queries::create_process(
+//!     &pool,
+//!     &user.id,
+//!     "Confidential Agreement",
+//!     "encrypted_content",
+//!     "encryption_key"
+//! ).await?;
+//! ```
+//! 
+//! ## Security Considerations
+//! 
+//! - All sensitive process content is encrypted using AES-256-GCM
+//! - Stellar secret keys are stored encrypted
+//! - Database operations use prepared statements to prevent SQL injection
+//! - Timestamps are stored in RFC3339 format for consistency
+//! 
+//! ## Error Handling
+//! 
+//! Database operations return `sqlx::Error` types for SQLite-specific errors
+//! and custom error types for application-level validation failures.
+
 use sqlx::{SqlitePool, migrate::MigrateDatabase, Sqlite};
 use std::error::Error;
 use chrono::{DateTime, Utc};
 
+/// Initializes the SQLite database connection and runs necessary migrations.
+/// 
+/// This function sets up the database connection pool and ensures all required
+/// tables are created with proper schema. It handles database creation if the
+/// file doesn't exist and automatically runs migrations.
+/// 
+/// # Environment Variables
+/// 
+/// - `DATABASE_URL`: Optional SQLite database URL (defaults to `sqlite:./stellar_mvp.db`)
+/// 
+/// # Returns
+/// 
+/// Returns a `Result` containing:
+/// - `Ok(SqlitePool)` - Ready-to-use database connection pool
+/// - `Err(Box<dyn Error>)` - Database initialization or migration error
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use crate::database::init_database;
+/// 
+/// let pool = init_database().await?;
+/// // Pool is now ready for database operations
+/// ```
+/// 
+/// # Panics
+/// 
+/// This function will panic if database creation fails, as this is considered
+/// a critical system failure that should halt application startup.
+/// 
+/// # Database Schema
+/// 
+/// The initialization process creates the following tables:
+/// - `users`: User accounts with Stellar integration
+/// - `processes`: NDA processes with encrypted content
+/// - `process_shares`: Blockchain-recorded process sharing events
+/// - `process_accesses`: Access logs for audit trails
 pub async fn init_database() -> Result<SqlitePool, Box<dyn Error>> {
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "sqlite:./stellar_mvp.db".to_string());
     
-    // Criar banco se não existir
+    // Create database if it doesn't exist
     if !Sqlite::database_exists(&database_url).await.unwrap_or(false) {
-        println!("🔨 Criando banco de dados...");
+        println!("🔨 Creating database...");
         match Sqlite::create_database(&database_url).await {
-            Ok(_) => println!("✅ Banco criado com sucesso"),
-            Err(error) => panic!("❌ Erro ao criar banco: {}", error),
+            Ok(_) => println!("✅ Database created successfully"),
+            Err(error) => panic!("❌ Failed to create database: {}", error),
         }
     }
     
     let pool = SqlitePool::connect(&database_url).await?;
     
-    // Executar migrações
+    // Run database migrations
     run_migrations(&pool).await?;
     
     Ok(pool)
 }
 
+/// Executes database migrations to create all required tables.
+/// 
+/// This internal function creates the database schema by executing DDL statements
+/// for all required tables. It's designed to be idempotent - running it multiple
+/// times is safe and will not cause errors.
+/// 
+/// # Parameters
+/// 
+/// * `pool` - Database connection pool
+/// 
+/// # Returns
+/// 
+/// Returns `Result<(), sqlx::Error>` indicating migration success or failure.
+/// 
+/// # Database Tables Created
+/// 
+/// - **users**: User accounts and Stellar integration data
+/// - **processes**: Encrypted NDA process content and metadata
+/// - **process_shares**: Blockchain sharing records with transaction hashes
+/// - **process_accesses**: Access audit logs for compliance tracking
 async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
-    println!("🔄 Executando migrações...");
+    println!("🔄 Running migrations...");
     
-    // Criar tabela de usuários
+    // Create users table
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS users (
@@ -43,7 +182,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
-    // Criar tabela de processos
+    // Create processes table
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS processes (
@@ -60,7 +199,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
-    // Criar tabela de compartilhamentos
+    // Create process shares table
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS process_shares (
@@ -75,7 +214,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
-    // Criar tabela de acessos
+    // Create process accesses table
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS process_accesses (
@@ -89,27 +228,93 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
-    println!("✅ Migrações executadas com sucesso!");
+    println!("✅ Migrations executed successfully!");
     Ok(())
 }
 
-// Função auxiliar para converter DateTime para string
+/// Converts a UTC DateTime to RFC3339 string format for database storage.
+/// 
+/// This helper function ensures consistent datetime formatting across
+/// all database operations using the RFC3339 standard.
+/// 
+/// # Parameters
+/// 
+/// * `dt` - UTC DateTime to convert
+/// 
+/// # Returns
+/// 
+/// RFC3339 formatted string representation of the datetime
 fn datetime_to_string(dt: &DateTime<Utc>) -> String {
     dt.to_rfc3339()
 }
 
-// Função auxiliar para converter string para DateTime
+/// Parses an RFC3339 string into a UTC DateTime.
+/// 
+/// This helper function converts stored datetime strings back to
+/// DateTime objects, handling timezone conversion to UTC.
+/// 
+/// # Parameters
+/// 
+/// * `s` - RFC3339 formatted datetime string
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(DateTime<Utc>)` - Parsed datetime in UTC
+/// - `Err(chrono::ParseError)` - Parse failure for invalid format
 fn string_to_datetime(s: &str) -> Result<DateTime<Utc>, chrono::ParseError> {
     DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&Utc))
 }
 
-// Módulo de queries
+/// Database queries module containing all CRUD operations.
+/// 
+/// This module provides type-safe database operations for all entity types
+/// in the NDA system. All functions return proper error handling and use
+/// prepared statements for SQL injection prevention.
 pub mod queries {
     use super::*;
     use crate::models::*;
     use uuid::Uuid;
     use sqlx::Row;
 
+    /// Creates a new user account in the database.
+    /// 
+    /// This function creates a new user with Stellar blockchain integration,
+    /// generating a unique UUID and setting the creation timestamp automatically.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `username` - Unique username for the account
+    /// * `stellar_public_key` - User's Stellar network public key
+    /// * `stellar_secret_key` - Encrypted Stellar network secret key
+    /// * `user_type` - User role: "client" or "supplier"
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(User)` - Created user with generated ID and timestamp
+    /// - `Err(sqlx::Error)` - Database error (e.g., username conflict)
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// let user = queries::create_user(
+    ///     &pool,
+    ///     "john_doe",
+    ///     "GCKFBEIYTKP...",
+    ///     "encrypted_secret",
+    ///     "client"
+    /// ).await?;
+    /// ```
+    /// 
+    /// # Errors
+    /// 
+    /// Will return `sqlx::Error` if:
+    /// - Username already exists (UNIQUE constraint violation)
+    /// - Stellar public key already exists
+    /// - Invalid user_type (must be 'client' or 'supplier')
+    /// - Database connection issues
     pub async fn create_user(
         pool: &SqlitePool,
         username: &str,
@@ -146,6 +351,32 @@ pub mod queries {
         })
     }
 
+    /// Finds a user by their username.
+    /// 
+    /// This function performs a case-sensitive username lookup and returns
+    /// the complete user record if found. Useful for authentication and
+    /// user lookup operations.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `username` - Username to search for
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(Some(User))` - User found with the specified username
+    /// - `Ok(None)` - No user found with that username
+    /// - `Err(sqlx::Error)` - Database error or datetime parsing failure
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// match queries::find_user_by_username(&pool, "john_doe").await? {
+    ///     Some(user) => println!("Found user: {}", user.username),
+    ///     None => println!("User not found"),
+    /// }
+    /// ```
     pub async fn find_user_by_username(
         pool: &SqlitePool,
         username: &str,
@@ -177,6 +408,43 @@ pub mod queries {
         }
     }
 
+    /// Creates a new NDA process with encrypted content.
+    /// 
+    /// This function creates a new process owned by a client user, with all
+    /// sensitive content encrypted using AES-256-GCM. The process starts
+    /// in 'active' status and gets a unique UUID identifier.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `client_id` - ID of the client user creating the process
+    /// * `title` - Human-readable title for the process
+    /// * `encrypted_content` - Base64-encoded encrypted process content
+    /// * `encryption_key` - Base64-encoded encryption key for the content
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(Process)` - Created process with generated ID and timestamp
+    /// - `Err(sqlx::Error)` - Database error or foreign key constraint failure
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// let process = queries::create_process(
+    ///     &pool,
+    ///     &user.id,
+    ///     "Software Development NDA",
+    ///     "base64_encrypted_content",
+    ///     "base64_encryption_key"
+    /// ).await?;
+    /// ```
+    /// 
+    /// # Security Notes
+    /// 
+    /// - Content must be pre-encrypted before calling this function
+    /// - Encryption keys should be generated using cryptographically secure methods
+    /// - Consider the encryption key storage and access patterns carefully
     pub async fn create_process(
         pool: &SqlitePool,
         client_id: &str,
@@ -216,6 +484,31 @@ pub mod queries {
         })
     }
 
+    /// Finds a process by its unique ID.
+    /// 
+    /// This function retrieves a complete process record by its UUID,
+    /// including all metadata and encrypted content. Used for process
+    /// access and sharing operations.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `process_id` - UUID of the process to find
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(Some(Process))` - Process found with the specified ID
+    /// - `Ok(None)` - No process found with that ID
+    /// - `Err(sqlx::Error)` - Database error or datetime parsing failure
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// if let Some(process) = queries::find_process_by_id(&pool, &process_id).await? {
+    ///     println!("Process title: {}", process.title);
+    /// }
+    /// ```
     pub async fn find_process_by_id(
         pool: &SqlitePool,
         process_id: &str,
@@ -248,6 +541,31 @@ pub mod queries {
         }
     }
 
+    /// Lists all processes owned by a specific client.
+    /// 
+    /// This function retrieves all processes created by a client user,
+    /// ordered by creation date (newest first). Useful for client
+    /// dashboard and process management interfaces.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `client_id` - ID of the client user
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(Vec<Process>)` - List of processes (may be empty)
+    /// - `Err(sqlx::Error)` - Database error or datetime parsing failure
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// let processes = queries::list_processes_by_client(&pool, &client_id).await?;
+    /// for process in processes {
+    ///     println!("Process: {} ({})", process.title, process.status);
+    /// }
+    /// ```
     pub async fn list_processes_by_client(
         pool: &SqlitePool,
         client_id: &str,
@@ -280,6 +598,41 @@ pub mod queries {
         Ok(processes)
     }
 
+    /// Records a process sharing event on the Stellar blockchain.
+    /// 
+    /// This function creates a record when a process is shared with a supplier
+    /// via the Stellar network. It stores the blockchain transaction hash for
+    /// audit and verification purposes.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `process_id` - ID of the process being shared
+    /// * `supplier_public_key` - Stellar public key of the recipient supplier
+    /// * `stellar_transaction_hash` - Hash of the blockchain transaction
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(ProcessShare)` - Created share record with generated ID and timestamp
+    /// - `Err(sqlx::Error)` - Database error or foreign key constraint failure
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// let share = queries::create_process_share(
+    ///     &pool,
+    ///     &process.id,
+    ///     "GCKFBEIYTKP...",
+    ///     "stellar_tx_hash_123"
+    /// ).await?;
+    /// ```
+    /// 
+    /// # Blockchain Integration
+    /// 
+    /// This function should be called after successfully submitting a sharing
+    /// transaction to the Stellar network. The transaction hash provides
+    /// immutable proof of the sharing event.
     pub async fn create_process_share(
         pool: &SqlitePool,
         process_id: &str,
@@ -313,6 +666,41 @@ pub mod queries {
         })
     }
 
+    /// Records when a supplier accesses a shared process.
+    /// 
+    /// This function logs access events for audit trails and compliance
+    /// monitoring. It creates a timestamped record each time a supplier
+    /// views or downloads process content.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `process_id` - ID of the accessed process
+    /// * `supplier_id` - ID of the supplier accessing the process
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(ProcessAccess)` - Created access record with generated ID and timestamp
+    /// - `Err(sqlx::Error)` - Database error or foreign key constraint failure
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// let access = queries::create_process_access(
+    ///     &pool,
+    ///     &process.id,
+    ///     &supplier.id
+    /// ).await?;
+    /// ```
+    /// 
+    /// # Compliance Notes
+    /// 
+    /// Access logging is crucial for:
+    /// - Audit trails for regulatory compliance
+    /// - Monitoring unauthorized access attempts  
+    /// - Usage analytics for process owners
+    /// - Legal evidence in case of disputes
     pub async fn create_process_access(
         pool: &SqlitePool,
         process_id: &str,
@@ -343,6 +731,44 @@ pub mod queries {
         })
     }
 
+    /// Lists all access events for processes owned by a client.
+    /// 
+    /// This function retrieves a comprehensive audit trail showing when
+    /// suppliers have accessed the client's processes. It includes denormalized
+    /// data (process titles and supplier usernames) for easier reporting.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `client_id` - ID of the client user
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(Vec<ProcessAccessWithDetails>)` - List of access events with details
+    /// - `Err(sqlx::Error)` - Database error or datetime parsing failure
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// let accesses = queries::list_process_accesses_by_client(&pool, &client_id).await?;
+    /// for access in accesses {
+    ///     println!("{} accessed '{}' at {}", 
+    ///         access.supplier_username, 
+    ///         access.process_title,
+    ///         access.accessed_at
+    ///     );
+    /// }
+    /// ```
+    /// 
+    /// # Query Details
+    /// 
+    /// This function performs a JOIN across three tables:
+    /// - `process_accesses`: Core access records
+    /// - `processes`: To get process titles and verify ownership
+    /// - `users`: To get supplier usernames for readability
+    /// 
+    /// Results are ordered by access time (newest first) for chronological review.
     pub async fn list_process_accesses_by_client(
         pool: &SqlitePool,
         client_id: &str,

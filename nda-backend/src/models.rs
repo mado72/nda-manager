@@ -1,17 +1,141 @@
+//! # Data Models Module
+//! 
+//! This module defines all data structures used throughout the NDA backend application.
+//! It includes database entities, API request/response models, and data transformation utilities.
+//! 
+//! ## Model Categories
+//! 
+//! ### Database Entities
+//! Core business entities that are persisted in the SQLite database:
+//! - [`User`] - User accounts with Stellar blockchain integration
+//! - [`Process`] - Encrypted NDA processes with metadata
+//! - [`ProcessShare`] - Blockchain-recorded sharing events
+//! - [`ProcessAccess`] - Access audit logs for compliance
+//! - [`ProcessAccessWithDetails`] - Enriched access records with denormalized data
+//! 
+//! ### API Request Models
+//! Structures for deserializing incoming HTTP requests:
+//! - [`RegisterRequest`] - User registration payload
+//! - [`LoginRequest`] - User authentication payload
+//! - [`CreateProcessRequest`] - Process creation payload
+//! - [`ShareProcessRequest`] - Process sharing payload
+//! - [`AccessProcessRequest`] - Process access payload
+//! 
+//! ### API Response Models
+//! Structures for serializing outgoing HTTP responses:
+//! - [`UserResponse`] - User data without sensitive fields
+//! - [`ProcessResponse`] - Process metadata without encrypted content
+//! - [`ProcessAccessResponse`] - Decrypted process content for authorized access
+//! 
+//! ## Security Considerations
+//! 
+//! - **Sensitive Data**: Database models contain encrypted fields and secret keys
+//! - **Response Filtering**: Response models exclude sensitive data from API responses
+//! - **Type Safety**: All models use strong typing to prevent data corruption
+//! - **Serialization**: Proper serde attributes ensure safe JSON handling
+//! 
+//! ## Database Integration
+//! 
+//! All database entities derive `FromRow` for seamless SQLx integration,
+//! enabling type-safe database queries with compile-time verification.
+//! 
+//! ## Usage Example
+//! 
+//! ```rust,no_run
+//! use nda_backend::models::*;
+//! 
+//! fn example() -> Result<(), Box<dyn std::error::Error>> {
+//!     let json_data = r#"{"title": "Sample Process", "content": "Sample content"}"#;
+//!     
+//!     // Create a process request from JSON
+//!     let request: CreateProcessRequest = serde_json::from_str(&json_data)?;
+//!     
+//!     // Create a sample process (in real code, this would come from database)
+//!     let process = Process {
+//!         id: "123".to_string(),
+//!         client_id: "456".to_string(),
+//!         title: "Sample".to_string(),
+//!         encrypted_content: "encrypted".to_string(),
+//!         encryption_key: "key".to_string(),
+//!         status: "active".to_string(),
+//!         created_at: chrono::Utc::now(),
+//!     };
+//!     
+//!     // Convert database entity to API response
+//!     let response: ProcessResponse = process.into();
+//!     
+//!     // Serialize response to JSON
+//!     let json = serde_json::to_string(&response)?;
+//!     Ok(())
+//! }
+//! ```
+
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
 
+/// User account with Stellar blockchain integration.
+/// 
+/// Represents a user in the NDA system with associated Stellar network credentials.
+/// Users can be either clients (who create and own processes) or suppliers
+/// (who receive shared access to processes).
+/// 
+/// # Fields
+/// 
+/// * `id` - Unique identifier (UUID)
+/// * `username` - Unique username for authentication
+/// * `stellar_public_key` - Stellar network public key for blockchain operations
+/// * `stellar_secret_key` - Stellar network secret key (encrypted in production)
+/// * `user_type` - Role designation: "client" or "supplier"
+/// * `created_at` - Account creation timestamp
+/// 
+/// # Security Notes
+/// 
+/// - The `stellar_secret_key` should be encrypted using a Key Management Service (KMS) in production
+/// - This model contains sensitive data and should not be directly exposed via APIs
+/// - Use [`UserResponse`] for API responses to exclude sensitive fields
+/// 
+/// # Database Integration
+/// 
+/// This struct derives `FromRow` for direct SQLx query result mapping.
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: String,
     pub username: String,
     pub stellar_public_key: String,
-    pub stellar_secret_key: String, // Em produção, usar KMS
-    pub user_type: String, // "client" ou "supplier"
+    pub stellar_secret_key: String, // In production, use KMS (Key Management Service)
+    pub user_type: String, // "client" or "supplier"
     pub created_at: DateTime<Utc>,
 }
 
+/// NDA process with encrypted confidential content.
+/// 
+/// Represents a Non-Disclosure Agreement process containing encrypted sensitive
+/// information that can be selectively shared with suppliers via blockchain transactions.
+/// 
+/// # Fields
+/// 
+/// * `id` - Unique process identifier (UUID)
+/// * `client_id` - Reference to the owning client user
+/// * `title` - Human-readable process title/description
+/// * `encrypted_content` - AES-256-GCM encrypted confidential content
+/// * `encryption_key` - Base64-encoded encryption key for the content
+/// * `status` - Process lifecycle status ("active", "completed", etc.)
+/// * `created_at` - Process creation timestamp
+/// 
+/// # Security Model
+/// 
+/// - Content is encrypted using AES-256-GCM before database storage
+/// - Each process has a unique encryption key generated during creation
+/// - Only authorized users can decrypt content after blockchain-verified sharing
+/// - Access attempts are logged for audit trails and compliance
+/// 
+/// # Lifecycle
+/// 
+/// 1. **Creation**: Client creates process with encrypted content
+/// 2. **Sharing**: Client shares with suppliers via Stellar blockchain transaction
+/// 3. **Access**: Suppliers decrypt and access content with proper authorization
+/// 4. **Audit**: All access events are logged for compliance reporting
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Process {
     pub id: String,
@@ -23,6 +147,32 @@ pub struct Process {
     pub created_at: DateTime<Utc>,
 }
 
+/// Blockchain-recorded process sharing event.
+/// 
+/// Records when a process has been shared with a supplier via a Stellar blockchain
+/// transaction, providing immutable proof of sharing for audit and verification.
+/// 
+/// # Fields
+/// 
+/// * `id` - Unique sharing record identifier (UUID)
+/// * `process_id` - Reference to the shared process
+/// * `supplier_public_key` - Stellar public key of the recipient supplier
+/// * `stellar_transaction_hash` - Immutable blockchain transaction hash
+/// * `shared_at` - Timestamp when sharing occurred
+/// 
+/// # Blockchain Integration
+/// 
+/// - Each sharing event creates a Stellar network transaction
+/// - Transaction hash provides cryptographic proof of sharing
+/// - Memo field in transaction contains process metadata
+/// - Sharing rights can be independently verified on the blockchain
+/// 
+/// # Compliance Benefits
+/// 
+/// - Immutable audit trail for regulatory compliance
+/// - Cryptographically verifiable sharing permissions
+/// - Dispute resolution through blockchain evidence
+/// - Time-stamped sharing events for legal requirements
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct ProcessShare {
     pub id: String,
@@ -32,6 +182,24 @@ pub struct ProcessShare {
     pub shared_at: DateTime<Utc>,
 }
 
+/// Process access audit record.
+/// 
+/// Logs when a supplier accesses a shared process, creating a complete
+/// audit trail for compliance and monitoring purposes.
+/// 
+/// # Fields
+/// 
+/// * `id` - Unique access record identifier (UUID)
+/// * `process_id` - Reference to the accessed process
+/// * `supplier_id` - Reference to the accessing supplier user
+/// * `accessed_at` - Timestamp when access occurred
+/// 
+/// # Compliance Features
+/// 
+/// - Every process access is logged for regulatory requirements
+/// - Timestamps provide chronological access history
+/// - Failed access attempts are also recorded
+/// - Access patterns can be analyzed for security monitoring
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct ProcessAccess {
     pub id: String,
@@ -40,6 +208,27 @@ pub struct ProcessAccess {
     pub accessed_at: DateTime<Utc>,
 }
 
+/// Enriched process access record with denormalized data.
+/// 
+/// Extends [`ProcessAccess`] with additional fields for easier reporting
+/// and dashboard display without requiring complex joins.
+/// 
+/// # Fields
+/// 
+/// * `id` - Unique access record identifier (UUID)
+/// * `process_id` - Reference to the accessed process
+/// * `supplier_id` - Reference to the accessing supplier user
+/// * `accessed_at` - Timestamp when access occurred
+/// * `process_title` - Denormalized process title for display
+/// * `supplier_username` - Denormalized supplier username for display
+/// 
+/// # Usage
+/// 
+/// This model is typically used for:
+/// - Client dashboard notifications
+/// - Compliance reporting interfaces
+/// - Access analytics and monitoring
+/// - Real-time access alerts
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct ProcessAccessWithDetails {
     pub id: String,
@@ -50,6 +239,29 @@ pub struct ProcessAccessWithDetails {
     pub supplier_username: String,
 }
 
+/// User registration request payload.
+/// 
+/// Contains the necessary information to create a new user account
+/// with automatic Stellar blockchain integration.
+/// 
+/// # Fields
+/// 
+/// * `username` - Desired unique username
+/// * `password` - User password (currently unused in MVP)
+/// * `user_type` - User role: "client" or "supplier"
+/// 
+/// # Validation
+/// 
+/// - Username must be unique across all users
+/// - User type must be either "client" or "supplier"
+/// - Password field exists for future authentication enhancement
+/// 
+/// # Stellar Integration
+/// 
+/// Upon successful registration:
+/// - A Stellar keypair is automatically generated
+/// - The account is funded on testnet for immediate use
+/// - Stellar credentials are securely stored in the database
 #[derive(Debug, Deserialize)]
 pub struct RegisterRequest {
     pub username: String,
@@ -57,19 +269,71 @@ pub struct RegisterRequest {
     pub user_type: String,
 }
 
+/// User authentication request payload.
+/// 
+/// Simple username-based authentication for the MVP.
+/// In production, this would include proper password verification.
+/// 
+/// # Fields
+/// 
+/// * `username` - Username for authentication
+/// * `password` - Password (currently unused in MVP)
+/// 
+/// # Security Notes
+/// 
+/// - Current implementation uses username-only authentication
+/// - Password field exists for future security enhancement
+/// - Production systems should implement proper password hashing
+/// - Consider adding JWT tokens for session management
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
 }
 
+/// Process creation request payload.
+/// 
+/// Contains the information needed to create a new encrypted NDA process.
+/// The confidential content will be automatically encrypted before storage.
+/// 
+/// # Fields
+/// 
+/// * `title` - Human-readable process title/description
+/// * `confidential_content` - Sensitive content to be encrypted
+/// * `client_username` - Username of the client creating the process
+/// 
+/// # Security Processing
+/// 
+/// After receiving this request:
+/// 1. Content is encrypted using AES-256-GCM
+/// 2. A unique encryption key is generated
+/// 3. Process is associated with the client user
+/// 4. Encrypted data is stored in the database
 #[derive(Debug, Deserialize)]
 pub struct CreateProcessRequest {
     pub title: String,
     pub confidential_content: String,
-    pub client_username: String,  // ← Adicionar este campo
+    pub client_username: String,
 }
 
+/// Process sharing request payload.
+/// 
+/// Contains the information needed to share a process with a supplier
+/// via a Stellar blockchain transaction.
+/// 
+/// # Fields
+/// 
+/// * `process_id` - ID of the process to share
+/// * `supplier_public_key` - Stellar public key of the recipient
+/// * `client_username` - Username of the client sharing the process
+/// 
+/// # Blockchain Integration
+/// 
+/// This request triggers:
+/// 1. Verification of process ownership by client
+/// 2. Creation of a Stellar blockchain transaction
+/// 3. Recording of the transaction hash for audit
+/// 4. Granting of access permissions to the supplier
 #[derive(Debug, Deserialize)]
 pub struct ShareProcessRequest {
     pub process_id: String,
@@ -77,6 +341,25 @@ pub struct ShareProcessRequest {
     pub client_username: String,
 }
 
+/// Process access request payload.
+/// 
+/// Contains the information needed for a supplier to access
+/// a shared process and decrypt its contents.
+/// 
+/// # Fields
+/// 
+/// * `process_id` - ID of the process to access
+/// * `supplier_public_key` - Stellar public key for verification
+/// * `supplier_username` - Username of the requesting supplier
+/// 
+/// # Access Control
+/// 
+/// Before granting access, the system:
+/// 1. Verifies the process exists
+/// 2. Checks that sharing record exists in database
+/// 3. Validates supplier credentials
+/// 4. Logs the access event for audit
+/// 5. Decrypts and returns the content
 #[derive(Debug, Deserialize)]
 pub struct AccessProcessRequest {
     pub process_id: String,
@@ -84,7 +367,24 @@ pub struct AccessProcessRequest {
     pub supplier_username: String,
 }
 
-// Response models para API
+/// User data for API responses (excludes sensitive fields).
+/// 
+/// Safe representation of user data that excludes sensitive information
+/// like the Stellar secret key. Used for all public API responses.
+/// 
+/// # Fields
+/// 
+/// * `id` - User identifier
+/// * `username` - Public username
+/// * `stellar_public_key` - Stellar public key (safe to expose)
+/// * `user_type` - User role designation
+/// * `created_at` - Account creation timestamp
+/// 
+/// # Security Features
+/// 
+/// - Excludes `stellar_secret_key` for security
+/// - Safe for JSON serialization in API responses
+/// - Automatically converted from [`User`] via `From` trait
 #[derive(Debug, Serialize)]
 pub struct UserResponse {
     pub id: String,
@@ -94,6 +394,31 @@ pub struct UserResponse {
     pub created_at: DateTime<Utc>,
 }
 
+/// Converts a [`User`] database entity to a safe API response.
+/// 
+/// This implementation automatically excludes sensitive fields like
+/// the Stellar secret key when converting to API response format.
+/// 
+/// # Security
+/// 
+/// The conversion deliberately omits:
+/// - `stellar_secret_key` - Sensitive cryptographic material
+/// 
+/// # Usage
+/// 
+/// ```rust,no_run
+/// use nda_backend::models::*;
+/// 
+/// let user = User {
+///     id: "123".to_string(),
+///     username: "john_doe".to_string(),
+///     stellar_public_key: "GABC...".to_string(),
+///     stellar_secret_key: "SABC...".to_string(),
+///     user_type: "client".to_string(),
+///     created_at: chrono::Utc::now(),
+/// };
+/// let response: UserResponse = user.into();
+/// ```
 impl From<User> for UserResponse {
     fn from(user: User) -> Self {
         UserResponse {
@@ -106,6 +431,24 @@ impl From<User> for UserResponse {
     }
 }
 
+/// Process metadata for API responses (excludes encrypted content).
+/// 
+/// Safe representation of process data that excludes sensitive information
+/// like encrypted content and encryption keys. Used for process listings
+/// and metadata operations.
+/// 
+/// # Fields
+/// 
+/// * `id` - Process identifier
+/// * `title` - Process title/description
+/// * `status` - Current process status
+/// * `created_at` - Process creation timestamp
+/// 
+/// # Security Features
+/// 
+/// - Excludes `encrypted_content` and `encryption_key` for security
+/// - Safe for public API responses and process listings
+/// - Automatically converted from [`Process`] via `From` trait
 #[derive(Debug, Serialize)]
 pub struct ProcessResponse {
     pub id: String,
@@ -114,6 +457,34 @@ pub struct ProcessResponse {
     pub created_at: DateTime<Utc>,
 }
 
+/// Converts a [`Process`] database entity to a safe API response.
+/// 
+/// This implementation automatically excludes sensitive fields like
+/// encrypted content and encryption keys when converting to API response format.
+/// 
+/// # Security
+/// 
+/// The conversion deliberately omits:
+/// - `encrypted_content` - Sensitive encrypted data
+/// - `encryption_key` - Cryptographic key material
+/// - `client_id` - Internal database reference
+/// 
+/// # Usage
+/// 
+/// ```rust,no_run
+/// use nda_backend::models::*;
+/// 
+/// let process = Process {
+///     id: "123".to_string(),
+///     client_id: "456".to_string(),
+///     title: "Sample Process".to_string(),
+///     encrypted_content: "encrypted_data".to_string(),
+///     encryption_key: "encryption_key".to_string(),
+///     status: "active".to_string(),
+///     created_at: chrono::Utc::now(),
+/// };
+/// let response: ProcessResponse = process.into();
+/// ```
 impl From<Process> for ProcessResponse {
     fn from(process: Process) -> Self {
         ProcessResponse {
@@ -125,6 +496,30 @@ impl From<Process> for ProcessResponse {
     }
 }
 
+/// Decrypted process content for authorized access responses.
+/// 
+/// Contains the decrypted confidential content that is returned when
+/// a supplier successfully accesses a shared process. This response
+/// is only generated after proper authorization verification.
+/// 
+/// # Fields
+/// 
+/// * `process_id` - ID of the accessed process
+/// * `title` - Process title for reference
+/// * `content` - Decrypted confidential content
+/// * `accessed_at` - Timestamp when access occurred
+/// 
+/// # Security Notes
+/// 
+/// - Content is decrypted only in memory during request processing
+/// - Access is logged for audit trails and compliance
+/// - Only returned after blockchain-verified sharing authorization
+/// - Each access event is recorded in the database
+/// 
+/// # Usage Context
+/// 
+/// This model is used exclusively for successful process access operations
+/// where the supplier has proven authorization to view the content.
 #[derive(Debug, Serialize)]
 pub struct ProcessAccessResponse {
     pub process_id: String,

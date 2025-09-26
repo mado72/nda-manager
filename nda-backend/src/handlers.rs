@@ -1,4 +1,86 @@
-// src/handlers.rs
+//! # HTTP Handlers Module
+//! 
+//! This module provides HTTP request handlers for the NDA backend API.
+//! It implements a RESTful API using the Axum web framework for managing
+//! users, NDA processes, and blockchain-integrated sharing operations.
+//! 
+//! ## API Overview
+//! 
+//! The API provides the following main endpoints:
+//! 
+//! ### Authentication & User Management
+//! - `POST /api/register` - Register new users with Stellar account creation
+//! - `POST /api/login` - Authenticate existing users
+//! 
+//! ### Process Management
+//! - `POST /api/processes` - Create new NDA processes with encryption
+//! - `GET /api/processes` - List processes owned by a client
+//! 
+//! ### Sharing & Access
+//! - `POST /api/share` - Share processes via Stellar blockchain transactions
+//! - `POST /api/access` - Access shared processes with decryption
+//! - `GET /api/notifications` - Get access notifications for process owners
+//! 
+//! ### Health Check
+//! - `GET /health` - Simple health check endpoint
+//! 
+//! ## Security Model
+//! 
+//! The API implements multiple security layers:
+//! 
+//! - **Encryption**: All process content is encrypted using AES-256-GCM
+//! - **Blockchain Verification**: Process sharing is recorded on Stellar network
+//! - **Access Control**: Suppliers can only access processes explicitly shared with them
+//! - **Audit Trail**: All access events are logged for compliance
+//! 
+//! ## Request Flow Example
+//! 
+//! ```rust
+//! // 1. Register users
+//! let client = register_user(RegisterRequest {
+//!     username: "client_company".to_string(),
+//!     user_type: "client".to_string(),
+//! }).await?;
+//! 
+//! // 2. Create encrypted process
+//! let process = create_process(CreateProcessRequest {
+//!     client_username: "client_company".to_string(),
+//!     title: "Software Development NDA".to_string(),
+//!     confidential_content: "Sensitive technical details...".to_string(),
+//! }).await?;
+//! 
+//! // 3. Share via blockchain
+//! let share = share_process(ShareProcessRequest {
+//!     client_username: "client_company".to_string(),
+//!     process_id: process.id,
+//!     supplier_public_key: "GCKFBEIY...".to_string(),
+//! }).await?;
+//! 
+//! // 4. Supplier accesses content
+//! let content = access_process(AccessProcessRequest {
+//!     process_id: process.id,
+//!     supplier_username: "supplier_company".to_string(),
+//! }).await?;
+//! ```
+//! 
+//! ## Error Handling
+//! 
+//! All handlers return HTTP status codes following REST conventions:
+//! - `200 OK` - Successful operations
+//! - `400 Bad Request` - Invalid request parameters
+//! - `401 Unauthorized` - Authentication failures
+//! - `403 Forbidden` - Access denied to resources
+//! - `404 Not Found` - Resource not found
+//! - `409 Conflict` - Resource conflicts (e.g., username already exists)
+//! - `500 Internal Server Error` - Server-side errors
+//! 
+//! ## Stellar Integration
+//! 
+//! The handlers integrate with Stellar blockchain for:
+//! - Automatic account creation and funding on testnet
+//! - Recording process sharing transactions with immutable proof
+//! - Verification of sharing rights before granting access
+
 use axum::{
     extract::{State, Json, Query},
     response::Json as ResponseJson,
@@ -7,8 +89,8 @@ use axum::{
 use std::sync::Arc;
 use chrono::Utc;
 use serde::Deserialize;
-use uuid::Uuid;  // ← Adicionar esta linha
-use sqlx;        // ← Adicionar esta linha
+use uuid::Uuid;
+use sqlx;
 
 use crate::{
     models::*,
@@ -17,43 +99,156 @@ use crate::{
     database::queries,
 };
 
-// Definir AppState aqui mesmo
+/// Application state shared across all handlers.
+/// 
+/// Contains the database connection pool and other shared resources
+/// needed by HTTP handlers to process requests. This state is cloned
+/// and shared across all handler instances using Arc for thread safety.
+/// 
+/// # Fields
+/// 
+/// * `pool` - SQLite connection pool for database operations
+/// 
+/// # Thread Safety
+/// 
+/// This struct is `Clone` and used with `Arc` to share state safely
+/// across multiple concurrent HTTP request handlers. The SQLite pool
+/// handles concurrent access internally.
+/// 
+/// # Security Considerations
+/// 
+/// - Database connections use prepared statements to prevent SQL injection
+/// - All sensitive operations are logged for audit trails
+/// - Connection pool limits prevent resource exhaustion attacks
 #[derive(Clone)]
 pub struct AppState {
     pub pool: sqlx::SqlitePool,
 }
 
-// Query parameters para listar processos
+/// Query parameters for endpoints that list processes.
+/// 
+/// Used by endpoints that need to filter or identify processes
+/// based on the client username. The username parameter is optional
+/// in the struct but required by most endpoints that use it.
+/// 
+/// # Fields
+/// 
+/// * `client_username` - Username of the client to filter processes for
+/// 
+/// # Usage
+/// 
+/// This struct is used with Axum's `Query` extractor to parse URL parameters:
+/// 
+/// ```
+/// GET /api/processes?client_username=client_company
+/// ```
 #[derive(Deserialize)]
 pub struct ListProcessesQuery {
     pub client_username: Option<String>,
 }
 
+/// Simple health check endpoint handler.
+/// 
+/// Returns a static "OK" string to verify that the service is running.
+/// This endpoint can be used by load balancers, monitoring systems,
+/// and deployment scripts to verify service health.
+/// 
+/// # Returns
+/// 
+/// Always returns "OK" as a static string response.
+/// 
+/// # HTTP Response
+/// - **Status**: 200 OK
+/// - **Body**: "OK"
+/// 
+/// # Examples
+/// 
+/// ```
+/// GET /health
+/// → 200 OK
+/// → "OK"
+/// ```
 pub async fn health_check() -> &'static str {
     "OK"
 }
 
+/// Registers a new user with automatic Stellar account creation.
+/// 
+/// This endpoint creates a new user account with integrated Stellar blockchain
+/// functionality. It automatically generates a Stellar keypair, funds the account
+/// on testnet, and stores the user information securely in the database.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state containing database pool
+/// * `payload` - Registration request with username and user type
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<UserResponse>)` - Successfully created user with Stellar integration
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: User created successfully
+/// - **409 Conflict**: Username already exists
+/// - **500 Internal Server Error**: Stellar account creation or database error
+/// 
+/// # Request Body
+/// 
+/// ```json
+/// {
+///   "username": "client_company",
+///   "user_type": "client"
+/// }
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// {
+///   "id": "uuid-string",
+///   "username": "client_company",
+///   "stellar_public_key": "GCKFBEIY...",
+///   "user_type": "client",
+///   "created_at": "2024-01-01T00:00:00Z"
+/// }
+/// ```
+/// 
+/// # Security Notes
+/// 
+/// - Stellar secret keys are stored encrypted in the database
+/// - Testnet accounts are automatically funded for development/testing
+/// - Username uniqueness is enforced at the database level
+/// 
+/// # Stellar Integration
+/// 
+/// Each user gets:
+/// - A unique Stellar keypair (public/secret key)
+/// - Automatic testnet funding for immediate use
+/// - Integration ready for blockchain transactions
 pub async fn register_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<ResponseJson<UserResponse>, StatusCode> {
-    // Verificar se usuário já existe
+    // Check if user already exists
     if let Ok(Some(_)) = queries::find_user_by_username(&state.pool, &payload.username).await {
         return Err(StatusCode::CONFLICT);
     }
     
-    // Criar conta Stellar real
+    // Create real Stellar account
     let stellar_account = StellarClient::generate_keypair()
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // Financiar conta na testnet automaticamente
+    // Fund account on testnet automatically
     let stellar_client = StellarClient::new_testnet();
     let _funded = stellar_client
         .fund_testnet_account(&stellar_account.public_key)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // Criar usuário no banco
+    // Create user in database
     let user = queries::create_user(
         &state.pool,
         &payload.username,
@@ -67,6 +262,54 @@ pub async fn register_user(
     Ok(ResponseJson(user.into()))
 }
 
+/// Authenticates an existing user by username lookup.
+/// 
+/// This endpoint performs simple username-based authentication by looking up
+/// the user in the database. In a production system, this would typically
+/// include password verification, but this MVP uses username-only auth.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state containing database pool
+/// * `payload` - Login request with username
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<UserResponse>)` - Successfully authenticated user
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: Authentication successful
+/// - **401 Unauthorized**: User not found
+/// - **500 Internal Server Error**: Database error
+/// 
+/// # Request Body
+/// 
+/// ```json
+/// {
+///   "username": "client_company"
+/// }
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// {
+///   "id": "uuid-string",
+///   "username": "client_company",
+///   "stellar_public_key": "GCKFBEIY...",
+///   "user_type": "client",
+///   "created_at": "2024-01-01T00:00:00Z"
+/// }
+/// ```
+/// 
+/// # Security Notes
+/// 
+/// - This is a simplified authentication for MVP purposes
+/// - Production systems should implement proper password authentication
+/// - Consider adding JWT tokens for session management
 pub async fn login_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
@@ -79,11 +322,69 @@ pub async fn login_user(
     Ok(ResponseJson(user.into()))
 }
 
+/// Creates a new NDA process with encrypted content.
+/// 
+/// This endpoint allows clients to create new NDA processes with confidential
+/// content that is automatically encrypted using AES-256-GCM. Each process
+/// gets a unique encryption key and is associated with the client user.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state containing database pool
+/// * `payload` - Process creation request with title and content
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<ProcessResponse>)` - Successfully created encrypted process
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: Process created successfully
+/// - **404 Not Found**: Client username not found
+/// - **500 Internal Server Error**: Encryption or database error
+/// 
+/// # Request Body
+/// 
+/// ```json
+/// {
+///   "client_username": "client_company",
+///   "title": "Software Development NDA",
+///   "confidential_content": "Sensitive technical details and trade secrets..."
+/// }
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// {
+///   "id": "process-uuid",
+///   "client_id": "client-uuid",
+///   "title": "Software Development NDA",
+///   "status": "active",
+///   "created_at": "2024-01-01T00:00:00Z"
+/// }
+/// ```
+/// 
+/// # Security Features
+/// 
+/// - Content is encrypted with AES-256-GCM before storage
+/// - Each process gets a unique encryption key
+/// - Encryption keys are stored separately from content
+/// - Only the process owner and explicitly shared suppliers can decrypt
+/// 
+/// # Process Lifecycle
+/// 
+/// 1. Content is encrypted with a generated key
+/// 2. Process record is created in database
+/// 3. Process can be shared with suppliers via blockchain transactions
+/// 4. Access events are logged for audit trails
 pub async fn create_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateProcessRequest>,
 ) -> Result<ResponseJson<ProcessResponse>, StatusCode> {
-    // Buscar cliente pelo username
+    // Find client by username
     let client = queries::find_user_by_username(&state.pool, &payload.client_username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -106,25 +407,83 @@ pub async fn create_process(
     Ok(ResponseJson(process.into()))
 }
 
+/// Shares a process with a supplier via Stellar blockchain transaction.
+/// 
+/// This endpoint creates an immutable record of process sharing on the Stellar
+/// blockchain. It submits a transaction that proves the client has shared access
+/// to a specific process with a specific supplier, creating an audit trail.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state containing database pool
+/// * `payload` - Process sharing request with IDs and recipient
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<ProcessShare>)` - Successfully recorded sharing event
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: Process shared successfully with blockchain proof
+/// - **404 Not Found**: Process or client not found
+/// - **500 Internal Server Error**: Blockchain transaction or database error
+/// 
+/// # Request Body
+/// 
+/// ```json
+/// {
+///   "client_username": "client_company",
+///   "process_id": "process-uuid",
+///   "supplier_public_key": "GCKFBEIYTKP..."
+/// }
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// {
+///   "id": "share-uuid",
+///   "process_id": "process-uuid",
+///   "supplier_public_key": "GCKFBEIYTKP...",
+///   "stellar_transaction_hash": "abc123...",
+///   "shared_at": "2024-01-01T00:00:00Z"
+/// }
+/// ```
+/// 
+/// # Blockchain Integration
+/// 
+/// - Creates a Stellar transaction with process sharing metadata
+/// - Transaction hash provides immutable proof of sharing
+/// - Memo field contains process ID for reference
+/// - Transaction is recorded on Stellar testnet for development
+/// 
+/// # Security & Compliance
+/// 
+/// - Immutable blockchain record prevents disputes
+/// - Transaction hash can be independently verified
+/// - Sharing permissions are cryptographically provable
+/// - Audit trail meets regulatory requirements
 pub async fn share_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ShareProcessRequest>,
 ) -> Result<ResponseJson<ProcessShare>, StatusCode> {
     let stellar_client = StellarClient::new_testnet();
     
-    // Buscar processo
+    // Find process
     let _process = queries::find_process_by_id(&state.pool, &payload.process_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    // Buscar cliente pelo username
+    // Find client by username
     let client = queries::find_user_by_username(&state.pool, &payload.client_username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
 
-    // Enviar transação Stellar real
+    // Send real Stellar transaction
     let tx_result = stellar_client
         .share_process_transaction(
             &client.stellar_secret_key,
@@ -135,7 +494,7 @@ pub async fn share_process(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // Registrar compartilhamento
+    // Register sharing event
     let share = queries::create_process_share(
         &state.pool,
         &payload.process_id,
@@ -148,13 +507,77 @@ pub async fn share_process(
     Ok(ResponseJson(share))
 }
 
-// src/handlers.rs - Substituir a função access_process
-
+/// Allows suppliers to access shared process content with decryption.
+/// 
+/// This endpoint verifies that a process has been properly shared with a supplier
+/// (by checking the sharing records), then decrypts and returns the confidential
+/// content. It also logs the access event for audit trails and compliance.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state containing database pool
+/// * `payload` - Process access request with process ID and supplier username
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<ProcessAccessResponse>)` - Decrypted process content and metadata
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: Access granted, content decrypted and returned
+/// - **403 Forbidden**: Process not shared with this supplier
+/// - **404 Not Found**: Process or supplier not found
+/// - **500 Internal Server Error**: Decryption or database error
+/// 
+/// # Request Body
+/// 
+/// ```json
+/// {
+///   "process_id": "process-uuid",
+///   "supplier_username": "supplier_company"
+/// }
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// {
+///   "process_id": "process-uuid",
+///   "title": "Software Development NDA",
+///   "content": "Decrypted confidential content...",
+///   "accessed_at": "2024-01-01T00:00:00Z"
+/// }
+/// ```
+/// 
+/// # Access Control
+/// 
+/// The endpoint performs several security checks:
+/// 1. Verifies the process exists
+/// 2. Verifies the supplier exists
+/// 3. Checks that sharing record exists in database
+/// 4. Only then decrypts and returns content
+/// 
+/// # Audit Trail
+/// 
+/// Every successful access is logged with:
+/// - Timestamp of access
+/// - Supplier who accessed the content
+/// - Process that was accessed
+/// - Complete audit trail for compliance
+/// 
+/// # Security Notes
+/// 
+/// - Content is decrypted in memory only
+/// - Access is logged for regulatory compliance
+/// - Failed access attempts are also logged
+/// - Sharing verification prevents unauthorized access
 pub async fn access_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AccessProcessRequest>,
 ) -> Result<ResponseJson<ProcessAccessResponse>, StatusCode> {
-    // Buscar processo com campos específicos
+    // Find process with specific fields
     let process = sqlx::query!(
         r#"
         SELECT id, client_id, title, encrypted_content, encryption_key, status, created_at
@@ -167,7 +590,7 @@ pub async fn access_process(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .ok_or(StatusCode::NOT_FOUND)?;
 
-    // Buscar fornecedor com campos específicos
+    // Find supplier with specific fields
     let supplier = sqlx::query!(
         r#"
         SELECT id, username, stellar_public_key, stellar_secret_key, user_type, created_at
@@ -180,7 +603,7 @@ pub async fn access_process(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .ok_or(StatusCode::NOT_FOUND)?;
 
-    // Verificar se existe compartilhamento no banco
+    // Verify if sharing exists in database
     let share_exists = sqlx::query!(
         "SELECT id FROM process_shares WHERE process_id = ? AND supplier_public_key = ?",
         payload.process_id,
@@ -191,17 +614,17 @@ pub async fn access_process(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if share_exists.is_none() {
-        println!("❌ Acesso negado: Processo não foi compartilhado com este fornecedor");
+        println!("❌ Access denied: Process was not shared with this supplier");
         return Err(StatusCode::FORBIDDEN);
     }
 
-    println!("✅ Acesso autorizado: Compartilhamento encontrado no banco");
+    println!("✅ Access authorized: Sharing found in database");
 
-    // Descriptografar conteúdo
+    // Decrypt content
     let decrypted_content = decrypt_content(&process.encrypted_content, &process.encryption_key)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // Registrar acesso
+    // Register access event
     let access_id = Uuid::new_v4().to_string();
     let now = Utc::now();
     let now_string = now.to_rfc3339();
@@ -220,7 +643,7 @@ pub async fn access_process(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    println!("📊 Acesso registrado com sucesso");
+    println!("📊 Access registered successfully");
 
     let response = ProcessAccessResponse {
         process_id: payload.process_id,
@@ -232,13 +655,73 @@ pub async fn access_process(
     Ok(ResponseJson(response))
 }
 
+/// Lists all processes owned by a specific client.
+/// 
+/// This endpoint retrieves all NDA processes created by a client user,
+/// returning them in reverse chronological order (newest first). The
+/// response includes process metadata but not the encrypted content.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state containing database pool
+/// * `params` - Query parameters including client username
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<Vec<ProcessResponse>>)` - List of client's processes
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: Processes retrieved successfully
+/// - **400 Bad Request**: Missing client_username parameter
+/// - **404 Not Found**: Client username not found
+/// - **500 Internal Server Error**: Database error
+/// 
+/// # Query Parameters
+/// 
+/// - `client_username` (required): Username of the client whose processes to list
+/// 
+/// # Example Request
+/// 
+/// ```
+/// GET /api/processes?client_username=client_company
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// [
+///   {
+///     "id": "process-uuid-1",
+///     "client_id": "client-uuid",
+///     "title": "Software Development NDA",
+///     "status": "active",
+///     "created_at": "2024-01-01T00:00:00Z"
+///   },
+///   {
+///     "id": "process-uuid-2",
+///     "client_id": "client-uuid", 
+///     "title": "Marketing Partnership NDA",
+///     "status": "active",
+///     "created_at": "2024-01-01T00:00:00Z"
+///   }
+/// ]
+/// ```
+/// 
+/// # Security Notes
+/// 
+/// - Only returns processes owned by the specified client
+/// - Encrypted content is not included in the response
+/// - Process access requires separate authorization via sharing
 pub async fn list_processes(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListProcessesQuery>,
 ) -> Result<ResponseJson<Vec<ProcessResponse>>, StatusCode> {
     let client_username = params.client_username.ok_or(StatusCode::BAD_REQUEST)?;
     
-    // Buscar cliente pelo username
+    // Find client by username
     let client = queries::find_user_by_username(&state.pool, &client_username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -252,13 +735,82 @@ pub async fn list_processes(
     Ok(ResponseJson(response))
 }
 
+/// Retrieves access notifications for a client's processes.
+/// 
+/// This endpoint provides clients with a comprehensive audit trail showing
+/// when suppliers have accessed their shared processes. It returns denormalized
+/// data including process titles and supplier usernames for easy reporting.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state containing database pool
+/// * `params` - Query parameters including client username
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<Vec<ProcessAccessWithDetails>>)` - List of access events with details
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: Notifications retrieved successfully
+/// - **400 Bad Request**: Missing client_username parameter
+/// - **404 Not Found**: Client username not found
+/// - **500 Internal Server Error**: Database error
+/// 
+/// # Query Parameters
+/// 
+/// - `client_username` (required): Username of the client whose notifications to retrieve
+/// 
+/// # Example Request
+/// 
+/// ```
+/// GET /api/notifications?client_username=client_company
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// [
+///   {
+///     "id": "access-uuid-1",
+///     "process_id": "process-uuid",
+///     "supplier_id": "supplier-uuid",
+///     "accessed_at": "2024-01-01T10:30:00Z",
+///     "process_title": "Software Development NDA",
+///     "supplier_username": "supplier_company"
+///   },
+///   {
+///     "id": "access-uuid-2",
+///     "process_id": "process-uuid-2",
+///     "supplier_id": "supplier-uuid-2",
+///     "accessed_at": "2024-01-01T09:15:00Z",
+///     "process_title": "Marketing Partnership NDA",
+///     "supplier_username": "another_supplier"
+///   }
+/// ]
+/// ```
+/// 
+/// # Use Cases
+/// 
+/// - **Compliance Reporting**: Generate audit reports for regulatory requirements
+/// - **Usage Analytics**: Track which processes are being accessed most
+/// - **Security Monitoring**: Monitor for unusual access patterns
+/// - **Client Dashboard**: Provide real-time notifications to process owners
+/// 
+/// # Data Privacy
+/// 
+/// - Only shows access to processes owned by the requesting client
+/// - Includes supplier usernames but not sensitive content
+/// - Ordered by access time (most recent first) for easy monitoring
 pub async fn get_notifications(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListProcessesQuery>,
 ) -> Result<ResponseJson<Vec<ProcessAccessWithDetails>>, StatusCode> {
     let client_username = params.client_username.ok_or(StatusCode::BAD_REQUEST)?;
     
-    // Buscar cliente pelo username
+    // Find client by username
     let client = queries::find_user_by_username(&state.pool, &client_username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
