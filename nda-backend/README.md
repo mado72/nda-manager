@@ -1,116 +1,117 @@
 # NDA Backend Application
 
-Sistema de gestão de NDAs (Non-Disclosure Agreements) com segurança blockchain, criptografia end-to-end e auditoria completa.
+Non-Disclosure Agreement (NDA) management system with blockchain security, end-to-end encryption, and complete audit trails.
 
-## 🌟 **Visão Geral**
+## 🌟 **Overview**
 
-Este é o backend do sistema NDA que fornece uma API REST para gerenciar processos de acordos de confidencialidade criptografados com compartilhamento baseado em blockchain usando a rede Stellar.
+This is the NDA system backend that provides a REST API for managing encrypted confidentiality agreement processes with blockchain-based sharing using the Stellar network.
 
-O sistema permite que empresas criem, compartilhem e controlem o acesso a documentos confidenciais usando a blockchain Stellar para autorização descentralizada e criptografia AES-256-GCM para proteção de dados.
+The system allows companies to create, share, and control access to confidential documents using the Stellar blockchain for decentralize- 🚀 **High performance** with Tokio async runtime
+- 🔍 **Type safety** with SQLx for compile-time verified queriesauthorization and AES-256-GCM encryption for data protection.
 
-## ✨ **Funcionalidades Principais**
+## ✨ **Key Features**
 
-### 🔐 **Segurança Avançada**
-- **Criptografia AES-256-GCM** para proteção de conteúdo confidencial com aceleração de hardware
-- **Chaves Ed25519** para identidade blockchain e assinaturas digitais
-- **Stellar Testnet** para autorização descentralizada e registros imutáveis
-- **Controle de acesso criptográfico** baseado em transações blockchain verificáveis
+### 🔐 **Advanced Security**
+- **AES-256-GCM encryption** for confidential content protection with hardware acceleration
+- **Ed25519 keys** for blockchain identity and digital signatures
+- **Stellar Testnet** for decentralized authorization and immutable records
+- **Cryptographic access control** based on verifiable blockchain transactions
 
-### 👥 **Gestão de Usuários**
-- Registro automático com carteiras Stellar geradas automaticamente
-- Tipos de usuário: Cliente (criador de NDAs) e Fornecedor (receptor)
-- Autenticação segura com verificação de credenciais
+### 👥 **User Management**
+- Automatic registration with automatically generated Stellar wallets
+- User types: Client (NDA creator) and Supplier (recipient)
+- Secure authentication with credential verification
 
-### 📄 **Gestão de Processos NDA**
-- Criação de processos confidenciais com criptografia end-to-end
-- Compartilhamento seguro via transações blockchain na rede Stellar
-- Acesso controlado com descriptografia automática para usuários autorizados
-- Status de processo rastreável e auditável
+### 📄 **NDA Process Management**
+- Creation of confidential processes with end-to-end encryption
+- Secure sharing via blockchain transactions on the Stellar network
+- Controlled access with automatic decryption for authorized users
+- Trackable and auditable process status
 
-### 📊 **Auditoria e Monitoramento**
-- Histórico completo de acessos com timestamps precisos
-- Notificações em tempo real para proprietários de processos
-- Trilhas de auditoria para conformidade regulatória
-- Rastreabilidade total de todas as operações
+### 📊 **Audit and Monitoring**
+- Complete access history with precise timestamps
+- Real-time notifications for process owners
+- Audit trails for regulatory compliance
+- Total traceability of all operations
 
-## 🏗️ **Arquitetura Técnica**
+## 🏗️ **Technical Architecture**
 
-### **Stack Tecnológico**
-- **Framework Web**: Axum (servidor HTTP assíncrono)
-- **Blockchain**: Integração com rede Stellar
-- **Banco de Dados**: SQLite com SQLx para consultas type-safe
-- **Criptografia**: AES-256-GCM + Ed25519 com aceleração de hardware
-- **Runtime Assíncrono**: Tokio para operações I/O de alta performance
-- **Logging**: Tracing para logging estruturado
+### **Technology Stack**
+- **Web Framework**: Axum (asynchronous HTTP server)
+- **Blockchain**: Stellar network integration
+- **Database**: SQLite with SQLx for type-safe queries
+- **Cryptography**: AES-256-GCM + Ed25519 with hardware acceleration
+- **Async Runtime**: Tokio for high-performance I/O operations
+- **Logging**: Tracing for structured logging
 
-### **Componentes Principais**
+### **Main Components**
 ```
 src/
-├── main.rs           # Servidor principal e configuração de rotas
-├── models.rs         # Estruturas de dados e definições de tipos
-├── handlers.rs       # Manipuladores de requisições HTTP da API REST
-├── database.rs       # Operações de banco e gerenciamento de conexões
-├── crypto.rs         # Criptografia AES-256-GCM para conteúdo sensível
-├── stellar_real.rs   # Integração com blockchain Stellar
+├── main.rs           # Main server and route configuration
+├── models.rs         # Data structures and type definitions
+├── handlers.rs       # REST API HTTP request handlers
+├── database.rs       # Database operations and connection management
+├── crypto.rs         # AES-256-GCM encryption for sensitive content
+├── stellar_real.rs   # Stellar blockchain integration
 └── bin/
-    └── test_stellar.rs # Utilitários de teste para blockchain
+    └── test_stellar.rs # Blockchain testing utilities
 migrations/
-└── 20241201000001_initial.sql # Migrações do banco de dados
+└── 20241201000001_initial.sql # Database migrations
 database/
-└── queries.rs        # Consultas SQL organizadas
+└── queries.rs        # Organized SQL queries
 ```
 
-## 🚀 **Instalação e Execução**
+## 🚀 **Installation and Setup**
 
-### **Pré-requisitos**
-- Rust 1.70+ com Cargo
+### **Prerequisites**
+- Rust 1.70+ with Cargo
 - SQLite 3
 
-### **Configuração**
+### **Configuration**
 ```bash
-# 1. Clonar o repositório
+# 1. Clone the repository
 git clone <repository-url>
 cd nda-backend
 
-# 2. Instalar dependências
+# 2. Install dependencies
 cargo build
 
-# 3. Executar o servidor (migrações são executadas automaticamente)
+# 3. Run the server (migrations are executed automatically)
 cargo run
 
-# 4. Servidor estará rodando em http://localhost:3000
-# 📊 Health check disponível em http://localhost:3000/health
-# 📋 Documentação da API: Todos os endpoints suportam JSON request/response
-# 🔐 Segurança: Criptografia AES-256-GCM + integração blockchain Stellar
+# 4. Server will be running at http://localhost:3000
+# 📊 Health check available at http://localhost:3000/health
+# 📋 API documentation: All endpoints support JSON request/response
+# 🔐 Security: AES-256-GCM encryption + Stellar blockchain integration
 ```
 
-### **Variáveis de Ambiente**
+### **Environment Variables**
 ```bash
-# Configuração opcional do banco de dados
-DATABASE_URL=sqlite:./stellar_mvp.db  # Padrão: sqlite:./stellar_mvp.db
+# Optional database configuration
+DATABASE_URL=sqlite:./stellar_mvp.db  # Default: sqlite:./stellar_mvp.db
 ```
 
-### **Dependências Principais**
+### **Main Dependencies**
 ```toml
 [dependencies]
-# Framework web assíncrono
+# Async web framework
 axum = "0.7"
 tokio = { version = "1.0", features = ["full"] }
 tower-http = { version = "0.5", features = ["cors"] }
 
-# Banco de dados
+# Database
 sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-rustls", "chrono", "uuid"] }
 
-# Serialização
+# Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Utilitários
+# Utilities
 uuid = { version = "1.0", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 base64 = "0.21"
 
-# Criptografia e Stellar
+# Cryptography and Stellar
 aes-gcm = "0.10"
 stellar-strkey = "0.0.8"
 ed25519-dalek = "1.0"
@@ -124,456 +125,456 @@ tracing-subscriber = { version = "0.3", features = ["fmt"] }
 ```
 ## 📡 **API Endpoints**
 
-A aplicação fornece uma API REST robusta com design RESTful e suporte completo a JSON para todas as operações.
+The application provides a robust REST API with RESTful design and complete JSON support for all operations.
 
 ### **🏥 Health Check**
-Para monitoramento de load balancers e ferramentas de deploy:
+For load balancer monitoring and deployment tools:
 
 ```http
 GET /health
 ```
-**Propósito**: Verificação de saúde do serviço para monitoramento e disponibilidade.
+**Purpose**: Service health verification for monitoring and availability.
 
 ---
 
-### **👥 Gestão de Usuários**
-Endpoints para autenticação e criação de contas com carteiras Stellar automáticas:
+### **👥 User Management**
+Endpoints for authentication and account creation with automatic Stellar wallets:
 
-#### **Registro de Usuário**
+#### **User Registration**
 ```http
 POST /api/users/register
 Content-Type: application/json
 
 {
-    "username": "usuario@empresa.com",
-    "password": "senha123",
-    "user_type": "client"  // "client" ou "supplier"
+    "username": "user@company.com",
+    "password": "password123",
+    "user_type": "client"  // "client" or "supplier"
 }
 ```
-**Propósito**: Registrar novos usuários com criação automática de carteiras Stellar para identidade blockchain.
+**Purpose**: Register new users with automatic Stellar wallet creation for blockchain identity.
 
-#### **Login de Usuário**
+#### **User Login**
 ```http
 POST /api/users/login
 Content-Type: application/json
 
 {
-    "username": "usuario@empresa.com",
-    "password": "senha123"
+    "username": "user@company.com",
+    "password": "password123"
 }
 ```
-**Propósito**: Autenticação segura de usuários com validação de credenciais.
+**Purpose**: Secure user authentication with credential validation.
 
 ---
 
-### **📄 Gestão de Processos NDA**
-Operações CRUD para processos de NDA com criptografia automática:
+### **📄 NDA Process Management**
+CRUD operations for NDA processes with automatic encryption:
 
-#### **Criar Processo**
+#### **Create Process**
 ```http
 POST /api/processes
 Content-Type: application/json
 
 {
-    "client_username": "cliente@empresa.com",
-    "title": "NDA - Projeto Confidencial",
-    "confidential_content": "Conteúdo ultra-secreto que será criptografado..."
+    "client_username": "client@company.com",
+    "title": "NDA - Confidential Project",
+    "confidential_content": "Ultra-secret content that will be encrypted..."
 }
 ```
-**Propósito**: Criar processo criptografado com AES-256-GCM. O conteúdo é automaticamente criptografado antes do armazenamento.
+**Purpose**: Create encrypted process with AES-256-GCM. Content is automatically encrypted before storage.
 
-#### **Listar Processos**
+#### **List Processes**
 ```http
-GET /api/processes?client_username=cliente@empresa.com
+GET /api/processes?client_username=client@company.com
 ```
-**Propósito**: Listar processos pertencentes a um cliente específico com informações básicas (sem conteúdo confidencial).
+**Purpose**: List processes belonging to a specific client with basic information (without confidential content).
 
 ---
 
-### **🔗 Compartilhamento e Acesso Blockchain**
-Integração com Stellar para autorização descentralizada:
+### **🔗 Blockchain Sharing and Access**
+Stellar integration for decentralized authorization:
 
-#### **Compartilhar Processo**
+#### **Share Process**
 ```http
 POST /api/processes/share
 Content-Type: application/json
 
 {
-    "process_id": "uuid-do-processo",
-    "client_username": "cliente@empresa.com",
-    "supplier_public_key": "STELLAR_PUBLIC_KEY_DO_FORNECEDOR"
+    "process_id": "process-uuid",
+    "client_username": "client@company.com",
+    "supplier_public_key": "SUPPLIER_STELLAR_PUBLIC_KEY"
 }
 ```
-**Propósito**: Compartilhar processo via transação Stellar, criando registro imutável de autorização na blockchain.
+**Purpose**: Share process via Stellar transaction, creating immutable authorization record on blockchain.
 
-#### **Acessar Processo**
+#### **Access Process**
 ```http
 POST /api/processes/access
 Content-Type: application/json
 
 {
-    "process_id": "uuid-do-processo",
+    "process_id": "process-uuid",
     "supplier_public_key": "STELLAR_PUBLIC_KEY",
-    "supplier_username": "fornecedor@empresa.com"
+    "supplier_username": "supplier@company.com"
 }
 ```
-**Propósito**: Acessar processo compartilhado com verificação blockchain e descriptografia automática para usuários autorizados.
+**Purpose**: Access shared process with blockchain verification and automatic decryption for authorized users.
 
 ---
 
-### **📊 Auditoria e Conformidade**
-Endpoint para trilhas de auditoria e notificações de acesso:
+### **📊 Audit and Compliance**
+Endpoint for audit trails and access notifications:
 
-#### **Obter Notificações**
+#### **Get Notifications**
 ```http
-GET /api/notifications?client_username=cliente@empresa.com
+GET /api/notifications?client_username=client@company.com
 ```
-**Propósito**: Obter notificações de acesso para trilhas de auditoria completas. Proprietários de processos recebem notificações quando seus NDAs são acessados.
-## 🧪 **Exemplos de Uso Completo**
+**Purpose**: Get access notifications for complete audit trails. Process owners receive notifications when their NDAs are accessed.
+## 🧪 **Complete Usage Examples**
 
-### **Fluxo Completo do Sistema NDA**
+### **Complete NDA System Workflow**
 
-#### **1. Verificar Saúde do Serviço**
+#### **1. Check Service Health**
 ```bash
-# Verificar se o servidor está funcionando
+# Check if server is running
 curl http://localhost:3000/health
 ```
 
-#### **2. Registrar Usuários**
+#### **2. Register Users**
 ```bash
-# Registrar Cliente (criador de NDAs)
+# Register Client (NDA creator)
 curl -X POST http://localhost:3000/api/users/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "cliente@empresa.com",
-    "password": "senha123",
+    "username": "client@company.com",
+    "password": "password123",
     "user_type": "client"
   }'
 
-# Registrar Fornecedor (receptor de NDAs)
+# Register Supplier (NDA recipient)
 curl -X POST http://localhost:3000/api/users/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "fornecedor@empresa.com",
-    "password": "senha456",
+    "username": "supplier@company.com",
+    "password": "password456",
     "user_type": "supplier"
   }'
 
-# Resposta: Carteira Stellar criada automaticamente para cada usuário
+# Response: Stellar wallet automatically created for each user
 ```
 
-#### **3. Autenticar Usuários**
+#### **3. Authenticate Users**
 ```bash
-# Login do cliente
+# Client login
 curl -X POST http://localhost:3000/api/users/login \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "cliente@empresa.com",
-    "password": "senha123"
+    "username": "client@company.com",
+    "password": "password123"
   }'
 ```
 
-#### **4. Criar Processo NDA Criptografado**
+#### **4. Create Encrypted NDA Process**
 ```bash
 curl -X POST http://localhost:3000/api/processes \
   -H "Content-Type: application/json" \
   -d '{
-    "client_username": "cliente@empresa.com",
-    "title": "NDA - Projeto Alpha Confidencial",
-    "confidential_content": "Especificações ultra-secretas: Nova tecnologia de IA para análise de dados financeiros com precisão de 99.7% e capacidade de processar 1TB de dados por segundo..."
+    "client_username": "client@company.com",
+    "title": "NDA - Alpha Confidential Project",
+    "confidential_content": "Ultra-secret specifications: New AI technology for financial data analysis with 99.7% accuracy and capability to process 1TB of data per second..."
   }'
 
-# Resposta: Processo criado com ID único e conteúdo criptografado AES-256-GCM
+# Response: Process created with unique ID and AES-256-GCM encrypted content
 ```
 
-#### **5. Listar Processos**
+#### **5. List Processes**
 ```bash
-curl "http://localhost:3000/api/processes?client_username=cliente@empresa.com"
+curl "http://localhost:3000/api/processes?client_username=client@company.com"
 
-# Resposta: Lista de processos sem conteúdo confidencial
+# Response: List of processes without confidential content
 ```
 
-#### **6. Compartilhar via Blockchain Stellar**
+#### **6. Share via Stellar Blockchain**
 ```bash
 curl -X POST http://localhost:3000/api/processes/share \
   -H "Content-Type: application/json" \
   -d '{
     "process_id": "PROCESS_UUID_FROM_STEP_4",
-    "client_username": "cliente@empresa.com",
+    "client_username": "client@company.com",
     "supplier_public_key": "SUPPLIER_STELLAR_PUBLIC_KEY"
   }'
 
-# Resultado: Transação registrada na Stellar Testnet com hash verificável
+# Result: Transaction registered on Stellar Testnet with verifiable hash
 ```
 
-#### **7. Acessar Conteúdo Descriptografado**
+#### **7. Access Decrypted Content**
 ```bash
-# ✅ Fornecedor AUTORIZADO - Sucesso com descriptografia
+# ✅ AUTHORIZED Supplier - Success with decryption
 curl -X POST http://localhost:3000/api/processes/access \
   -H "Content-Type: application/json" \
   -d '{
     "process_id": "PROCESS_UUID",
     "supplier_public_key": "AUTHORIZED_STELLAR_KEY",
-    "supplier_username": "fornecedor@empresa.com"
+    "supplier_username": "supplier@company.com"
   }'
 
-# Resposta 200: Conteúdo descriptografado + notificação gerada para o cliente
+# Response 200: Decrypted content + notification generated for client
 
-# ❌ Usuário NÃO AUTORIZADO - Acesso negado
+# ❌ UNAUTHORIZED User - Access denied
 curl -X POST http://localhost:3000/api/processes/access \
   -H "Content-Type: application/json" \
   -d '{
     "process_id": "PROCESS_UUID",
     "supplier_public_key": "UNAUTHORIZED_KEY",
-    "supplier_username": "hacker@empresa.com"
+    "supplier_username": "hacker@company.com"
   }'
 
-# Resposta 403: Forbidden - Acesso bloqueado pela verificação blockchain
+# Response 403: Forbidden - Access blocked by blockchain verification
 ```
 
-#### **8. Consultar Auditoria de Acessos**
+#### **8. Query Access Audit**
 ```bash
-curl "http://localhost:3000/api/notifications?client_username=cliente@empresa.com"
+curl "http://localhost:3000/api/notifications?client_username=client@company.com"
 
-# Resposta: Lista completa de acessos com timestamps e detalhes para auditoria
+# Response: Complete list of accesses with timestamps and details for auditing
 ```
 
-### **📋 Respostas da API**
+### **📋 API Responses**
 
-#### **Sucesso na Criação de Processo**
+#### **Successful Process Creation**
 ```json
 {
   "success": true,
   "process_id": "550e8400-e29b-41d4-a716-446655440000",
-  "message": "Processo criado com sucesso e criptografado",
+  "message": "Process created successfully and encrypted",
   "stellar_account": "GD2X...",
   "encrypted": true
 }
 ```
 
-#### **Sucesso no Compartilhamento**
+#### **Successful Sharing**
 ```json
 {
   "success": true,
   "stellar_transaction_hash": "7a8b9c1d2e3f...",
-  "message": "Processo compartilhado na blockchain Stellar",
+  "message": "Process shared on Stellar blockchain",
   "verification_url": "https://stellar.expert/explorer/testnet/tx/7a8b9c1d2e3f..."
 }
 ```
 
-#### **Acesso Autorizado**
+#### **Authorized Access**
 ```json
 {
   "success": true,
   "process": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
-    "title": "NDA - Projeto Alpha Confidencial",
-    "decrypted_content": "Especificações ultra-secretas: ...",
+    "title": "NDA - Alpha Confidential Project",
+    "decrypted_content": "Ultra-secret specifications: ...",
     "accessed_at": "2024-12-01T10:30:00Z"
   },
   "notification_sent": true
 }
 ```
-## 🔒 **Características de Segurança**
+## 🔒 **Security Features**
 
-### **🛡️ Criptografia End-to-End**
-- **AES-256-GCM**: Criptografia simétrica com autenticação integrada para todo conteúdo confidencial
-- **Ed25519**: Assinaturas digitais criptograficamente seguras para identidade blockchain
-- **Chaves únicas**: Cada processo NDA possui chave de criptografia exclusiva gerada aleatoriamente
-- **Aceleração de hardware**: Utiliza recursos de hardware quando disponível para performance otimizada
+### **🛡️ End-to-End Encryption**
+- **AES-256-GCM**: Symmetric encryption with integrated authentication for all confidential content
+- **Ed25519**: Cryptographically secure digital signatures for blockchain identity
+- **Unique keys**: Each NDA process has an exclusive randomly generated encryption key
+- **Hardware acceleration**: Uses hardware resources when available for optimized performance
 
-### **🔐 Controle de Acesso Criptográfico**
-- **Autorização blockchain**: Verificação descentralizada via transações na rede Stellar
-- **Verificação dupla**: Validação no banco de dados local + verificação blockchain imutável
-- **Permissões granulares**: Controle preciso de quem pode acessar cada documento
-- **Auditoria completa**: Registro de todos os acessos com timestamps precisos para conformidade
+### **🔐 Cryptographic Access Control**
+- **Blockchain authorization**: Decentralized verification via transactions on the Stellar network
+- **Double verification**: Local database validation + immutable blockchain verification
+- **Granular permissions**: Precise control over who can access each document
+- **Complete audit**: Recording of all accesses with precise timestamps for compliance
 
-### **⛓️ Integração Blockchain Stellar**
-- **Stellar Testnet**: Ambiente de desenvolvimento seguro com transações reais
-- **Transações verificáveis**: Cada compartilhamento gera hash único verificável na blockchain
-- **Descentralização**: Autorização não depende de servidor central, garantindo integridade
-- **Imutabilidade**: Registros de compartilhamento não podem ser alterados ou excluídos
+### **⛓️ Stellar Blockchain Integration**
+- **Stellar Testnet**: Secure development environment with real transactions
+- **Verifiable transactions**: Each share generates a unique verifiable hash on the blockchain
+- **Decentralization**: Authorization doesn't depend on central server, ensuring integrity
+- **Immutability**: Sharing records cannot be altered or deleted
 
-### **🔍 Auditoria e Conformidade**
-- **Trilhas de auditoria**: Histórico completo de todas as operações
-- **Notificações em tempo real**: Alertas imediatos para proprietários quando NDAs são acessados
-- **Timestamps precisos**: Registro temporal exato para conformidade regulatória
-- **Rastreabilidade total**: Capacidade de rastrear toda a cadeia de acesso e compartilhamento
+### **🔍 Audit and Compliance**
+- **Audit trails**: Complete history of all operations
+- **Real-time notifications**: Immediate alerts for owners when NDAs are accessed
+- **Precise timestamps**: Exact temporal recording for regulatory compliance
+- **Total traceability**: Ability to track the entire access and sharing chain
 
-### **🛡️ Proteção CORS**
-- **CORS configurável**: Proteção contra requisições de origens não autorizadas
-- **Headers de segurança**: Implementação de cabeçalhos HTTP para maior proteção
-- **Validação de entrada**: Sanitização de todos os dados de entrada da API
-## 🗄️ **Estrutura do Banco de Dados**
+### **🛡️ CORS Protection**
+- **Configurable CORS**: Protection against requests from unauthorized origins
+- **Security headers**: Implementation of HTTP headers for enhanced protection
+- **Input validation**: Sanitization of all API input data
+## �️ **Database Structure**
 
-O sistema utiliza SQLite com SQLx para operações type-safe e migrações automáticas.
+The system uses SQLite with SQLx for type-safe operations and automatic migrations.
 
-### **Schema do Banco de Dados**
+### **Database Schema**
 ```sql
--- Usuários com carteiras Stellar integradas
+-- Users with integrated Stellar wallets
 CREATE TABLE users (
-    id TEXT PRIMARY KEY,                    -- UUID único do usuário
-    username TEXT UNIQUE NOT NULL,          -- Email/nome de usuário único
-    stellar_public_key TEXT NOT NULL,       -- Chave pública Stellar para blockchain
-    stellar_secret_key TEXT NOT NULL,       -- Chave privada Stellar (criptografada)
-    user_type TEXT NOT NULL,                -- 'client' ou 'supplier'
-    created_at TEXT NOT NULL                -- Timestamp ISO 8601
+    id TEXT PRIMARY KEY,                    -- Unique user UUID
+    username TEXT UNIQUE NOT NULL,          -- Unique email/username
+    stellar_public_key TEXT NOT NULL,       -- Stellar public key for blockchain
+    stellar_secret_key TEXT NOT NULL,       -- Stellar private key (encrypted)
+    user_type TEXT NOT NULL,                -- 'client' or 'supplier'
+    created_at TEXT NOT NULL                -- ISO 8601 timestamp
 );
 
--- Processos NDA com criptografia AES-256-GCM
+-- NDA processes with AES-256-GCM encryption
 CREATE TABLE processes (
-    id TEXT PRIMARY KEY,                    -- UUID único do processo
-    client_id TEXT NOT NULL,                -- Referência ao usuário criador
-    title TEXT NOT NULL,                    -- Título do processo (não criptografado)
-    encrypted_content TEXT NOT NULL,        -- Conteúdo confidencial criptografado
-    encryption_key TEXT NOT NULL,           -- Chave AES-256 (base64)
+    id TEXT PRIMARY KEY,                    -- Unique process UUID
+    client_id TEXT NOT NULL,                -- Reference to creator user
+    title TEXT NOT NULL,                    -- Process title (not encrypted)
+    encrypted_content TEXT NOT NULL,        -- Encrypted confidential content
+    encryption_key TEXT NOT NULL,           -- AES-256 key (base64)
     status TEXT DEFAULT 'active',           -- Status: 'active', 'archived', 'deleted'
-    created_at TEXT NOT NULL,               -- Timestamp de criação
+    created_at TEXT NOT NULL,               -- Creation timestamp
     FOREIGN KEY (client_id) REFERENCES users (id)
 );
 
--- Compartilhamentos via blockchain Stellar
+-- Blockchain Stellar sharing
 CREATE TABLE process_shares (
-    id TEXT PRIMARY KEY,                    -- UUID único do compartilhamento
-    process_id TEXT NOT NULL,               -- Referência ao processo compartilhado
-    supplier_public_key TEXT NOT NULL,     -- Chave Stellar do fornecedor autorizado
-    stellar_transaction_hash TEXT NOT NULL, -- Hash da transação na blockchain
-    shared_at TEXT NOT NULL,                -- Timestamp do compartilhamento
+    id TEXT PRIMARY KEY,                    -- Unique sharing UUID
+    process_id TEXT NOT NULL,               -- Reference to shared process
+    supplier_public_key TEXT NOT NULL,     -- Authorized supplier's Stellar key
+    stellar_transaction_hash TEXT NOT NULL, -- Blockchain transaction hash
+    shared_at TEXT NOT NULL,                -- Sharing timestamp
     FOREIGN KEY (process_id) REFERENCES processes (id)
 );
 
--- Auditoria completa de acessos para conformidade
+-- Complete access audit for compliance
 CREATE TABLE process_accesses (
-    id TEXT PRIMARY KEY,                    -- UUID único do acesso
-    process_id TEXT NOT NULL,               -- Referência ao processo acessado
-    supplier_id TEXT NOT NULL,              -- Referência ao usuário que acessou
-    accessed_at TEXT NOT NULL,              -- Timestamp preciso do acesso
+    id TEXT PRIMARY KEY,                    -- Unique access UUID
+    process_id TEXT NOT NULL,               -- Reference to accessed process
+    supplier_id TEXT NOT NULL,              -- Reference to user who accessed
+    accessed_at TEXT NOT NULL,              -- Precise access timestamp
     FOREIGN KEY (process_id) REFERENCES processes (id),
     FOREIGN KEY (supplier_id) REFERENCES users (id)
 );
 ```
 
-### **📊 Relacionamentos e Índices**
-- **users**: Tabela central de usuários com carteiras Stellar únicas
-- **processes**: Cada processo pertence a um cliente e contém conteúdo criptografado
-- **process_shares**: Registra compartilhamentos autorizados via blockchain
-- **process_accesses**: Log de auditoria de todos os acessos para conformidade
+### **📊 Relationships and Indexes**
+- **users**: Central user table with unique Stellar wallets
+- **processes**: Each process belongs to a client and contains encrypted content
+- **process_shares**: Records authorized sharing via blockchain
+- **process_accesses**: Audit log of all accesses for compliance
 
-### **🔄 Migrações Automáticas**
-- Migrações são executadas automaticamente na inicialização
-- Localização: `migrations/20241201000001_initial.sql`
-- Versionamento: Controle de versão integrado do SQLx
-## 🌟 **Funcionalidades Demonstradas**
+### **🔄 Automatic Migrations**
+- Migrations are executed automatically on initialization
+- Location: `migrations/20241201000001_initial.sql`
+- Versioning: SQLx integrated version control
+## 🌟 **Demonstrated Features**
 
-### ✅ **Casos de Uso Validados**
-- ✅ **Registro de usuários** com carteiras Stellar geradas automaticamente
-- ✅ **Criação de NDAs** com criptografia AES-256-GCM end-to-end
-- ✅ **Compartilhamento seguro** via transações Stellar reais na testnet
-- ✅ **Controle de acesso** criptográfico baseado em verificação blockchain
-- ✅ **Descriptografia automática** para usuários com autorização verificada
-- ✅ **Bloqueio de acessos** não autorizados com resposta 403 Forbidden
-- ✅ **Auditoria completa** com timestamps precisos para conformidade
-- ✅ **Notificações em tempo real** para proprietários de processos
+### ✅ **Validated Use Cases**
+- ✅ **User registration** with automatically generated Stellar wallets
+- ✅ **NDA creation** with end-to-end AES-256-GCM encryption
+- ✅ **Secure sharing** via real Stellar transactions on testnet
+- ✅ **Cryptographic access control** based on blockchain verification
+- ✅ **Automatic decryption** for users with verified authorization
+- ✅ **Blocking unauthorized access** with 403 Forbidden response
+- ✅ **Complete audit** with precise timestamps for compliance
+- ✅ **Real-time notifications** for process owners
 
-### 📈 **Métricas de Qualidade e Segurança**
-- 🛡️ **100%** dos acessos não autorizados bloqueados pela verificação blockchain
-- 🔐 **Criptografia AES-256-GCM** para todos os conteúdos confidenciais
-- ⛓️ **Transações verificáveis** na Stellar Testnet com hashes únicos
-- 📊 **Auditoria completa** de todas as operações com timestamps precisos
+### 📈 **Quality and Security Metrics**
+- 🛡️ **100%** of unauthorized accesses blocked by blockchain verification
+- 🔐 **AES-256-GCM encryption** for all confidential content
+- ⛓️ **Verifiable transactions** on Stellar Testnet with unique hashes
+- 📊 **Complete audit** of all operations with precise timestamps
 - � **Alta performance** com runtime assíncrono Tokio
 - �🔍 **Type safety** com SQLx para consultas verificadas em tempo de compilação
 
-### 🔍 **Verificação Blockchain**
-Todas as transações podem ser verificadas publicamente na Stellar Testnet:
+### 🔍 **Blockchain Verification**
+All transactions can be publicly verified on Stellar Testnet:
 ```
 https://stellar.expert/explorer/testnet/tx/[TRANSACTION_HASH]
 ```
 
-## 🚀 **Próximos Passos**
+## 🚀 **Next Steps**
 
-### **📱 Melhorias Planejadas**
-- [ ] **Interface web** com React/Next.js para usabilidade melhorada
-- [ ] **Autenticação JWT** para sessões seguras e stateless
-- [ ] **Notificações push** em tempo real via WebSockets
-- [ ] **Dashboard de analytics** para métricas de uso e acesso
-- [ ] **API de webhooks** para integração com sistemas externos
-- [ ] **Suporte a múltiplos formatos** de arquivo (PDF, DOC, etc.)
-- [ ] **Integração com Stellar Mainnet** para produção
+### **📱 Planned Improvements**
+- [ ] **Web interface** with React/Next.js for improved usability
+- [ ] **JWT authentication** for secure and stateless sessions
+- [ ] **Push notifications** in real-time via WebSockets
+- [ ] **Analytics dashboard** for usage and access metrics
+- [ ] **Webhooks API** for integration with external systems
+- [ ] **Multiple file format support** (PDF, DOC, etc.)
+- [ ] **Stellar Mainnet integration** for production
 
-### **⚡ Escalabilidade e DevOps**
-- [ ] **Deploy em cloud** (AWS/Azure) com contêineres Docker
-- [ ] **Load balancing** para alta disponibilidade
-- [ ] **Cache Redis** para performance otimizada
-- [ ] **Monitoramento** com Prometheus/Grafana
-- [ ] **Pipeline CI/CD** para deploy automatizado
-- [ ] **Backup automatizado** do banco de dados
+### **⚡ Scalability and DevOps**
+- [ ] **Cloud deployment** (AWS/Azure) with Docker containers
+- [ ] **Load balancing** for high availability
+- [ ] **Redis cache** for optimized performance
+- [ ] **Monitoring** with Prometheus/Grafana
+- [ ] **CI/CD pipeline** for automated deployment
+- [ ] **Automated database backup**
 
-## 🛠️ **Desenvolvimento**
+## 🛠️ **Development**
 
-### **🏃‍♂️ Executar Testes**
+### **🏃‍♂️ Run Tests**
 ```bash
-# Executar todos os testes
+# Run all tests
 cargo test
 
-# Executar testes específicos do Stellar
+# Run Stellar-specific tests
 cargo run --bin test_stellar
 
-# Executar com logs detalhados
+# Run with detailed logs
 RUST_LOG=debug cargo test
 ```
 
-### **🔍 Debugging e Logs**
+### **🔍 Debugging and Logs**
 ```bash
-# Executar com logs estruturados
+# Run with structured logs
 RUST_LOG=info cargo run
 
-# Logs de debug completos
+# Complete debug logs
 RUST_LOG=debug cargo run
 ```
 
-## 📞 **Suporte e Documentação**
+## 📞 **Support and Documentation**
 
-### **📚 Recursos Disponíveis**
-- **Documentação**: Este README completo com exemplos
-- **Issues**: GitHub Issues para bugs e solicitações de recursos
-- **API**: Endpoints REST totalmente documentados acima
-- **Código**: Comentários extensivos no código fonte (`main.rs`, etc.)
+### **📚 Available Resources**
+- **Documentation**: This complete README with examples
+- **Issues**: GitHub Issues for bugs and feature requests
+- **API**: Fully documented REST endpoints above
+- **Code**: Extensive comments in source code (`main.rs`, etc.)
 
-### **🤝 Contribuição**
-Para contribuir com o projeto:
-1. Fork o repositório
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -am 'Adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
+### **🤝 Contributing**
+To contribute to the project:
+1. Fork the repository
+2. Create a branch for your feature (`git checkout -b feature/new-functionality`)
+3. Commit your changes (`git commit -am 'Add new functionality'`)
+4. Push to the branch (`git push origin feature/new-functionality`)
+5. Open a Pull Request
 
-## 📄 **Licença**
-Este projeto está licenciado sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
-
----
-
-## 🏆 **Status do Projeto**
-
-### ✅ **MVP COMPLETO E FUNCIONAL**
-
-**Sistema de NDAs blockchain totalmente operacional** com:
-
-🛡️ **Segurança enterprise-grade** - Criptografia AES-256-GCM + Ed25519  
-⛓️ **Integração blockchain real** - Stellar Testnet com transações verificáveis  
-📊 **Auditoria completa** - Trilhas de conformidade regulatória  
-🚀 **API REST robusta** - Endpoints documentados e testados  
-🏗️ **Arquitetura escalável** - Design modular com Axum + Tokio  
-
-**🎯 Pronto para demonstração e evolução para produção!** 🚀
+## 📄 **License**
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
 
 ---
 
-### **💡 Características Técnicas Destacadas**
-- **Framework Web**: Axum (alta performance, type-safe)
-- **Runtime**: Tokio (assíncrono, eficiente)
-- **Banco de Dados**: SQLite + SQLx (migrations automáticas)
-- **Blockchain**: Stellar SDK (transações reais)
-- **Criptografia**: AES-256-GCM (segurança máxima)
-- **Logging**: Tracing (estruturado, debug-friendly)
-- **CORS**: Proteção configurável
-- **Arquitetura**: Modular, escalável, maintível
+## 🏆 **Project Status**
+
+### ✅ **COMPLETE AND FUNCTIONAL MVP**
+
+**Fully operational blockchain NDA system** with:
+
+🛡️ **Enterprise-grade security** - AES-256-GCM + Ed25519 cryptography  
+⛓️ **Real blockchain integration** - Stellar Testnet with verifiable transactions  
+📊 **Complete audit** - Regulatory compliance trails  
+🚀 **Robust REST API** - Documented and tested endpoints  
+🏗️ **Scalable architecture** - Modular design with Axum + Tokio  
+
+**🎯 Ready for demonstration and production evolution!** 🚀
+
+---
+
+### **💡 Featured Technical Characteristics**
+- **Web Framework**: Axum (high performance, type-safe)
+- **Runtime**: Tokio (asynchronous, efficient)
+- **Database**: SQLite + SQLx (automatic migrations)
+- **Blockchain**: Stellar SDK (real transactions)
+- **Cryptography**: AES-256-GCM (maximum security)
+- **Logging**: Tracing (structured, debug-friendly)
+- **CORS**: Configurable protection
+- **Architecture**: Modular, scalable, maintainable
