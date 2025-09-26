@@ -14,7 +14,7 @@
 //! - `username`: Unique username for authentication
 //! - `stellar_public_key`: Stellar network public key
 //! - `stellar_secret_key`: Encrypted Stellar network secret key
-//! - `user_type`: User role ('client' or 'supplier')
+//! - `roles`: User roles as JSON array: `["client"]`, `["supplier"]`, or `["client","supplier"]`
 //! - `created_at`: Account creation timestamp
 //! 
 //! ### Processes Table
@@ -81,7 +81,7 @@
 //! Database operations return `sqlx::Error` types for SQLite-specific errors
 //! and custom error types for application-level validation failures.
 
-use sqlx::{SqlitePool, migrate::MigrateDatabase, Sqlite};
+use sqlx::{SqlitePool, migrate::MigrateDatabase, Sqlite, Row};
 use std::error::Error;
 use chrono::{DateTime, Utc};
 
@@ -166,7 +166,7 @@ pub async fn init_database() -> Result<SqlitePool, Box<dyn Error>> {
 async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
     println!("🔄 Running migrations...");
     
-    // Create users table
+    // Create users table with new roles system
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS users (
@@ -174,13 +174,37 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
             username TEXT UNIQUE NOT NULL,
             stellar_public_key TEXT UNIQUE NOT NULL,
             stellar_secret_key TEXT NOT NULL,
-            user_type TEXT NOT NULL CHECK (user_type IN ('client', 'supplier')),
+            roles TEXT NOT NULL DEFAULT '["client"]',
             created_at TEXT NOT NULL
         )
         "#,
     )
     .execute(pool)
     .await?;
+
+    // Migration: Add roles column if it doesn't exist (for existing databases)
+    let _ = sqlx::query("ALTER TABLE users ADD COLUMN roles TEXT DEFAULT '[]'")
+        .execute(pool)
+        .await;
+
+    // Migration: Update existing user_type data to roles format if user_type column exists
+    let user_type_exists = sqlx::query("PRAGMA table_info(users)")
+        .fetch_all(pool)
+        .await?
+        .iter()
+        .any(|row| {
+            let name: String = row.get("name");
+            name == "user_type"
+        });
+
+    if user_type_exists {
+        // Migrate existing user_type data to roles format
+        sqlx::query("UPDATE users SET roles = '[\"' || user_type || '\"]' WHERE roles = '[]' OR roles IS NULL")
+            .execute(pool)
+            .await?;
+        
+        println!("✅ Migrated user_type data to roles format");
+    }
 
     // Create processes table
     sqlx::query(
@@ -288,39 +312,39 @@ pub mod queries {
     /// * `username` - Unique username for the account
     /// * `stellar_public_key` - User's Stellar network public key
     /// * `stellar_secret_key` - Encrypted Stellar network secret key
-    /// * `user_type` - User role: "client" or "supplier"
-    /// 
+    /// * `roles` - User roles as JSON string: `["client"]`, `["supplier"]`, or `["client","supplier"]`
+    ///
     /// # Returns
-    /// 
+    ///
     /// Returns `Result` containing:
     /// - `Ok(User)` - Created user with generated ID and timestamp
     /// - `Err(sqlx::Error)` - Database error (e.g., username conflict)
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```rust
     /// let user = queries::create_user(
     ///     &pool,
     ///     "john_doe",
     ///     "GCKFBEIYTKP...",
     ///     "encrypted_secret",
-    ///     "client"
+    ///     r#"["client"]"#
     /// ).await?;
     /// ```
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Will return `sqlx::Error` if:
     /// - Username already exists (UNIQUE constraint violation)
     /// - Stellar public key already exists
-    /// - Invalid user_type (must be 'client' or 'supplier')
+    /// - Invalid roles format (must be valid JSON array)
     /// - Database connection issues
     pub async fn create_user(
         pool: &SqlitePool,
         username: &str,
         stellar_public_key: &str,
         stellar_secret_key: &str,
-        user_type: &str,
+        roles: &str,
     ) -> Result<User, sqlx::Error> {
         let id = Uuid::new_v4().to_string();
         let created_at = Utc::now();
@@ -328,7 +352,7 @@ pub mod queries {
 
         sqlx::query(
             r#"
-            INSERT INTO users (id, username, stellar_public_key, stellar_secret_key, user_type, created_at)
+            INSERT INTO users (id, username, stellar_public_key, stellar_secret_key, roles, created_at)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
             "#,
         )
@@ -336,7 +360,7 @@ pub mod queries {
         .bind(username)
         .bind(stellar_public_key)
         .bind(stellar_secret_key)
-        .bind(user_type)
+        .bind(roles)
         .bind(&created_at_str)
         .execute(pool)
         .await?;
@@ -346,7 +370,7 @@ pub mod queries {
             username: username.to_string(),
             stellar_public_key: stellar_public_key.to_string(),
             stellar_secret_key: stellar_secret_key.to_string(),
-            user_type: user_type.to_string(),
+            roles: roles.to_string(),
             created_at,
         })
     }
@@ -400,7 +424,7 @@ pub mod queries {
                     username: row.get("username"),
                     stellar_public_key: row.get("stellar_public_key"),
                     stellar_secret_key: row.get("stellar_secret_key"),
-                    user_type: row.get("user_type"),
+                    roles: row.get("roles"),
                     created_at,
                 }))
             },

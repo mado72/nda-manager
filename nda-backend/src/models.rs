@@ -77,8 +77,8 @@ use sqlx::FromRow;
 /// User account with Stellar blockchain integration.
 /// 
 /// Represents a user in the NDA system with associated Stellar network credentials.
-/// Users can be either clients (who create and own processes) or suppliers
-/// (who receive shared access to processes).
+/// Users can have multiple roles: client (who create and own processes), supplier
+/// (who receive shared access to processes), or both simultaneously.
 /// 
 /// # Fields
 /// 
@@ -86,8 +86,15 @@ use sqlx::FromRow;
 /// * `username` - Unique username for authentication
 /// * `stellar_public_key` - Stellar network public key for blockchain operations
 /// * `stellar_secret_key` - Stellar network secret key (encrypted in production)
-/// * `user_type` - Role designation: "client" or "supplier"
+/// * `roles` - JSON string containing user roles: `["client"]`, `["supplier"]`, or `["client","supplier"]`
 /// * `created_at` - Account creation timestamp
+/// 
+/// # Role System
+/// 
+/// The `roles` field contains a JSON array of role strings:
+/// - `"client"` - Can create and manage NDA processes
+/// - `"supplier"` - Can access shared processes
+/// - Users can have both roles simultaneously for maximum flexibility
 /// 
 /// # Security Notes
 /// 
@@ -104,7 +111,7 @@ pub struct User {
     pub username: String,
     pub stellar_public_key: String,
     pub stellar_secret_key: String, // In production, use KMS (Key Management Service)
-    pub user_type: String, // "client" or "supplier"
+    pub roles: String, // JSON string: ["client"] | ["supplier"] | ["client","supplier"]
     pub created_at: DateTime<Utc>,
 }
 
@@ -248,12 +255,13 @@ pub struct ProcessAccessWithDetails {
 /// 
 /// * `username` - Desired unique username
 /// * `password` - User password (currently unused in MVP)
-/// * `user_type` - User role: "client" or "supplier"
+/// * `roles` - Array of user roles: `["client"]`, `["supplier"]`, or `["client","supplier"]`
 /// 
-/// # Validation
+/// # Role Validation
 /// 
 /// - Username must be unique across all users
-/// - User type must be either "client" or "supplier"
+/// - Roles must contain valid values: "client" and/or "supplier"
+/// - At least one role must be specified
 /// - Password field exists for future authentication enhancement
 /// 
 /// # Stellar Integration
@@ -262,11 +270,21 @@ pub struct ProcessAccessWithDetails {
 /// - A Stellar keypair is automatically generated
 /// - The account is funded on testnet for immediate use
 /// - Stellar credentials are securely stored in the database
+/// 
+/// # Examples
+/// 
+/// ```json
+/// {
+///   "username": "john_doe",
+///   "password": "secure_password",
+///   "roles": ["client", "supplier"]
+/// }
+/// ```
 #[derive(Debug, Deserialize)]
 pub struct RegisterRequest {
     pub username: String,
     pub password: String,
-    pub user_type: String,
+    pub roles: Vec<String>,
 }
 
 /// User authentication request payload.
@@ -377,8 +395,15 @@ pub struct AccessProcessRequest {
 /// * `id` - User identifier
 /// * `username` - Public username
 /// * `stellar_public_key` - Stellar public key (safe to expose)
-/// * `user_type` - User role designation
+/// * `roles` - Array of user roles: `["client"]`, `["supplier"]`, or `["client","supplier"]`
 /// * `created_at` - Account creation timestamp
+/// 
+/// # Role System
+/// 
+/// The `roles` field contains an array of role strings:
+/// - `"client"` - Can create and manage NDA processes
+/// - `"supplier"` - Can access shared processes
+/// - Users can have both roles simultaneously
 /// 
 /// # Security Features
 /// 
@@ -390,7 +415,7 @@ pub struct UserResponse {
     pub id: String,
     pub username: String,
     pub stellar_public_key: String,
-    pub user_type: String,
+    pub roles: Vec<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -398,11 +423,17 @@ pub struct UserResponse {
 /// 
 /// This implementation automatically excludes sensitive fields like
 /// the Stellar secret key when converting to API response format.
+/// The roles field is parsed from JSON string to Vec<String> for API consumption.
 /// 
 /// # Security
 /// 
 /// The conversion deliberately omits:
 /// - `stellar_secret_key` - Sensitive cryptographic material
+/// 
+/// # Role Conversion
+/// 
+/// The internal JSON string roles field is converted to a Vec<String>
+/// for easier consumption by API clients.
 /// 
 /// # Usage
 /// 
@@ -414,18 +445,102 @@ pub struct UserResponse {
 ///     username: "john_doe".to_string(),
 ///     stellar_public_key: "GABC...".to_string(),
 ///     stellar_secret_key: "SABC...".to_string(),
-///     user_type: "client".to_string(),
+///     roles: r#"["client","supplier"]"#.to_string(),
 ///     created_at: chrono::Utc::now(),
 /// };
 /// let response: UserResponse = user.into();
+/// assert_eq!(response.roles, vec!["client", "supplier"]);
 /// ```
+impl User {
+    /// Checks if the user has a specific role.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `role` - The role to check for ("client" or "supplier")
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `true` if the user has the specified role, `false` otherwise.
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// let user = User {
+    ///     roles: r#"["client","supplier"]"#.to_string(),
+    ///     // ... other fields
+    /// };
+    /// assert!(user.has_role("client"));
+    /// assert!(user.has_role("supplier"));
+    /// ```
+    pub fn has_role(&self, role: &str) -> bool {
+        if let Ok(roles) = serde_json::from_str::<Vec<String>>(&self.roles) {
+            roles.contains(&role.to_string())
+        } else {
+            // Fallback para compatibilidade com formato antigo
+            self.roles == role
+        }
+    }
+    
+    /// Checks if the user has the "client" role.
+    /// 
+    /// Clients can create and manage NDA processes.
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `true` if the user can act as a client.
+    pub fn is_client(&self) -> bool {
+        self.has_role("client")
+    }
+    
+    /// Checks if the user has the "supplier" role.
+    /// 
+    /// Suppliers can access processes that have been shared with them.
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `true` if the user can act as a supplier.
+    pub fn is_supplier(&self) -> bool {
+        self.has_role("supplier")
+    }
+    
+    /// Gets all roles assigned to the user.
+    /// 
+    /// # Returns
+    /// 
+    /// Returns a `Vec<String>` containing all roles assigned to the user.
+    /// Returns an empty vector if roles cannot be parsed.
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// let user = User {
+    ///     roles: r#"["client","supplier"]"#.to_string(),
+    ///     // ... other fields
+    /// };
+    /// let roles = user.get_roles();
+    /// assert_eq!(roles, vec!["client", "supplier"]);
+    /// ```
+    pub fn get_roles(&self) -> Vec<String> {
+        serde_json::from_str::<Vec<String>>(&self.roles)
+            .unwrap_or_else(|_| {
+                // Fallback para compatibilidade com formato antigo
+                if !self.roles.is_empty() {
+                    vec![self.roles.clone()]
+                } else {
+                    vec![]
+                }
+            })
+    }
+}
+
 impl From<User> for UserResponse {
     fn from(user: User) -> Self {
+        let roles = user.get_roles();
         UserResponse {
             id: user.id,
             username: user.username,
             stellar_public_key: user.stellar_public_key,
-            user_type: user.user_type,
+            roles,
             created_at: user.created_at,
         }
     }

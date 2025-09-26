@@ -196,22 +196,33 @@ pub async fn health_check() -> &'static str {
 /// - **500 Internal Server Error**: Stellar account creation or database error
 /// 
 /// # Request Body
-/// 
+///
 /// ```json
 /// {
 ///   "username": "client_company",
-///   "user_type": "client"
+///   "password": "secure_password",
+///   "roles": ["client"]
 /// }
 /// ```
-/// 
+///
+/// # Multi-Role Example
+///
+/// ```json
+/// {
+///   "username": "hybrid_user",
+///   "password": "secure_password", 
+///   "roles": ["client", "supplier"]
+/// }
+/// ```
+///
 /// # Response Body
-/// 
+///
 /// ```json
 /// {
 ///   "id": "uuid-string",
 ///   "username": "client_company",
 ///   "stellar_public_key": "GCKFBEIY...",
-///   "user_type": "client",
+///   "roles": ["client"],
 ///   "created_at": "2024-01-01T00:00:00Z"
 /// }
 /// ```
@@ -248,13 +259,16 @@ pub async fn register_user(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // Create user in database
+    // Create user in database with roles
+    let roles_json = serde_json::to_string(&payload.roles)
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+        
     let user = queries::create_user(
         &state.pool,
         &payload.username,
         &stellar_account.public_key,
         &stellar_account.secret_key,
-        &payload.user_type,
+        &roles_json,
     )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -384,11 +398,16 @@ pub async fn create_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateProcessRequest>,
 ) -> Result<ResponseJson<ProcessResponse>, StatusCode> {
-    // Find client by username
+    // Find client by username and verify client role
     let client = queries::find_user_by_username(&state.pool, &payload.client_username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
+        
+    // Verify user has client role
+    if !client.is_client() {
+        return Err(StatusCode::FORBIDDEN);
+    }
 
     let encryption_key = generate_key();
     let encrypted_content = encrypt_content(&payload.confidential_content, &encryption_key)
@@ -590,24 +609,22 @@ pub async fn access_process(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .ok_or(StatusCode::NOT_FOUND)?;
 
-    // Find supplier with specific fields
-    let supplier = sqlx::query!(
-        r#"
-        SELECT id, username, stellar_public_key, stellar_secret_key, user_type, created_at
-        FROM users WHERE username = ?
-        "#,
-        payload.supplier_username
-    )
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-    .ok_or(StatusCode::NOT_FOUND)?;
+    // Find supplier with specific fields and verify supplier role
+    let supplier = queries::find_user_by_username(&state.pool, &payload.supplier_username)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+        
+    // Verify user has supplier role
+    if !supplier.is_supplier() {
+        return Err(StatusCode::FORBIDDEN);
+    }
 
     // Verify if sharing exists in database
     let share_exists = sqlx::query!(
         "SELECT id FROM process_shares WHERE process_id = ? AND supplier_public_key = ?",
         payload.process_id,
-        supplier.stellar_public_key
+        payload.supplier_public_key
     )
     .fetch_optional(&state.pool)
     .await

@@ -149,10 +149,19 @@ Content-Type: application/json
 {
     "username": "user@company.com",
     "password": "password123",
-    "user_type": "client"  // "client" or "supplier"
+    "roles": ["client"]  // ["client"], ["supplier"], or ["client", "supplier"]
 }
 ```
 **Purpose**: Register new users with automatic Stellar wallet creation for blockchain identity.
+
+**Multi-Role Example**:
+```json
+{
+    "username": "hybrid_user@company.com",
+    "password": "password123",
+    "roles": ["client", "supplier"]
+}
+```
 
 #### **User Login**
 ```http
@@ -249,7 +258,7 @@ curl -X POST http://localhost:3000/api/users/register \
   -d '{
     "username": "client@company.com",
     "password": "password123",
-    "user_type": "client"
+    "roles": ["client"]
   }'
 
 # Register Supplier (NDA recipient)
@@ -258,7 +267,16 @@ curl -X POST http://localhost:3000/api/users/register \
   -d '{
     "username": "supplier@company.com",
     "password": "password456",
-    "user_type": "supplier"
+    "roles": ["supplier"]
+  }'
+
+# Register Hybrid User (both client and supplier)
+curl -X POST http://localhost:3000/api/users/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "hybrid@company.com",
+    "password": "password789",
+    "roles": ["client", "supplier"]
   }'
 
 # Response: Stellar wallet automatically created for each user
@@ -412,13 +430,13 @@ The system uses SQLite with SQLx for type-safe operations and automatic migratio
 
 ### **Database Schema**
 ```sql
--- Users with integrated Stellar wallets
+-- Users with integrated Stellar wallets and multi-role support
 CREATE TABLE users (
     id TEXT PRIMARY KEY,                    -- Unique user UUID
     username TEXT UNIQUE NOT NULL,          -- Unique email/username
     stellar_public_key TEXT NOT NULL,       -- Stellar public key for blockchain
     stellar_secret_key TEXT NOT NULL,       -- Stellar private key (encrypted)
-    user_type TEXT NOT NULL,                -- 'client' or 'supplier'
+    roles TEXT NOT NULL,                    -- JSON array: ["client"], ["supplier"], or ["client","supplier"]
     created_at TEXT NOT NULL                -- ISO 8601 timestamp
 );
 
