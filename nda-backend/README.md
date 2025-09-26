@@ -6,8 +6,9 @@ Non-Disclosure Agreement (NDA) management system with blockchain security, end-t
 
 This is the NDA system backend that provides a REST API for managing encrypted confidentiality agreement processes with blockchain-based sharing using the Stellar network.
 
-The system allows companies to create, share, and control access to confidential documents using the Stellar blockchain for decentralize- 🚀 **High performance** with Tokio async runtime
-- 🔍 **Type safety** with SQLx for compile-time verified queriesauthorization and AES-256-GCM encryption for data protection.
+The system allows companies to create, share, and control access to confidential documents using the Stellar blockchain for decentralize
+- 🚀 **High performance** with Tokio async runtime
+- 🔍 **Type safety** with SQLx for compile-time verified queries authorization and AES-256-GCM encryption for data protection.
 
 ## ✨ **Key Features**
 
