@@ -133,7 +133,7 @@
 			<!-- ✅ NOVO: Informações do usuário (desktop) -->
 			@if (!isMobile && currentUser()) {
 			  <div class="user-info-desktop">
-				<div class="user-type-badge" [class]="'badge-' + currentUser()?.user_type">
+				<div class="user-type-badge" [class]="userRoleBadgeClass()">
 				  <mat-icon>{{ userTypeIcon() }}</mat-icon>
 				  <span>{{ userTypeDisplay() }}</span>
 				</div>
@@ -147,7 +147,7 @@
 				*ngTemplateOutlet="menuItem; context: {
 				  action: switchUserType, 
 				  icon: 'swap_horiz', 
-				  text: 'Switch to ' + displaySwitchUserTypeLabel(), 
+				  text: displaySwitchUserTypeLabel(), 
 				  class: 'debug-item'
 				}">
 			  </ng-container>
@@ -242,7 +242,7 @@
 				*ngTemplateOutlet="mobileMenuItem; context: {
 				  action: switchUserType, 
 				  icon: 'swap_horiz', 
-				  text: 'Switch to ' + displaySwitchUserTypeLabel(), 
+				  text: displaySwitchUserTypeLabel(), 
 				  class: 'debug-item',
 				  sidenav: sidenav
 				}">

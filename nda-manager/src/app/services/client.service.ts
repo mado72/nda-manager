@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { of } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
+import { User, UserRole } from '../models/user.model';
 import { UserService } from './user.service';
-import { User, UserType } from '../models/user.model';
 
 export interface Client {
   id: string;
@@ -79,7 +79,7 @@ export class ClientService {
       // Simulate returning a User object (mock)
       let user : User = {
         username: client.name,
-        user_type: UserType.client,
+        roles: ['client'] as UserRole[],
         id: client.id || '',
         created_at: new Date().toISOString(),
         stellar_public_key: client.id

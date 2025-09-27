@@ -1,8 +1,8 @@
-import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Injectable, signal } from '@angular/core';
 import { Observable, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { User, UserRegisterRequest, UserLoginRequest, UserResponse, UserType } from '../models/user.model';
+import { User, UserLoginRequest, UserRegisterRequest, UserResponse, UserRole } from '../models/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
@@ -31,7 +31,7 @@ export class UserService {
                             id: response.id,
                             username: response.username,
                             stellar_public_key: response.stellar_public_key,
-                            user_type: response.user_type as UserType,
+                            roles: response.roles as UserRole[],
                             created_at: response.created_at
                         };
                         this.setCurrentUser(user);

@@ -1,12 +1,12 @@
 // src/app/components/share-contract/share-contract.component.ts
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { User } from '../../models/user.model';
-import { UserService } from '../../services/user.service';
 import { Contract, ShareRequest } from '../../models/contract.model';
+import { User, UserUtils } from '../../models/user.model';
 import { ContractService } from '../../services/contract.service';
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-share-contract',
@@ -26,6 +26,33 @@ export class ShareContractComponent implements OnInit {
   success = signal<string | null>(null);
   currentUser = computed<User | null>(() => this.userService.currentUser());
   canShare = signal<boolean>(false);
+
+  // ✅ NOVO: Métodos para trabalhar com roles
+  getUserRoleDescription(): string {
+    const user = this.currentUser();
+    return user ? UserUtils.getRoleDescription(user) : 'Guest';
+  }
+
+  getUserBadgeClass(): string {
+    const user = this.currentUser();
+    if (!user) {
+      return 'user-guest';
+    }
+    
+    if (UserUtils.hasMultipleRoles(user)) {
+      return 'user-multiple';
+    }
+    
+    if (UserUtils.isClient(user)) {
+      return 'user-client';
+    }
+    
+    if (UserUtils.isSupplier(user)) {
+      return 'user-supplier';
+    }
+    
+    return 'user-unknown';
+  }
 
   constructor(
     private fb: FormBuilder,
