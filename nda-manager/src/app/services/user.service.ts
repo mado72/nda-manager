@@ -18,11 +18,11 @@ export class UserService {
     register(data: UserRegisterRequest): Observable<UserResponse> {
         console.log(data);
         debugger;
-        return this.http.post<UserResponse>(`${this.apiUrl}/api/register`, data);
+        return this.http.post<UserResponse>(`${this.apiUrl}/api/users/register`, data);
     }
 
     login(data: UserLoginRequest): Observable<UserResponse> {
-        return this.http.post<UserResponse>(`${this.apiUrl}/api/login`, data)
+        return this.http.post<UserResponse>(`${this.apiUrl}/api/users/login`, data)
             .pipe(
                 tap(response => {
                     if (response && response.id) {
