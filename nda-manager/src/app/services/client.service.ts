@@ -16,26 +16,22 @@ export interface Client {
   providedIn: 'root'
 })
 export class ClientService {
-  private clients: Client[] = [];
   private loggedClient: Client | null = null;
 
   constructor(private userService: UserService) {
-    this.loadClients();
     this.loadLoggedClient();
   }
 
-  private loadClients(): void {
-    const data = localStorage.getItem('clients');
-    this.clients = data ? JSON.parse(data) : [];
-  }
-
-  private saveClients(): void {
-    localStorage.setItem('clients', JSON.stringify(this.clients));
-  }
-
   private loadLoggedClient(): void {
-    const data = localStorage.getItem('loggedClient');
-    this.loggedClient = data ? JSON.parse(data) : null;
+    const data = JSON.parse(localStorage.getItem('loggedClient') || '{}') as Client;
+    this.authenticateClient(data?.email, data?.password).subscribe({
+      next: (client) => {
+        this.loggedClient = client;
+      },
+      error: () => {
+        this.loggedClient = null;
+      }
+    });
   }
 
   private saveLoggedClient(): void {
@@ -55,7 +51,6 @@ export class ClientService {
           email,
           password
         };
-        this.clients.push(newClient);
         return newClient;
       }),
       catchError((error) => {
@@ -65,24 +60,26 @@ export class ClientService {
     );
   }
 
-  authenticateClient(email: string, password: string): Observable<User | null> {
-    const client = this.clients.find(c => c.email === email && c.password === password);
-    if (client) {
-      this.loggedClient = client;
-      this.saveLoggedClient();
-
-      // Simulate returning a User object (mock)
-      let user : User = {
-        username: client.name,
-        roles: ['client'] as UserRole[],
-        id: client.id || '',
-        created_at: new Date().toISOString(),
-        stellar_public_key: client.id
-      }
-      this.userService.currentUser.set(user);
-      return of(user);
-    }
-    return of(null);
+  authenticateClient(email: string, password: string): Observable<Client> {
+    return this.userService.login({ username: email, password }).pipe(
+      map((user) => {
+        if (user) {
+          this.loggedClient = {
+            id: user.id,
+            name: user.username,
+            email: email,
+            password: password,
+            stellar_public_key: user.stellar_public_key
+          };
+          return this.loggedClient;
+        }
+        throw new Error('Invalid credentials');
+      }),
+      catchError((error) => {
+        console.error('Error during user login:', error);
+        return throwError(() => new Error('Authentication failed'));
+      })
+    );
   }
 
   getLoggedClient(): Client | null {
