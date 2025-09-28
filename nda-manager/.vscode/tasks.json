@@ -41,6 +41,91 @@
           }
         }
       }
+    },
+    {
+      "label": "rust: cargo build",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build"],
+      "options": {
+        "cwd": "${workspaceFolder}/nda-backend"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "rust: cargo build --release",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "--release"],
+      "options": {
+        "cwd": "${workspaceFolder}/nda-backend"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "rust: cargo test --no-run",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["test", "--no-run"],
+      "options": {
+        "cwd": "${workspaceFolder}/nda-backend"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "rust: cargo run",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["run"],
+      "options": {
+        "cwd": "${workspaceFolder}/nda-backend",
+        "env": {
+          "RUST_LOG": "debug",
+          "DATABASE_URL": "sqlite:./stellar_mvp.db"
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "isBackground": true,
+      "problemMatcher": ["$rustc"]
     }
   ]
 }
