@@ -23,6 +23,7 @@ export interface AccessProcessRequest {
 export interface ProcessAccessResponse {
     process_id: string;
     title: string;
+    description: string;
     content: string;
     accessed_at: string;
 }
