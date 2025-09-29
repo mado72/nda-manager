@@ -8,58 +8,78 @@
 //! 
 //! The API provides the following main endpoints:
 //! 
-//! ### Authentication & User Management
-//! - `POST /api/register` - Register new users with Stellar account creation
-//! - `POST /api/login` - Authenticate existing users
+//! ### Health Check
+//! - `GET /health` - Simple health check endpoint with timestamp
+//! 
+//! ### User Management (Role-Based System)
+//! - `POST /api/users/register` - Register new users with Stellar account creation and multi-role support
+//! - `POST /api/users/login` - Authenticate existing users by username
 //! 
 //! ### Process Management
-//! - `POST /api/processes` - Create new NDA processes with encryption
-//! - `GET /api/processes` - List processes owned by a client
+//! - `POST /api/processes` - Create new NDA processes with AES-256-GCM encryption
+//! - `GET /api/processes?client_id=<id>` - List processes owned by a specific client
 //! 
-//! ### Sharing & Access
-//! - `POST /api/share` - Share processes via Stellar blockchain transactions
-//! - `POST /api/access` - Access shared processes with decryption
-//! - `GET /api/notifications` - Get access notifications for process owners
+//! ### Sharing & Access (Blockchain-Secured)
+//! - `POST /api/processes/share` - Share processes via Stellar blockchain transactions
+//! - `POST /api/processes/access` - Access shared processes with content decryption
+//! - `GET /api/notifications?client_id=<id>` - Get access audit trail for process owners
 //! 
-//! ### Health Check
-//! - `GET /health` - Simple health check endpoint
+//! ## Role System
+//! 
+//! The API supports a flexible role-based access control system:
+//! 
+//! - **Client Role**: Can create and manage NDA processes, share with suppliers
+//! - **Supplier Role**: Can access shared processes and view confidential content
+//! - **Hybrid Users**: Can have both roles (`["client", "supplier"]`) for full functionality
+//! 
+//! Role verification is enforced at the handler level for appropriate operations.
 //! 
 //! ## Security Model
 //! 
 //! The API implements multiple security layers:
 //! 
-//! - **Encryption**: All process content is encrypted using AES-256-GCM
+//! - **Role-Based Access Control**: Endpoints verify user roles before operations
+//! - **AES-256-GCM Encryption**: All process content is encrypted with unique keys
 //! - **Blockchain Verification**: Process sharing is recorded on Stellar network
 //! - **Access Control**: Suppliers can only access processes explicitly shared with them
-//! - **Audit Trail**: All access events are logged for compliance
+//! - **Complete Audit Trail**: All access events are logged for compliance
 //! 
-//! ## Request Flow Example
+//! ## Updated Request Flow Example
 //! 
 //! ```rust
-//! // 1. Register users
+//! // 1. Register users with roles
 //! let client = register_user(RegisterRequest {
 //!     username: "client_company".to_string(),
-//!     user_type: "client".to_string(),
+//!     name: "Client Company Inc.".to_string(),
+//!     roles: vec!["client".to_string()],
 //! }).await?;
 //! 
-//! // 2. Create encrypted process
+//! let supplier = register_user(RegisterRequest {
+//!     username: "supplier_corp".to_string(),
+//!     name: "Supplier Corporation".to_string(),
+//!     roles: vec!["supplier".to_string()],
+//! }).await?;
+//! 
+//! // 2. Create encrypted process (client role required)
 //! let process = create_process(CreateProcessRequest {
-//!     client_username: "client_company".to_string(),
+//!     client_id: client.id,
 //!     title: "Software Development NDA".to_string(),
-//!     confidential_content: "Sensitive technical details...".to_string(),
+//!     description: "Confidential software project details".to_string(),
+//!     confidential_content: "Sensitive technical specifications...".to_string(),
 //! }).await?;
 //! 
-//! // 3. Share via blockchain
+//! // 3. Share via blockchain (creates immutable record)
 //! let share = share_process(ShareProcessRequest {
 //!     client_username: "client_company".to_string(),
 //!     process_id: process.id,
-//!     supplier_public_key: "GCKFBEIY...".to_string(),
+//!     supplier_public_key: supplier.stellar_public_key,
 //! }).await?;
 //! 
-//! // 4. Supplier accesses content
+//! // 4. Supplier accesses content (supplier role required)
 //! let content = access_process(AccessProcessRequest {
 //!     process_id: process.id,
-//!     supplier_username: "supplier_company".to_string(),
+//!     supplier_username: "supplier_corp".to_string(),
+//!     supplier_public_key: supplier.stellar_public_key,
 //! }).await?;
 //! ```
 //! 
@@ -67,19 +87,21 @@
 //! 
 //! All handlers return HTTP status codes following REST conventions:
 //! - `200 OK` - Successful operations
-//! - `400 Bad Request` - Invalid request parameters
+//! - `400 Bad Request` - Invalid request parameters or missing required fields
 //! - `401 Unauthorized` - Authentication failures
-//! - `403 Forbidden` - Access denied to resources
-//! - `404 Not Found` - Resource not found
+//! - `403 Forbidden` - Insufficient permissions or role requirements not met
+//! - `404 Not Found` - Resource not found (user, process, etc.)
 //! - `409 Conflict` - Resource conflicts (e.g., username already exists)
-//! - `500 Internal Server Error` - Server-side errors
+//! - `422 Unprocessable Entity` - Request valid but cannot be processed
+//! - `500 Internal Server Error` - Server-side errors (database, encryption, blockchain)
 //! 
 //! ## Stellar Integration
 //! 
 //! The handlers integrate with Stellar blockchain for:
-//! - Automatic account creation and funding on testnet
+//! - Automatic account creation and funding on testnet for all registered users
 //! - Recording process sharing transactions with immutable proof
-//! - Verification of sharing rights before granting access
+//! - Verification of sharing rights before granting access to confidential content
+//! - Comprehensive audit trails that meet regulatory compliance requirements
 
 use axum::{
     extract::{State, Json, Query},
@@ -128,23 +150,23 @@ pub struct AppState {
 /// Query parameters for endpoints that list processes.
 /// 
 /// Used by endpoints that need to filter or identify processes
-/// based on the client username. The username parameter is optional
+/// based on the client ID. The client_id parameter is optional
 /// in the struct but required by most endpoints that use it.
 /// 
 /// # Fields
 /// 
-/// * `client_username` - Username of the client to filter processes for
+/// * `client_id` - ID of the client to filter processes for
 /// 
 /// # Usage
 /// 
 /// This struct is used with Axum's `Query` extractor to parse URL parameters:
 /// 
 /// ```
-/// GET /api/processes?client_username=client_company
+/// GET /api/processes?client_id=client-uuid
 /// ```
 #[derive(Deserialize)]
 pub struct ListProcessesQuery {
-    pub client_username: Option<String>,
+    pub client_id: Option<String>,
 }
 
 /// Simple health check endpoint handler.
@@ -203,7 +225,7 @@ pub async fn health_check() -> ResponseJson<HealthResponse> {
 /// ```json
 /// {
 ///   "username": "client_company",
-///   "password": "secure_password",
+///   "name": "Client Company Inc.",
 ///   "roles": ["client"]
 /// }
 /// ```
@@ -213,7 +235,7 @@ pub async fn health_check() -> ResponseJson<HealthResponse> {
 /// ```json
 /// {
 ///   "username": "hybrid_user",
-///   "password": "secure_password", 
+///   "name": "Hybrid Business Solutions", 
 ///   "roles": ["client", "supplier"]
 /// }
 /// ```
@@ -224,6 +246,7 @@ pub async fn health_check() -> ResponseJson<HealthResponse> {
 /// {
 ///   "id": "uuid-string",
 ///   "username": "client_company",
+///   "name": "Client Company Inc.",
 ///   "stellar_public_key": "GCKFBEIY...",
 ///   "roles": ["client"],
 ///   "created_at": "2024-01-01T00:00:00Z"
@@ -360,15 +383,17 @@ pub async fn login_user(
 /// # HTTP Responses
 /// 
 /// - **200 OK**: Process created successfully
-/// - **404 Not Found**: Client username not found
+/// - **403 Forbidden**: User doesn't have client role
+/// - **422 Unprocessable Entity**: Client ID not found
 /// - **500 Internal Server Error**: Encryption or database error
 /// 
 /// # Request Body
 /// 
 /// ```json
 /// {
-///   "client_username": "client_company",
+///   "client_id": "client-uuid-string",
 ///   "title": "Software Development NDA",
+///   "description": "Confidential software project details",
 ///   "confidential_content": "Sensitive technical details and trade secrets..."
 /// }
 /// ```
@@ -380,6 +405,7 @@ pub async fn login_user(
 ///   "id": "process-uuid",
 ///   "client_id": "client-uuid",
 ///   "title": "Software Development NDA",
+///   "description": "Confidential software project details",
 ///   "status": "active",
 ///   "created_at": "2024-01-01T00:00:00Z"
 /// }
@@ -551,7 +577,7 @@ pub async fn share_process(
 /// # HTTP Responses
 /// 
 /// - **200 OK**: Access granted, content decrypted and returned
-/// - **403 Forbidden**: Process not shared with this supplier
+/// - **403 Forbidden**: Process not shared with this supplier or insufficient supplier role
 /// - **404 Not Found**: Process or supplier not found
 /// - **500 Internal Server Error**: Decryption or database error
 /// 
@@ -560,7 +586,8 @@ pub async fn share_process(
 /// ```json
 /// {
 ///   "process_id": "process-uuid",
-///   "supplier_username": "supplier_company"
+///   "supplier_username": "supplier_company",
+///   "supplier_public_key": "GCKFBEIYTKP..."
 /// }
 /// ```
 /// 
@@ -570,6 +597,7 @@ pub async fn share_process(
 /// {
 ///   "process_id": "process-uuid",
 ///   "title": "Software Development NDA",
+///   "description": "Confidential software project details",
 ///   "content": "Decrypted confidential content...",
 ///   "accessed_at": "2024-01-01T00:00:00Z"
 /// }
@@ -698,18 +726,18 @@ pub async fn access_process(
 /// # HTTP Responses
 /// 
 /// - **200 OK**: Processes retrieved successfully
-/// - **400 Bad Request**: Missing client_username parameter
-/// - **404 Not Found**: Client username not found
+/// - **400 Bad Request**: Missing client_id parameter
+/// - **404 Not Found**: Client ID not found
 /// - **500 Internal Server Error**: Database error
 /// 
 /// # Query Parameters
 /// 
-/// - `client_username` (required): Username of the client whose processes to list
+/// - `client_id` (required): ID of the client whose processes to list
 /// 
 /// # Example Request
 /// 
 /// ```
-/// GET /api/processes?client_username=client_company
+/// GET /api/processes?client_id=client-uuid
 /// ```
 /// 
 /// # Response Body
@@ -720,6 +748,7 @@ pub async fn access_process(
 ///     "id": "process-uuid-1",
 ///     "client_id": "client-uuid",
 ///     "title": "Software Development NDA",
+///     "description": "Confidential software project details",
 ///     "status": "active",
 ///     "created_at": "2024-01-01T00:00:00Z"
 ///   },
@@ -727,6 +756,7 @@ pub async fn access_process(
 ///     "id": "process-uuid-2",
 ///     "client_id": "client-uuid", 
 ///     "title": "Marketing Partnership NDA",
+///     "description": "Joint marketing campaign specifications",
 ///     "status": "active",
 ///     "created_at": "2024-01-01T00:00:00Z"
 ///   }
@@ -742,10 +772,10 @@ pub async fn list_processes(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListProcessesQuery>,
 ) -> Result<ResponseJson<Vec<ProcessResponse>>, StatusCode> {
-    let client_username = params.client_username.ok_or(StatusCode::BAD_REQUEST)?;
+    let client_id = params.client_id.ok_or(StatusCode::BAD_REQUEST)?;
     
-    // Find client by username
-    let client = queries::find_user_by_username(&state.pool, &client_username)
+    // Find client by ID
+    let client = queries::find_user_by_id(&state.pool, &client_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
@@ -778,18 +808,18 @@ pub async fn list_processes(
 /// # HTTP Responses
 /// 
 /// - **200 OK**: Notifications retrieved successfully
-/// - **400 Bad Request**: Missing client_username parameter
-/// - **404 Not Found**: Client username not found
+/// - **400 Bad Request**: Missing client_id parameter
+/// - **404 Not Found**: Client ID not found
 /// - **500 Internal Server Error**: Database error
 /// 
 /// # Query Parameters
 /// 
-/// - `client_username` (required): Username of the client whose notifications to retrieve
+/// - `client_id` (required): ID of the client whose notifications to retrieve
 /// 
 /// # Example Request
 /// 
 /// ```
-/// GET /api/notifications?client_username=client_company
+/// GET /api/notifications?client_id=client-uuid
 /// ```
 /// 
 /// # Response Body
@@ -831,10 +861,10 @@ pub async fn get_notifications(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListProcessesQuery>,
 ) -> Result<ResponseJson<Vec<ProcessAccessWithDetails>>, StatusCode> {
-    let client_username = params.client_username.ok_or(StatusCode::BAD_REQUEST)?;
+    let client_id = params.client_id.ok_or(StatusCode::BAD_REQUEST)?;
     
-    // Find client by username
-    let client = queries::find_user_by_username(&state.pool, &client_username)
+    // Find client by ID
+    let client = queries::find_user_by_id(&state.pool, &client_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
