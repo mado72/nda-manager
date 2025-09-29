@@ -358,6 +358,7 @@ pub async fn create_user(
     name: &str,
     stellar_public_key: &str,
     stellar_secret_key: &str,
+    password_hash: &str,
     roles: &str,
 ) -> Result<User, sqlx::Error> {
     let id = Uuid::new_v4().to_string();
@@ -366,8 +367,8 @@ pub async fn create_user(
 
     sqlx::query(
         r#"
-        INSERT INTO users (id, username, name, stellar_public_key, stellar_secret_key, roles, created_at)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        INSERT INTO users (id, username, name, stellar_public_key, stellar_secret_key, password_hash, roles, created_at)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
         "#,
     )
     .bind(&id)
@@ -375,6 +376,7 @@ pub async fn create_user(
     .bind(name)
     .bind(stellar_public_key)
     .bind(stellar_secret_key)
+    .bind(password_hash)
     .bind(roles)
     .bind(&created_at_str)
     .execute(pool)
@@ -386,6 +388,7 @@ pub async fn create_user(
         name: name.to_string(),
         stellar_public_key: stellar_public_key.to_string(),
         stellar_secret_key: stellar_secret_key.to_string(),
+        password_hash: password_hash.to_string(),
         roles: roles.to_string(),
         created_at,
     })
@@ -439,6 +442,7 @@ pub async fn create_user(
                     name: row.get("name"),
                     stellar_public_key: row.get("stellar_public_key"),
                     stellar_secret_key: row.get("stellar_secret_key"),
+                    password_hash: row.get("password_hash"),
                     roles: row.get("roles"),
                     created_at,
                 }))
@@ -497,6 +501,7 @@ pub async fn create_user(
                     name: row.get("name"),
                     stellar_public_key: row.get("stellar_public_key"),
                     stellar_secret_key: row.get("stellar_secret_key"),
+                    password_hash: row.get("password_hash"),
                     roles: row.get("roles"),
                     created_at,
                 }))

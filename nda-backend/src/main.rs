@@ -68,6 +68,7 @@ mod handlers;
 mod database;
 mod crypto;
 mod stellar_real;
+mod auth;
 
 use handlers::AppState;
 

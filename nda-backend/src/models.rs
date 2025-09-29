@@ -106,15 +106,32 @@ use sqlx::FromRow;
 /// # Database Integration
 /// 
 /// This struct derives `FromRow` for direct SQLx query result mapping.
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: String,
     pub username: String,
     pub name: String,
     pub stellar_public_key: String,
     pub stellar_secret_key: String, // In production, use KMS (Key Management Service)
+    pub password_hash: String, // Bcrypt hashed password
     pub roles: String, // JSON string: ["client"] | ["supplier"] | ["client","supplier"]
     pub created_at: DateTime<Utc>,
+}
+
+/// Custom Debug implementation that hides sensitive fields.
+impl std::fmt::Debug for User {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("User")
+            .field("id", &self.id)
+            .field("username", &self.username)
+            .field("name", &self.name)
+            .field("stellar_public_key", &self.stellar_public_key)
+            .field("stellar_secret_key", &"[REDACTED]")
+            .field("password_hash", &"[REDACTED]")
+            .field("roles", &self.roles)
+            .field("created_at", &self.created_at)
+            .finish()
+    }
 }
 
 /// NDA process with encrypted confidential content.
@@ -437,6 +454,7 @@ pub struct UserResponse {
 /// 
 /// The conversion deliberately omits:
 /// - `stellar_secret_key` - Sensitive cryptographic material
+/// - `password_hash` - Hashed password for security
 /// 
 /// # Role Conversion
 /// 

@@ -119,6 +119,7 @@ use crate::{
     stellar_real::StellarClient,
     crypto::{generate_key, encrypt_content, decrypt_content},
     database::queries,
+    auth::Auth,
 };
 
 /// Application state shared across all handlers.
@@ -285,6 +286,10 @@ pub async fn register_user(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    // Hash the password
+    let password_hash = Auth::hash_password(&payload.password)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     // Create user in database with roles
     let roles_json = serde_json::to_string(&payload.roles)
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -295,6 +300,7 @@ pub async fn register_user(
         &payload.name,
         &stellar_account.public_key,
         &stellar_account.secret_key,
+        &password_hash,
         &roles_json,
     )
     .await
@@ -323,14 +329,15 @@ pub async fn register_user(
 /// # HTTP Responses
 /// 
 /// - **200 OK**: Authentication successful
-/// - **401 Unauthorized**: User not found
-/// - **500 Internal Server Error**: Database error
+/// - **401 Unauthorized**: Invalid username or password
+/// - **500 Internal Server Error**: Database or password verification error
 /// 
 /// # Request Body
 /// 
 /// ```json
 /// {
-///   "username": "client_company"
+///   "username": "client_company",
+///   "password": "user_password"
 /// }
 /// ```
 /// 
@@ -348,17 +355,26 @@ pub async fn register_user(
 /// 
 /// # Security Notes
 /// 
-/// - This is a simplified authentication for MVP purposes
-/// - Production systems should implement proper password authentication
-/// - Consider adding JWT tokens for session management
+/// - Passwords are hashed using bcrypt with salt for secure storage
+/// - Failed login attempts return generic "unauthorized" for security
+/// - Consider adding JWT tokens for session management and rate limiting
 pub async fn login_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<ResponseJson<UserResponse>, StatusCode> {
+    // Find user by username
     let user = queries::find_user_by_username(&state.pool, &payload.username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    // Verify password against stored hash
+    let is_valid = Auth::verify_password(&payload.password, &user.password_hash)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    if !is_valid {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
 
     Ok(ResponseJson(user.into()))
 }
