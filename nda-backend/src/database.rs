@@ -447,6 +447,64 @@ pub async fn create_user(
         }
     }
 
+    /// Finds a user by their ID.
+    /// 
+    /// This function performs a user lookup by UUID and returns
+    /// the complete user record if found. Useful for authentication and
+    /// user lookup operations.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `pool` - Database connection pool
+    /// * `user_id` - User ID to search for
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(Some(User))` - User found with the specified ID
+    /// - `Ok(None)` - No user found with that ID
+    /// - `Err(sqlx::Error)` - Database error or datetime parsing failure
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// match queries::find_user_by_id(&pool, &user_id).await? {
+    ///     Some(user) => println!("Found user: {}", user.username),
+    ///     None => println!("User not found"),
+    /// }
+    /// ```
+    pub async fn find_user_by_id(
+        pool: &SqlitePool,
+        user_id: &str,
+    ) -> Result<Option<User>, sqlx::Error> {
+        let row = sqlx::query("SELECT * FROM users WHERE id = ?1")
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
+
+        match row {
+            Some(row) => {
+                let created_at_str: String = row.get("created_at");
+                let created_at = string_to_datetime(&created_at_str)
+                    .map_err(|_| sqlx::Error::ColumnDecode { 
+                        index: "created_at".to_string(), 
+                        source: Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid datetime")) 
+                    })?;
+
+                Ok(Some(User {
+                    id: row.get("id"),
+                    username: row.get("username"),
+                    name: row.get("name"),
+                    stellar_public_key: row.get("stellar_public_key"),
+                    stellar_secret_key: row.get("stellar_secret_key"),
+                    roles: row.get("roles"),
+                    created_at,
+                }))
+            },
+            None => Ok(None),
+        }
+    }
+
     /// Creates a new NDA process with encrypted content.
     /// 
     /// This function creates a new process owned by a client user, with all
