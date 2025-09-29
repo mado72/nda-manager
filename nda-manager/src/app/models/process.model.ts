@@ -11,6 +11,7 @@ export interface Process {
 export interface ProcessResponse {
     id: string;
     title: string;
+    description: string;
     status: string;
     created_at: string;
 }
@@ -19,5 +20,5 @@ export interface CreateProcessRequest {
     title: string;
     description: string;
     confidential_content: string;
-    client_username: string; // TODO: Trocar para client_id
+    client_id: string;
 }
