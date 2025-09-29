@@ -754,7 +754,7 @@ pub async fn access_process(
 ///   },
 ///   {
 ///     "id": "process-uuid-2",
-///     "client_id": "client-uuid", 
+///     "client_id": "client-uuid",
 ///     "title": "Marketing Partnership NDA",
 ///     "description": "Joint marketing campaign specifications",
 ///     "status": "active",
