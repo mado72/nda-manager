@@ -48,7 +48,7 @@ export class ContractService {
     return this.processService.createProcess({
       title: newContract.title,
       description: newContract.description,
-      client_username: newContract.clientId,
+      client_id: newContract.clientId,
       confidential_content: JSON.stringify(newContract || {}),
     }).pipe(
       map((processResponse: any) => {

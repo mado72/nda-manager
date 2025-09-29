@@ -1,5 +1,5 @@
 // src/app/components/share-contract/share-contract.component.ts
-import { CommonModule } from '@angular/common';
+import { CommonModule, SlicePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,7 +11,7 @@ import { UserService } from '../../services/user.service';
 @Component({
   selector: 'app-share-contract',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [SlicePipe, ReactiveFormsModule],
   templateUrl: './share-contract.component.html',
   styleUrl: './share-contract.component.scss'
 })

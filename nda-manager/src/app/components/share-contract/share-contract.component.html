@@ -35,7 +35,7 @@
         You are currently logged in as: <strong>{{ getUserRoleDescription() }}</strong>
       </p>
       <div class="user-info">
-        <div class="user-badge" [ngClass]="getUserBadgeClass()">
+        <div class="user-badge" [class]="getUserBadgeClass()">
           <svg fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
           </svg>
@@ -124,9 +124,9 @@
               class="form-select"
               [class.invalid]="isFieldInvalid('process_id')">
               <option value="">Choose a contract...</option>
-              @for (contract of contracts(); track contract.uri) {
-                <option [value]="contract.uri">
-                  {{ contract.title }} ({{ contract.uri.substring(0, 8) }}...)
+              @for (contract of contracts(); track contract.data) {
+                <option [value]="contract.data">
+                  {{ contract.title }} ({{ contract.data | slice:0:8 }}...)
                 </option>
               }
             </select>

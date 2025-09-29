@@ -150,6 +150,32 @@
   }
 }
 
+.description-cell {
+  min-width: 200px;
+  max-width: 300px;
+  
+  .description-content {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .contract-description {
+    font-size: 0.875rem;
+    color: #374151;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    
+    &:empty::before,
+    &:has-text("No description")::before {
+      content: "No description";
+      color: #9ca3af;
+      font-style: italic;
+    }
+  }
+}
+
 .status-cell {
   min-width: 100px;
 }
@@ -199,10 +225,10 @@
   }
 }
 
-.uri-cell {
+.data-cell {
   max-width: 150px;
   
-  .uri-preview {
+  .data-preview {
     code {
       background: #f3f4f6;
       padding: 0.25rem 0.5rem;
@@ -420,7 +446,12 @@
       min-width: 150px;
     }
     
-    .uri-cell {
+    .description-cell {
+      min-width: 120px;
+      max-width: 200px;
+    }
+    
+    .data-cell {
       max-width: 100px;
     }
   }
