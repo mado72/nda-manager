@@ -1,6 +1,6 @@
 import { Component, signal, OnInit, OnDestroy } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, JsonPipe, SlicePipe } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { ContractService } from '../../services/contract.service';
 import { Contract } from '../../models/contract.model';
@@ -8,7 +8,7 @@ import { Contract } from '../../models/contract.model';
 @Component({
   selector: 'app-list-contracts',
   standalone: true,
-  imports: [RouterModule, CommonModule],
+  imports: [RouterModule, JsonPipe, SlicePipe],
   templateUrl: './list-contracts.component.html',
   styleUrl: './list-contracts.component.scss'
 })
@@ -49,7 +49,7 @@ export class ListContractsComponent implements OnInit, OnDestroy {
   copyContractInfo(contract: Contract) {
     const info = `
 Contract Information:
-- Hash: ${contract.hash}
+- Data: ${JSON.stringify(contract.data)}
 - Title: ${contract.title}
 - Status: ${contract.status}
 - Client ID: ${contract.clientId}

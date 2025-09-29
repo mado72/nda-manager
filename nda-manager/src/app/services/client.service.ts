@@ -1,7 +1,7 @@
-import { computed, Injectable, Signal, signal } from '@angular/core';
-import { catchError, map, of, throwError } from 'rxjs';
+import { computed, Injectable } from '@angular/core';
+import { catchError, map, throwError } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
-import { User, UserRole } from '../models/user.model';
+import { UserRole } from '../models/user.model';
 import { UserService } from './user.service';
 
 export interface Client {

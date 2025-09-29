@@ -17,7 +17,7 @@ export class RegisterContractComponent implements OnInit {
   contractId = input<string | null>(null);
   title = signal('');
   description = signal('');
-  hash = signal('');
+  uri = signal('');
   message = signal('');
   loading = signal(false);
 
@@ -32,7 +32,7 @@ export class RegisterContractComponent implements OnInit {
           if (contract) {
             this.title.set(contract.title);
             this.description.set(contract.description);
-            this.hash.set(contract.hash);
+            this.uri.set(contract.data?.uri || '');
           }
           this.loading.set(false);
         },
@@ -49,55 +49,36 @@ export class RegisterContractComponent implements OnInit {
   }
 
   registerContract() {
-    if (!this.title() || !this.description() || !this.hash()) {
+    if (!this.title() || !this.description() || !this.uri()) {
       this.message.set('Please fill all fields.');
       return;
     }
     this.loading.set(true);
     const contractIdValue = this.contractId();
-    if (contractIdValue) {
-      // Atualizar contrato existente
-      this.contractService.updateContract(contractIdValue, {
-        title: this.title(),
-        description: this.description(),
-        hash: this.hash()
-      }).subscribe({
-        next: contract => {
-          this.message.set('Contract updated successfully!');
-          this.loading.set(false);
-          setTimeout(() => {
-            this.router.navigate(['/contracts']);
-          }, 1200);
-        },
-        error: err => {
-          this.message.set('Error updating contract.');
-          this.loading.set(false);
-        }
-      });
-    } else {
-      // Criar novo contrato
-      this.contractService.createContract({
-        clientId: this.clientService.loggedClient()?.id || '',
-        title: this.title(),
-        description: this.description(),
-        hash: this.hash()
-      }).subscribe({
-        next: contract => {
-          this.message.set('Contract registered successfully!');
-          this.title.set('');
-          this.description.set('');
-          this.hash.set('');
-          this.loading.set(false);
-          setTimeout(() => {
-            this.router.navigate(['/contracts']);
-          }, 1200);
-        },
-        error: err => {
-          this.message.set('Error registering contract.');
-          this.loading.set(false);
-        }
-      });
-    }
+    // Criar novo contrato
+    this.contractService.createContract({
+      clientId: this.clientService.loggedClient()?.id || '',
+      title: this.title(),
+      description: this.description(),
+      data: {
+        uri: this.uri()
+      }
+    }).subscribe({
+      next: contract => {
+        this.message.set('Contract registered successfully!');
+        this.title.set('');
+        this.description.set('');
+        this.uri.set('');
+        this.loading.set(false);
+        setTimeout(() => {
+          this.router.navigate(['/contracts']);
+        }, 1200);
+      },
+      error: err => {
+        this.message.set('Error registering contract.');
+        this.loading.set(false);
+      }
+    });
   }
 
   onCancel() {

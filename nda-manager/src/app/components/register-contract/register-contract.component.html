@@ -70,17 +70,17 @@
         required></textarea>
     </div>
 
-    <!-- Hash Field -->
+    <!-- URI Field -->
     <div class="form-group">
-      <label for="hash" class="form-label">Contract Hash *</label>
+      <label for="uri" class="form-label">Contract URI *</label>
       <input
         type="text"
-        id="hash"
-        name="hash"
+        id="uri"
+        name="uri"
         class="form-input"
-        placeholder="Enter contract hash"
-        [ngModel]="hash()"
-        (ngModelChange)="hash.set($event)"
+        placeholder="Enter contract uri"
+        [ngModel]="uri()"
+        (ngModelChange)="uri.set($event)"
         [disabled]="loading()"
         required>
     </div>
@@ -90,7 +90,7 @@
       <button
         type="submit"
         class="btn btn-primary"
-        [disabled]="loading() || !title() || !description() || !hash()">
+        [disabled]="loading() || !title() || !description() || !uri()">
         @if (!loading()) {
           <span>{{ contractId() ? 'Update Contract' : 'Register Contract' }}</span>
         } @else {

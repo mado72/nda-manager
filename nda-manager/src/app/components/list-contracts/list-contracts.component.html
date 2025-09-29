@@ -10,9 +10,11 @@
           </svg>
           Contracts List
         </h2>
-        <div class="contracts-count" *ngIf="!loading() && contracts().length">
-          {{ contracts().length }} contract{{ contracts().length !== 1 ? 's' : '' }} found
-        </div>
+        @if (!loading() && !error() && contracts().length) {
+          <div class="contracts-count">
+            {{ contracts().length }} contract{{ contracts().length !== 1 ? 's' : '' }} found
+          </div>
+        }
       </div>
       
       <a routerLink="/contracts/add" class="new-contract-button">
@@ -59,24 +61,24 @@
             <th>Status</th>
             <th>Client ID</th>
             <th>Supplier ID</th>
-            <th>Hash</th>
+            <th>URI</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          @for (contract of contracts(); track contract.hash) {
+          @for (contract of contracts(); track contract.id) {
             <tr class="contract-row">
               <!-- Title -->
               <td class="title-cell">
                 <div class="title-content">
                   <span class="contract-title">{{ contract.title || 'Untitled Contract' }}</span>
-                  <span class="contract-id">Hash: {{ contract.hash | slice:0:8 }}...</span>
+                  <span class="contract-id">ID: {{ contract.id | slice:0:8 }}...</span>
                 </div>
               </td>
               
               <!-- Status -->
               <td class="status-cell">
-                <span class="status-badge" [ngClass]="'status-' + (contract.status || 'unknown')">
+                <span class="status-badge" [class]="'status-' + (contract.status || 'unknown')">
                   {{ contract.status || 'Unknown' }}
                 </span>
               </td>
@@ -91,17 +93,17 @@
                 <span class="supplier-id">{{ contract.supplierId || 'N/A' }}</span>
               </td>
               
-              <!-- Hash -->
-              <td class="hash-cell">
-                <div class="hash-preview">
-                  <code>{{ contract.hash | slice:0:16 }}...</code>
+              <!-- URI -->
+              <td class="uri-cell">
+                <div class="uri-preview">
+                  <code>{{ contract.data | json | slice:0:16 }}...</code>
                 </div>
               </td>
               
               <!-- Actions -->
               <td class="actions-cell">
                 <div class="action-buttons">
-                  <a [routerLink]="['/contracts/edit', contract.hash]" class="action-btn edit-btn" title="Edit Contract">
+                  <a [routerLink]="['/contracts/edit', contract.id]" class="action-btn edit-btn" title="Edit Contract">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>

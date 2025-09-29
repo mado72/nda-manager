@@ -124,9 +124,9 @@
               class="form-select"
               [class.invalid]="isFieldInvalid('process_id')">
               <option value="">Choose a contract...</option>
-              @for (contract of contracts(); track contract.hash) {
-                <option [value]="contract.hash">
-                  {{ contract.title }} ({{ contract.hash.substring(0, 8) }}...)
+              @for (contract of contracts(); track contract.uri) {
+                <option [value]="contract.uri">
+                  {{ contract.title }} ({{ contract.uri.substring(0, 8) }}...)
                 </option>
               }
             </select>

@@ -199,10 +199,10 @@
   }
 }
 
-.hash-cell {
+.uri-cell {
   max-width: 150px;
   
-  .hash-preview {
+  .uri-preview {
     code {
       background: #f3f4f6;
       padding: 0.25rem 0.5rem;
@@ -420,7 +420,7 @@
       min-width: 150px;
     }
     
-    .hash-cell {
+    .uri-cell {
       max-width: 100px;
     }
   }
