@@ -17,6 +17,7 @@ export interface ProcessResponse {
 
 export interface CreateProcessRequest {
     title: string;
+    description: string;
     confidential_content: string;
-    client_username: string;
+    client_username: string; // TODO: Trocar para client_id
 }

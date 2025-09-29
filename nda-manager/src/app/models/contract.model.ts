@@ -1,12 +1,12 @@
 
 export interface Contract {
+  id?: string;
   clientId: string;
   supplierId: string;
   status: string;
   data: any;
   title: string;
   description: string;
-  hash: string;
 }
 
 export interface ShareRequest {

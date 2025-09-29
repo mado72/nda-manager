@@ -1,13 +1,15 @@
 import { inject, Injectable, signal } from '@angular/core';
 // import { HttpClient } from '@angular/common/http';
-import { catchError, Observable, of, tap } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { catchError, finalize, map } from 'rxjs/operators';
 import { Contract, ShareRequest, ShareResponse } from '../models/contract.model';
-import { environment } from '../../environments/environment';
-import { HttpClient } from '@angular/common/http';
+import { ClientService } from './client.service';
+import { ProcessService } from './process.service';
 
 @Injectable({ providedIn: 'root' })
 export class ContractService {
-  private http = inject(HttpClient);
+  private clientService = inject(ClientService);
+  private processService = inject(ProcessService);
   contracts = signal<Contract[]>([]);
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
@@ -16,29 +18,65 @@ export class ContractService {
   constructor() {}
 
 
-  createContract(contractData: Partial<Contract>): Observable<Contract> {
+  createContract(contractData: Partial<Contract>): Observable<Contract | null> {
     this.loading.set(true);
-    // O id do contrato será o hash informado
+
+    const client = this.clientService.loggedClient();
+    if (!client) {
+      this.error.set('No logged client found');
+      this.loading.set(false);
+      return of(null as any);
+    }
+
+    if (!contractData.title || !contractData.description) {
+      this.error.set('Missing required contract fields');
+      this.loading.set(false);
+      return of(null);
+    }
+
     const newContract: Contract = {
-      clientId: contractData.clientId || '',
+      clientId: client.id,
       supplierId: contractData.supplierId || '',
       status: contractData.status || 'pending',
-      data: contractData.data || {},
-      title: contractData.title || '',
-      description: contractData.description || '',
-      hash: contractData.hash || '',
+      data: { ...(contractData.data || {}),
+        created_at: new Date().toISOString()
+      },
+      title: contractData.title,
+      description: contractData.description,
     };
-    const current = this.contracts();
-    this.contracts.set([...current, newContract]);
-    this.loading.set(false);
-    return of(newContract);
+
+    return this.processService.createProcess({
+      title: newContract.title,
+      description: newContract.description,
+      client_username: newContract.clientId,
+      confidential_content: JSON.stringify(newContract || {}),
+    }).pipe(
+      map((processResponse: any) => {
+        console.log('✅ Process created:', processResponse);
+        this.error.set(null);
+        newContract.status = processResponse.status;
+        newContract.id = processResponse.id;
+
+        const current = this.contracts();
+        this.contracts.set([...current, newContract]);
+        return newContract;
+      }),
+      catchError((err: any) => {
+        console.error('❌ Error creating process:', err);
+        this.error.set('Error creating process');
+        return of(null);
+      }),
+      finalize(() => {
+        this.loading.set(false);
+      })
+    );
   }
 
 
   getContract(contractId: string): Observable<Contract> {
     this.loading.set(true);
     // Simulação de busca de contrato em memória
-    const found = this.contracts().find(c => c.hash === contractId) || null;
+    const found = this.contracts().find(c => c.id === contractId) || null;
     this.loading.set(false);
     return of(found as Contract);
   }
@@ -50,26 +88,6 @@ export class ContractService {
     this.loading.set(false);
     return of(this.contracts());
   }
-
-  updateContract(contractId: string, contractData: Partial<Contract>): Observable<Contract | null> {
-    this.loading.set(true);
-    const contracts = this.contracts();
-    const idx = contracts.findIndex(c => c.hash === contractId);
-    if (idx === -1) {
-      this.loading.set(false);
-      return of(null);
-    }
-    // O id do contrato será o hash informado (se alterado)
-    const updated: Contract = {
-      ...contracts[idx],
-      ...contractData,
-    };
-    contracts[idx] = updated;
-    this.contracts.set([...contracts]);
-    this.loading.set(false);
-    return of(updated);
-  }
-
   
   shareContract(shareData: ShareRequest): Observable<ShareResponse> {
     console.log('🔗 Sharing contract:', shareData);

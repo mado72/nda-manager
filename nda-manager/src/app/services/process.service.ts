@@ -13,7 +13,7 @@ export class ProcessService {
     constructor(private http: HttpClient) { }
 
     createProcess(data: CreateProcessRequest): Observable<ProcessResponse> {
-        return this.http.post<ProcessResponse>(`${this.apiUrl}/api/process`, data);
+        return this.http.post<ProcessResponse>(`${this.apiUrl}/api/processes`, data);
     }
 
     shareProcess(data: any): Observable<ProcessShare> {
