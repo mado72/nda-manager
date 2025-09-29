@@ -155,21 +155,24 @@ pub struct ListProcessesQuery {
 /// 
 /// # Returns
 /// 
-/// Always returns "OK" as a static string response.
+/// Always returns health status with current timestamp in ISO format.
 /// 
 /// # HTTP Response
 /// - **Status**: 200 OK
-/// - **Body**: "OK"
+/// - **Body**: JSON with status and timestamp
 /// 
 /// # Examples
 /// 
 /// ```
 /// GET /health
 /// → 200 OK
-/// → "OK"
+/// → {"status": "OK", "timestamp": "2024-01-01T00:00:00Z"}
 /// ```
-pub async fn health_check() -> &'static str {
-    "OK"
+pub async fn health_check() -> ResponseJson<HealthResponse> {
+    ResponseJson(HealthResponse {
+        status: "OK".to_string(),
+        timestamp: Utc::now(),
+    })
 }
 
 /// Registers a new user with automatic Stellar account creation.

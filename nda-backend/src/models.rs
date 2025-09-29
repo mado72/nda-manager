@@ -654,3 +654,23 @@ pub struct ProcessAccessResponse {
     pub content: String,
     pub accessed_at: DateTime<Utc>,
 }
+
+/// Health check response with server status and timestamp.
+/// 
+/// Returns basic service health information including the current
+/// timestamp in ISO 8601 format for monitoring and diagnostic purposes.
+/// 
+/// # Fields
+/// 
+/// * `status` - Service status indicator ("OK" when healthy)
+/// * `timestamp` - Current server time in ISO 8601 format
+/// 
+/// # Usage
+/// 
+/// This model is used by the `/health` endpoint to provide structured
+/// health information that can be consumed by monitoring systems.
+#[derive(Debug, Serialize)]
+pub struct HealthResponse {
+    pub status: String,
+    pub timestamp: DateTime<Utc>,
+}
