@@ -54,7 +54,7 @@
     <span class="brand-title">NDA Manager</span>
   </div>
 
-  @if(currentUser()) {
+  @if(currentClient()) {
 	  <!-- Desktop Menu - COM OPÇÕES CONDICIONAIS -->
 	  @if (!isMobile) {
 		<div class="desktop-menu">
@@ -109,7 +109,7 @@
 			  <span class="user-name">{{ userName() }}</span>
 			}
 			<!-- ✅ NOVO: Mostrar tipo de usuário -->
-			@if (!isMobile && currentUser()) {
+			@if (!isMobile && currentClient()) {
 			  <span class="user-type">
 				({{ userTypeDisplay() }})
 			  </span>
@@ -131,7 +131,7 @@
 			}
 	
 			<!-- ✅ NOVO: Informações do usuário (desktop) -->
-			@if (!isMobile && currentUser()) {
+			@if (!isMobile && currentClient()) {
 			  <div class="user-info-desktop">
 				<div class="user-type-badge" [class]="userRoleBadgeClass()">
 				  <mat-icon>{{ userTypeIcon() }}</mat-icon>
@@ -142,7 +142,7 @@
 			}
 	
 			<!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
-			@if (currentUser()) {
+			@if (currentClient()) {
 			  <ng-container 
 				*ngTemplateOutlet="menuItem; context: {
 				  action: switchUserType, 
@@ -180,7 +180,7 @@
         </button>
       </div>
 
-	  @if (currentUser()) {
+	  @if (currentClient()) {
 		  <mat-nav-list>
 			<h3 matSubheader>Main Menu</h3>
 	
@@ -223,7 +223,7 @@
 			<h3 matSubheader>Account</h3>
 	
 			<!-- ✅ NOVO: User Info no mobile -->
-			@if (currentUser()) {
+			@if (currentClient()) {
 			  <div class="mobile-user-info">
 				<mat-list-item class="user-info-item">
 				  <mat-icon matListItemIcon>{{ userTypeIcon() }}</mat-icon>
@@ -237,7 +237,7 @@
 			}
 	
 			<!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
-			@if (currentUser()) {
+			@if (currentClient()) {
 			  <ng-container 
 				*ngTemplateOutlet="mobileMenuItem; context: {
 				  action: switchUserType, 
@@ -266,4 +266,4 @@
   </mat-sidenav-container>
 }
 
-<pre class="debug-info">{{ currentUser() | json }}</pre>
+<pre class="debug-info">{{ currentClient() | json }}</pre>
