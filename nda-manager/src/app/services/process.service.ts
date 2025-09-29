@@ -24,13 +24,13 @@ export class ProcessService {
         return this.http.post<ProcessAccessResponse>(`${this.apiUrl}/api/process/access`, data);
     }
 
-    listProcesses(client_username: string): Observable<ProcessResponse[]> {
-        const params = new HttpParams().set('client_username', client_username);
+    listProcesses(client_id: string): Observable<ProcessResponse[]> {
+        const params = new HttpParams().set('client_id', client_id);
         return this.http.get<ProcessResponse[]>(`${this.apiUrl}/processes`, { params });
     }
 
-    getNotifications(client_username: string): Observable<ProcessAccessWithDetails[]> {
-        const params = new HttpParams().set('client_username', client_username);
+    getNotifications(client_id: string): Observable<ProcessAccessWithDetails[]> {
+        const params = new HttpParams().set('client_id', client_id);
         return this.http.get<ProcessAccessWithDetails[]>(`${this.apiUrl}/notifications`, { params });
     }
 }

@@ -10,6 +10,7 @@ export interface Process {
 
 export interface ProcessResponse {
     id: string;
+    client_id: string;
     title: string;
     description: string;
     status: string;
