@@ -127,6 +127,7 @@ pub struct User {
 /// * `id` - Unique process identifier (UUID)
 /// * `client_id` - Reference to the owning client user
 /// * `title` - Human-readable process title/description
+/// * `description` - Detailed description of the process (required)
 /// * `encrypted_content` - AES-256-GCM encrypted confidential content
 /// * `encryption_key` - Base64-encoded encryption key for the content
 /// * `status` - Process lifecycle status ("active", "completed", etc.)
@@ -150,6 +151,7 @@ pub struct Process {
     pub id: String,
     pub client_id: String,
     pub title: String,
+    pub description: String,
     pub encrypted_content: String,
     pub encryption_key: String,
     pub status: String,
@@ -319,7 +321,8 @@ pub struct LoginRequest {
 /// 
 /// # Fields
 /// 
-/// * `title` - Human-readable process title/description
+/// * `title` - Human-readable process title/name
+/// * `description` - Detailed description of the process (required)
 /// * `confidential_content` - Sensitive content to be encrypted
 /// * `client_username` - Username of the client creating the process
 /// 
@@ -333,6 +336,7 @@ pub struct LoginRequest {
 #[derive(Debug, Deserialize)]
 pub struct CreateProcessRequest {
     pub title: String,
+    pub description: String,
     pub confidential_content: String,
     pub client_username: String,
 }
@@ -573,6 +577,7 @@ impl From<User> for UserResponse {
 pub struct ProcessResponse {
     pub id: String,
     pub title: String,
+    pub description: String,
     pub status: String,
     pub created_at: DateTime<Utc>,
 }
@@ -610,6 +615,7 @@ impl From<Process> for ProcessResponse {
         ProcessResponse {
             id: process.id,
             title: process.title,
+            description: process.description,
             status: process.status,
             created_at: process.created_at,
         }
@@ -644,6 +650,7 @@ impl From<Process> for ProcessResponse {
 pub struct ProcessAccessResponse {
     pub process_id: String,
     pub title: String,
+    pub description: String,
     pub content: String,
     pub accessed_at: DateTime<Utc>,
 }

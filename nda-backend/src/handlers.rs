@@ -418,6 +418,7 @@ pub async fn create_process(
         &state.pool,
         &client.id,
         &payload.title,
+        &payload.description,
         &encrypted_content,
         &encryption_key,
     )
@@ -600,7 +601,7 @@ pub async fn access_process(
     // Find process with specific fields
     let process = sqlx::query!(
         r#"
-        SELECT id, client_id, title, encrypted_content, encryption_key, status, created_at
+        SELECT id, client_id, title, description, encrypted_content, encryption_key, status, created_at
         FROM processes WHERE id = ?
         "#,
         payload.process_id
@@ -666,6 +667,7 @@ pub async fn access_process(
     let response = ProcessAccessResponse {
         process_id: payload.process_id,
         title: process.title,
+        description: process.description,
         content: decrypted_content,
         accessed_at: now,
     };

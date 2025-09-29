@@ -488,6 +488,7 @@ pub async fn create_user(
         pool: &SqlitePool,
         client_id: &str,
         title: &str,
+        description: &str,
         encrypted_content: &str,
         encryption_key: &str,
     ) -> Result<Process, sqlx::Error> {
@@ -498,13 +499,14 @@ pub async fn create_user(
 
         sqlx::query(
             r#"
-            INSERT INTO processes (id, client_id, title, encrypted_content, encryption_key, status, created_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            INSERT INTO processes (id, client_id, title, description, encrypted_content, encryption_key, status, created_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
             "#,
         )
         .bind(&id)
         .bind(client_id)
         .bind(title)
+        .bind(description)
         .bind(encrypted_content)
         .bind(encryption_key)
         .bind(&status)
@@ -516,6 +518,7 @@ pub async fn create_user(
             id,
             client_id: client_id.to_string(),
             title: title.to_string(),
+            description: description.to_string(),
             encrypted_content: encrypted_content.to_string(),
             encryption_key: encryption_key.to_string(),
             status,
@@ -570,6 +573,7 @@ pub async fn create_user(
                     id: row.get("id"),
                     client_id: row.get("client_id"),
                     title: row.get("title"),
+                    description: row.get("description"),
                     encrypted_content: row.get("encrypted_content"),
                     encryption_key: row.get("encryption_key"),
                     status: row.get("status"),
@@ -627,6 +631,7 @@ pub async fn create_user(
                 id: row.get("id"),
                 client_id: row.get("client_id"),
                 title: row.get("title"),
+                description: row.get("description"),
                 encrypted_content: row.get("encrypted_content"),
                 encryption_key: row.get("encryption_key"),
                 status: row.get("status"),
