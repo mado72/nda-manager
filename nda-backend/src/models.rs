@@ -324,7 +324,7 @@ pub struct LoginRequest {
 /// * `title` - Human-readable process title/name
 /// * `description` - Detailed description of the process (required)
 /// * `confidential_content` - Sensitive content to be encrypted
-/// * `client_username` - Username of the client creating the process
+/// * `client_id` - ID of the client creating the process
 /// 
 /// # Security Processing
 /// 
@@ -338,7 +338,7 @@ pub struct CreateProcessRequest {
     pub title: String,
     pub description: String,
     pub confidential_content: String,
-    pub client_username: String,
+    pub client_id: String,
 }
 
 /// Process sharing request payload.

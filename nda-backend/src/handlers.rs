@@ -402,11 +402,11 @@ pub async fn create_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateProcessRequest>,
 ) -> Result<ResponseJson<ProcessResponse>, StatusCode> {
-    // Find client by username and verify client role
-    let client = queries::find_user_by_username(&state.pool, &payload.client_username)
+    // Find client by ID and verify client role
+    let client = queries::find_user_by_id(&state.pool, &payload.client_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
         
     // Verify user has client role
     if !client.is_client() {
