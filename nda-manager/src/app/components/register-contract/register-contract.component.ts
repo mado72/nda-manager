@@ -77,7 +77,7 @@ export class RegisterContractComponent implements OnInit {
     } else {
       // Criar novo contrato
       this.contractService.createContract({
-        clientId: this.clientService.getLoggedClient()?.id || '',
+        clientId: this.clientService.loggedClient()?.id || '',
         title: this.title(),
         description: this.description(),
         hash: this.hash()

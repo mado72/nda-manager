@@ -10,7 +10,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSidenav } from '@angular/material/sidenav';
 import { ContractService } from '../../services/contract.service'; // ✅ Adicionar
-import { User, UserType, UserUtils, UserRole } from '../../models/user.model';
+import { ClientService } from '../../services/client.service';
+import { User, UserRole, UserUtils } from '../../models/user.model';
 import { UserService } from '../../services/user.service';
 
 
@@ -35,6 +36,7 @@ import { UserService } from '../../services/user.service';
 export class MenuComponent implements OnInit, OnDestroy {
 
   private router = inject(Router);
+  private clientService = inject(ClientService);
   private userService = inject(UserService);
   private contractService = inject(ContractService);
 
@@ -52,18 +54,17 @@ export class MenuComponent implements OnInit, OnDestroy {
   isSupplier = false;
   hasMultipleRoles = false;
 
-
   ngOnInit() {
     this.checkScreenSize();
   }
 
-  currentUser = computed(() => {
-    const currentUser = this.userService.currentUser();
-    if (currentUser) {
+  currentClient = computed(() => {
+    const currentClient = this.clientService.loggedClient();
+    if (currentClient) {
       // Atualizar propriedades baseadas em roles
-      this.isClient = UserUtils.isClient(currentUser);
-      this.isSupplier = UserUtils.isSupplier(currentUser);
-      this.hasMultipleRoles = UserUtils.hasMultipleRoles(currentUser);
+      this.isClient = currentClient.isClient();
+      this.isSupplier = currentClient.isSupplier();
+      this.hasMultipleRoles = this.isClient && this.isSupplier;
       
       // Atualizar permissões baseadas em roles
       this.canCreateContracts = this.isClient;
@@ -82,41 +83,41 @@ export class MenuComponent implements OnInit, OnDestroy {
       this.canShareContracts = false;
     }
 
-    console.log('👤 User loaded:', currentUser);
+    console.log('👤 Client loaded:', currentClient);
     console.log('🔑 Is Client:', this.isClient);
     console.log('🏭 Is Supplier:', this.isSupplier);
     console.log('🔄 Has Multiple Roles:', this.hasMultipleRoles);
     console.log('🔨 Can create contracts:', this.canCreateContracts);
     console.log('🔗 Can share contracts:', this.canShareContracts);
-    return currentUser;
+    return currentClient;
   });
 
   userName = computed(() => {
-    const currentUser = this.currentUser();
-    return currentUser ? currentUser.username : 'Guest';
+    const currentUser = this.currentClient();
+    return currentUser ? currentUser.name : 'Guest';
   });
 
   userTypeDisplay = computed(() => {
-    const currentUser = this.currentUser();
-    return currentUser ? UserUtils.getRoleDescription(currentUser) : 'Guest';
+    const currentUser = this.currentClient();
+    return currentUser ? this.isClient ? 'Client' : 'Supplier' : 'Guest';
   });
 
   userTypeIcon = computed(() => {
-    const currentUser = this.currentUser();
+    const currentUser = this.currentClient();
     if (!currentUser) {
       return 'person';
     }
     
     // Ícone baseado nas roles
-    if (UserUtils.hasMultipleRoles(currentUser)) {
+    if (this.isClient) {
       return 'supervisor_account'; // Ícone para múltiplas roles
     }
     
-    if (UserUtils.isClient(currentUser)) {
+    if (this.isClient) {
       return 'business';
     }
     
-    if (UserUtils.isSupplier(currentUser)) {
+    if (this.isSupplier) {
       return 'inventory';
     }
     
@@ -124,22 +125,22 @@ export class MenuComponent implements OnInit, OnDestroy {
   });
 
   displaySwitchUserTypeLabel = computed(() => {
-    const currentUser = this.currentUser();
+    const currentUser = this.currentClient();
     if (!currentUser) {
       return 'Switch User Type';
     }
     
     // Para usuários com múltiplas roles
-    if (UserUtils.hasMultipleRoles(currentUser)) {
+    if (this.isClient && this.isSupplier) {
       return 'Gerenciar Roles';
     }
     
     // Para usuários com uma única role
-    if (UserUtils.isClient(currentUser)) {
+    if (this.isClient) {
       return 'Adicionar Role: Fornecedor';
     }
     
-    if (UserUtils.isSupplier(currentUser)) {
+    if (this.isSupplier) {
       return 'Adicionar Role: Cliente';
     }
     
@@ -148,22 +149,22 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   // ✅ NOVO: Computed para classes CSS baseadas em roles
   userRoleBadgeClass = computed(() => {
-    const currentUser = this.currentUser();
+    const currentUser = this.currentClient();
     if (!currentUser) {
       return 'badge-guest';
     }
     
     // Para usuários com múltiplas roles
-    if (UserUtils.hasMultipleRoles(currentUser)) {
+    if (this.isClient && this.isSupplier) {
       return 'badge-multiple';
     }
     
     // Para usuários com uma única role
-    if (UserUtils.isClient(currentUser)) {
+    if (this.isClient) {
       return 'badge-client';
     }
     
-    if (UserUtils.isSupplier(currentUser)) {
+    if (this.isSupplier) {
       return 'badge-supplier';
     }
     
@@ -189,29 +190,27 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   logout = () => {
     console.log('🚪 Logging out...');
-    this.userService.logout().subscribe(() => {
-      this.userService.currentUser.set(null);
-      this.router.navigate(['/login']);
-    });
+    this.clientService.logout();
+    this.router.navigate(['/login']);
   }
 
   // ✅ NOVO: Método para alternar roles do usuário (modo debug)
   switchUserType = () => {
-    const currentUser = this.currentUser();
+    const currentUser = this.currentClient();
     if (currentUser) {
       let newRoles: UserRole[];
       
-      if (UserUtils.hasMultipleRoles(currentUser)) {
+      if (this.isClient && this.isSupplier) {
         // Se tem múltiplas roles, remover uma
-        if (UserUtils.isClient(currentUser)) {
+        if (this.isClient) {
           newRoles = ['supplier'];
         } else {
           newRoles = ['client'];
         }
-      } else if (UserUtils.isClient(currentUser)) {
+      } else if (this.isClient) {
         // Se é só cliente, adicionar supplier
         newRoles = ['client', 'supplier'];
-      } else if (UserUtils.isSupplier(currentUser)) {
+      } else if (this.isSupplier) {
         // Se é só supplier, adicionar client
         newRoles = ['client', 'supplier'];
       } else {
@@ -219,14 +218,18 @@ export class MenuComponent implements OnInit, OnDestroy {
         newRoles = ['client'];
       }
       
-      const newUser: User = {
-        ...currentUser,
-        roles: newRoles
-      };
-      
-      this.userService.currentUser.set(newUser);
-      console.log('🔄 Switched user roles to:', newRoles);
-      console.log('📝 New role description:', UserUtils.getRoleDescription(newUser));
+      const currentUser = this.userService.currentUser();
+      if (currentUser) {
+
+        const newUser: User = {
+          ...currentUser,
+          roles: newRoles
+        };
+        
+        this.userService.currentUser.set(newUser);
+        console.log('🔄 Switched user roles to:', newRoles);
+        console.log('📝 New role description:', UserUtils.getRoleDescription(newUser));
+      }
     }
   }
 }

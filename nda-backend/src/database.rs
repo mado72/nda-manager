@@ -172,6 +172,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
             stellar_public_key TEXT UNIQUE NOT NULL,
             stellar_secret_key TEXT NOT NULL,
             roles TEXT NOT NULL DEFAULT '["client"]',
@@ -184,6 +185,11 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
 
     // Migration: Add roles column if it doesn't exist (for existing databases)
     let _ = sqlx::query("ALTER TABLE users ADD COLUMN roles TEXT DEFAULT '[]'")
+        .execute(pool)
+        .await;
+
+    // Migration: Add name column if it doesn't exist (for existing databases)
+    let _ = sqlx::query("ALTER TABLE users ADD COLUMN name TEXT")
         .execute(pool)
         .await;
 
@@ -205,6 +211,11 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         
         println!("✅ Migrated user_type data to roles format");
     }
+
+    // Migration: Set default name for existing users who don't have one
+    sqlx::query("UPDATE users SET name = username WHERE name IS NULL")
+        .execute(pool)
+        .await?;
 
     // Create processes table
     sqlx::query(
@@ -310,6 +321,7 @@ pub mod queries {
     /// 
     /// * `pool` - Database connection pool
     /// * `username` - Unique username for the account
+    /// * `name` - Full name or display name of the user
     /// * `stellar_public_key` - User's Stellar network public key
     /// * `stellar_secret_key` - Encrypted Stellar network secret key
     /// * `roles` - User roles as JSON string: `["client"]`, `["supplier"]`, or `["client","supplier"]`
@@ -326,6 +338,7 @@ pub mod queries {
     /// let user = queries::create_user(
     ///     &pool,
     ///     "john_doe",
+    ///     "John Doe",
     ///     "GCKFBEIYTKP...",
     ///     "encrypted_secret",
     ///     r#"["client"]"#
@@ -339,43 +352,44 @@ pub mod queries {
     /// - Stellar public key already exists
     /// - Invalid roles format (must be valid JSON array)
     /// - Database connection issues
-    pub async fn create_user(
-        pool: &SqlitePool,
-        username: &str,
-        stellar_public_key: &str,
-        stellar_secret_key: &str,
-        roles: &str,
-    ) -> Result<User, sqlx::Error> {
-        let id = Uuid::new_v4().to_string();
-        let created_at = Utc::now();
-        let created_at_str = datetime_to_string(&created_at);
+pub async fn create_user(
+    pool: &SqlitePool,
+    username: &str,
+    name: &str,
+    stellar_public_key: &str,
+    stellar_secret_key: &str,
+    roles: &str,
+) -> Result<User, sqlx::Error> {
+    let id = Uuid::new_v4().to_string();
+    let created_at = Utc::now();
+    let created_at_str = datetime_to_string(&created_at);
 
-        sqlx::query(
-            r#"
-            INSERT INTO users (id, username, stellar_public_key, stellar_secret_key, roles, created_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-            "#,
-        )
-        .bind(&id)
-        .bind(username)
-        .bind(stellar_public_key)
-        .bind(stellar_secret_key)
-        .bind(roles)
-        .bind(&created_at_str)
-        .execute(pool)
-        .await?;
+    sqlx::query(
+        r#"
+        INSERT INTO users (id, username, name, stellar_public_key, stellar_secret_key, roles, created_at)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        "#,
+    )
+    .bind(&id)
+    .bind(username)
+    .bind(name)
+    .bind(stellar_public_key)
+    .bind(stellar_secret_key)
+    .bind(roles)
+    .bind(&created_at_str)
+    .execute(pool)
+    .await?;
 
-        Ok(User {
-            id,
-            username: username.to_string(),
-            stellar_public_key: stellar_public_key.to_string(),
-            stellar_secret_key: stellar_secret_key.to_string(),
-            roles: roles.to_string(),
-            created_at,
-        })
-    }
-
-    /// Finds a user by their username.
+    Ok(User {
+        id,
+        username: username.to_string(),
+        name: name.to_string(),
+        stellar_public_key: stellar_public_key.to_string(),
+        stellar_secret_key: stellar_secret_key.to_string(),
+        roles: roles.to_string(),
+        created_at,
+    })
+}    /// Finds a user by their username.
     /// 
     /// This function performs a case-sensitive username lookup and returns
     /// the complete user record if found. Useful for authentication and
@@ -422,6 +436,7 @@ pub mod queries {
                 Ok(Some(User {
                     id: row.get("id"),
                     username: row.get("username"),
+                    name: row.get("name"),
                     stellar_public_key: row.get("stellar_public_key"),
                     stellar_secret_key: row.get("stellar_secret_key"),
                     roles: row.get("roles"),

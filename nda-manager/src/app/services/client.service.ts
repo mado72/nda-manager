@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { computed, Injectable, Signal, signal } from '@angular/core';
 import { catchError, map, of, throwError } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
 import { User, UserRole } from '../models/user.model';
@@ -10,13 +10,29 @@ export interface Client {
   email: string;
   password: string;
   stellar_public_key?: string;
+  isClient(): boolean;
+  isSupplier(): boolean;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ClientService {
-  private loggedClient: Client | null = null;
+  loggedClient = computed<Client | null>(() => {
+    const currentUser = this.userService.currentUser();
+    if (currentUser && currentUser.roles.includes('client' as UserRole)) {
+      return {
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.username,
+        password: '', // Password is not stored for security reasons
+        stellar_public_key: currentUser.stellar_public_key,
+        isClient: () => currentUser.roles.includes('client' as UserRole),
+        isSupplier: () => currentUser.roles.includes('supplier' as UserRole)
+      };
+    }
+    return null;
+  });
 
   constructor(private userService: UserService) {
     this.loadLoggedClient();
@@ -24,18 +40,11 @@ export class ClientService {
 
   private loadLoggedClient(): void {
     const data = JSON.parse(localStorage.getItem('loggedClient') || '{}') as Client;
-    this.authenticateClient(data?.email, data?.password).subscribe({
-      next: (client) => {
-        this.loggedClient = client;
-      },
-      error: () => {
-        this.loggedClient = null;
-      }
-    });
+    this.authenticateClient(data?.email, data?.password).subscribe();
   }
 
-  private saveLoggedClient(): void {
-    if (this.loggedClient) {
+  private saveLoggedClient(preserve: boolean): void {
+    if (preserve && this.loggedClient) {
       localStorage.setItem('loggedClient', JSON.stringify(this.loggedClient));
     } else {
       localStorage.removeItem('loggedClient');
@@ -43,15 +52,9 @@ export class ClientService {
   }
 
   registerClient(name: string, email: string, password: string): Observable<Client> {
-    return this.userService.register({ username: email, password, roles: ['client'] }).pipe(
-      map((response) => {
-        const newClient: Client = {
-          id: response.stellar_public_key,
-          name,
-          email,
-          password
-        };
-        return newClient;
+    return this.userService.register({ username: email, name, password, roles: ['client'] }).pipe(
+      map((_) => {
+        return this.loggedClient() as Client;
       }),
       catchError((error) => {
         console.error('Error registering user:', error);
@@ -60,18 +63,12 @@ export class ClientService {
     );
   }
 
-  authenticateClient(email: string, password: string): Observable<Client> {
+  authenticateClient(email: string, password: string, preserve?: boolean): Observable<Client> {
     return this.userService.login({ username: email, password }).pipe(
       map((user) => {
         if (user) {
-          this.loggedClient = {
-            id: user.id,
-            name: user.username,
-            email: email,
-            password: password,
-            stellar_public_key: user.stellar_public_key
-          };
-          return this.loggedClient;
+          this.saveLoggedClient(preserve || false);
+          return this.loggedClient() as Client;
         }
         throw new Error('Invalid credentials');
       }),
@@ -82,12 +79,8 @@ export class ClientService {
     );
   }
 
-  getLoggedClient(): Client | null {
-    return this.loggedClient;
-  }
 
   logout(): void {
-    this.loggedClient = null;
-    this.saveLoggedClient();
+    this.userService.logout();
   }
 }

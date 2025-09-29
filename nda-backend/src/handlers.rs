@@ -266,6 +266,7 @@ pub async fn register_user(
     let user = queries::create_user(
         &state.pool,
         &payload.username,
+        &payload.name,
         &stellar_account.public_key,
         &stellar_account.secret_key,
         &roles_json,

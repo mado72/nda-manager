@@ -7,17 +7,13 @@ import { User, UserLoginRequest, UserRegisterRequest, UserResponse, UserRole } f
 @Injectable({ providedIn: 'root' })
 export class UserService {
     private apiUrl = environment.apiUrl;
-    private readonly STORAGE_KEY = 'nda_current_user';
 
     currentUser = signal<User | null>(null);
 
     constructor(private http: HttpClient) { 
-        this.loadUserFromStorage();
     }
 
     register(data: UserRegisterRequest): Observable<UserResponse> {
-        console.log(data);
-        debugger;
         return this.http.post<UserResponse>(`${this.apiUrl}/api/users/register`, data);
     }
 
@@ -30,6 +26,7 @@ export class UserService {
                         const user: User = {
                             id: response.id,
                             username: response.username,
+                            name: response.name,
                             stellar_public_key: response.stellar_public_key,
                             roles: response.roles as UserRole[],
                             created_at: response.created_at
@@ -40,28 +37,12 @@ export class UserService {
             );
     }
 
-    logout(): Observable<void> {
+    logout() {
         this.currentUser.set(null);
-        localStorage.removeItem(this.STORAGE_KEY);
-        return of(undefined);
     }
 
-    setCurrentUser(user: User): void {
+    private setCurrentUser(user: User): void {
         this.currentUser.set(user);
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
-    }
-
-    private loadUserFromStorage(): void {
-        const userData = localStorage.getItem(this.STORAGE_KEY);
-        if (userData) {
-            try {
-                const user = JSON.parse(userData);
-                this.currentUser.set(user);
-            } catch (error) {
-                console.error('Error parsing user data from storage:', error);
-                localStorage.removeItem(this.STORAGE_KEY);
-            }
-        }
     }
 
     isLoggedIn(): boolean {

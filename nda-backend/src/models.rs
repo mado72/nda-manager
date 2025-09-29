@@ -84,6 +84,7 @@ use sqlx::FromRow;
 /// 
 /// * `id` - Unique identifier (UUID)
 /// * `username` - Unique username for authentication
+/// * `name` - Full name or display name of the user
 /// * `stellar_public_key` - Stellar network public key for blockchain operations
 /// * `stellar_secret_key` - Stellar network secret key (encrypted in production)
 /// * `roles` - JSON string containing user roles: `["client"]`, `["supplier"]`, or `["client","supplier"]`
@@ -109,6 +110,7 @@ use sqlx::FromRow;
 pub struct User {
     pub id: String,
     pub username: String,
+    pub name: String,
     pub stellar_public_key: String,
     pub stellar_secret_key: String, // In production, use KMS (Key Management Service)
     pub roles: String, // JSON string: ["client"] | ["supplier"] | ["client","supplier"]
@@ -283,6 +285,7 @@ pub struct ProcessAccessWithDetails {
 #[derive(Debug, Deserialize)]
 pub struct RegisterRequest {
     pub username: String,
+    pub name: String,
     pub password: String,
     pub roles: Vec<String>,
 }
@@ -414,6 +417,7 @@ pub struct AccessProcessRequest {
 pub struct UserResponse {
     pub id: String,
     pub username: String,
+    pub name: String,
     pub stellar_public_key: String,
     pub roles: Vec<String>,
     pub created_at: DateTime<Utc>,
@@ -539,6 +543,7 @@ impl From<User> for UserResponse {
         UserResponse {
             id: user.id,
             username: user.username,
+            name: user.name,
             stellar_public_key: user.stellar_public_key,
             roles,
             created_at: user.created_at,

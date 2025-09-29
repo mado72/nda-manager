@@ -10,6 +10,7 @@ export type UserRoles = UserRole[];
 export interface User {
     id: string;
     username: string;
+    name: string;
     stellar_public_key: string;
     roles: UserRoles; // ["client"], ["supplier"], ou ["client", "supplier"]
     created_at: string; // ISO date string
@@ -17,6 +18,7 @@ export interface User {
 
 export interface UserRegisterRequest {
     username: string;
+    name: string;
     password: string;
     roles: UserRoles; // ["client"], ["supplier"], ou ["client", "supplier"]
 }
@@ -29,6 +31,7 @@ export interface UserLoginRequest {
 export interface UserResponse {
     id: string;
     username: string;
+    name: string;
     stellar_public_key: string;
     roles: UserRoles; // ["client"], ["supplier"], ou ["client", "supplier"]
     created_at: string;
