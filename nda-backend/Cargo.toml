@@ -23,6 +23,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 dotenv = "0.15"
 url = "2.4"
+bcrypt = "0.17.1"
 
 # Stellar específico - versões compatíveis
 stellar-strkey = "0.0.8"
