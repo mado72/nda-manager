@@ -176,6 +176,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
             name TEXT NOT NULL,
             stellar_public_key TEXT UNIQUE NOT NULL,
             stellar_secret_key TEXT NOT NULL,
+            password_hash TEXT NOT NULL DEFAULT 'temp_hash_needs_reset',
             roles TEXT NOT NULL DEFAULT '["client"]',
             created_at TEXT NOT NULL
         )
@@ -215,6 +216,16 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
 
     // Migration: Set default name for existing users who don't have one
     sqlx::query("UPDATE users SET name = username WHERE name IS NULL")
+        .execute(pool)
+        .await?;
+
+    // Migration: Add password_hash column if it doesn't exist (for existing databases)
+    let _ = sqlx::query("ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT 'temp_hash_needs_reset'")
+        .execute(pool)
+        .await;
+
+    // Migration: Update existing users to have the default password hash if they don't have one
+    sqlx::query("UPDATE users SET password_hash = 'temp_hash_needs_reset' WHERE password_hash IS NULL OR password_hash = ''")
         .execute(pool)
         .await?;
 
