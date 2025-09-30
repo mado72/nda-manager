@@ -1,16 +1,119 @@
-<form (ngSubmit)="registerContract()" class="register-contract-form">
-  <label>
-    Title:
-    <input [ngModel]="title()" (ngModelChange)="title.set($event)" name="title" required />
-  </label>
-  <label>
-    Description:
-    <textarea [ngModel]="description()" (ngModelChange)="description.set($event)" name="description" required></textarea>
-  </label>
-  <label>
-    Hash:
-    <input [ngModel]="hash()" (ngModelChange)="hash.set($event)" name="hash" required />
-  </label>
-  <button type="submit" [disabled]="loading()">Register Contract</button>
-</form>
-<div *ngIf="message()" class="message">{{ message() }}</div>
+<div class="register-container">
+  <!-- Header -->
+  <div class="register-header">
+    <h2 class="register-title">
+      <svg class="title-icon" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6.5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 014 11.5V5z" clip-rule="evenodd"/>
+      </svg>
+      {{ contractId() ? 'Edit Contract' : 'New Contract' }}
+    </h2>
+    <p class="register-subtitle">
+      {{ contractId() ? 'Update the contract information' : 'Fill in the contract details below' }}
+    </p>
+  </div>
+
+  <!-- Form -->
+  <form (ngSubmit)="onSubmit()" class="register-form">
+    <!-- Error/Success Messages -->
+    @if (message()) {
+      <div class="message-container" 
+           [class]="{
+             'success-message': message().includes('successfully'),
+             'error-message': message().includes('Error') || message().includes('Please')
+           }">
+        <div class="message-content">
+          @if (message().includes('successfully')) {
+            <svg class="message-icon" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+          } @else if (message().includes('Error') || message().includes('Please')) {
+            <svg class="message-icon" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+          } @else {
+            <svg class="message-icon" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+          }
+          {{ message() }}
+        </div>
+      </div>
+    }
+
+    <!-- Title Field -->
+    <div class="form-group">
+      <label for="title" class="form-label">Contract Title *</label>
+      <input
+        type="text"
+        id="title"
+        name="title"
+        class="form-input"
+        placeholder="Enter contract title"
+        [ngModel]="title()"
+        (ngModelChange)="title.set($event)"
+        [disabled]="loading()"
+        required>
+    </div>
+
+    <!-- Description Field -->
+    <div class="form-group">
+      <label for="description" class="form-label">Description *</label>
+      <textarea
+        id="description"
+        name="description"
+        class="form-textarea"
+        placeholder="Enter contract description"
+        [ngModel]="description()"
+        (ngModelChange)="description.set($event)"
+        [disabled]="loading()"
+        required></textarea>
+    </div>
+
+    <!-- URI Field -->
+    <div class="form-group">
+      <label for="uri" class="form-label">Contract URI *</label>
+      <input
+        type="text"
+        id="uri"
+        name="uri"
+        class="form-input"
+        placeholder="Enter contract uri"
+        [ngModel]="uri()"
+        (ngModelChange)="uri.set($event)"
+        [disabled]="loading()"
+        required>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="loading() || !title() || !description() || !uri()">
+        @if (!loading()) {
+          <span>{{ contractId() ? 'Update Contract' : 'Register Contract' }}</span>
+        } @else {
+          <span class="loading-content">
+            <svg class="loading-spinner btn-icon" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ contractId() ? 'Updating...' : 'Registering...' }}
+          </span>
+        }
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="onCancel()"
+        [disabled]="loading()">
+        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

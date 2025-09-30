@@ -1,0 +1,227 @@
+<div class="share-contract-container">
+  <!-- Header -->
+  <div class="share-header">
+    <button class="back-button" (click)="goBack()">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Back to Contracts
+    </button>
+    
+    <div class="header-content">
+      <h1 class="page-title">
+        <svg class="title-icon" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
+        </svg>
+        Share Contract Access
+      </h1>
+      <p class="page-description">
+        Share confidential contract information with suppliers using their public keys
+      </p>
+    </div>
+  </div>
+
+  <!-- ✅ VERIFICAÇÃO DE PERMISSÕES -->
+  @if (!canShare() && currentUser()) {
+    <div class="permission-denied">
+      <div class="permission-icon">
+        <svg fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <h2>Access Restricted</h2>
+      <p>
+        Only <strong>clients</strong> can share contracts with suppliers.<br>
+        You are currently logged in as: <strong>{{ getUserRoleDescription() }}</strong>
+      </p>
+      <div class="user-info">
+        <div class="user-badge" [class]="getUserBadgeClass()">
+          <svg fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+          </svg>
+          {{ currentUser()?.username }} ({{ getUserRoleDescription() }})
+        </div>
+      </div>
+      <p class="help-text">
+        If you need to share contracts, please log in with a client account.
+      </p>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (loading() && canShare()) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Loading contracts...</p>
+    </div>
+  }
+
+  <!-- Main Content - Apenas para clients -->
+  @if (!loading() && canShare()) {
+    <div class="share-content">
+      <!-- Success Message -->
+      @if (success()) {
+        <div class="alert alert-success">
+          <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          <span>{{ success() }}</span>
+        </div>
+      }
+
+      <!-- Error Message -->
+      @if (error()) {
+        <div class="alert alert-error">
+          <svg class="alert-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <!-- User Info -->
+      <div class="current-user-info">
+        <div class="user-badge user-client">
+          <svg fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+          </svg>
+          {{ currentUser()?.username }} (client)
+        </div>
+      </div>
+
+      <!-- Share Form -->
+      <div class="share-form-card">
+        <form [formGroup]="shareForm" (ngSubmit)="onSubmit()">
+          <!-- Client Username (Read-only) -->
+          <div class="form-group">
+            <label for="client_username" class="form-label">
+              <svg class="label-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+              </svg>
+              Client Username
+            </label>
+            <input
+              type="text"
+              id="client_username"
+              formControlName="client_username"
+              class="form-input readonly"
+              readonly>
+            <p class="field-help">Your username (automatically filled)</p>
+          </div>
+
+          <!-- Contract Selection -->
+          <div class="form-group">
+            <label for="process_id" class="form-label">
+              <svg class="label-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6.5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 014 11.5V5z" clip-rule="evenodd"/>
+              </svg>
+              Select Contract to Share *
+            </label>
+            <select
+              id="process_id"
+              formControlName="process_id"
+              class="form-select"
+              [class.invalid]="isFieldInvalid('process_id')">
+              <option value="">Choose a contract...</option>
+              @for (contract of contracts(); track contract.data) {
+                <option [value]="contract.data">
+                  {{ contract.title }} ({{ contract.data | slice:0:8 }}...)
+                </option>
+              }
+            </select>
+            @if (isFieldInvalid('process_id')) {
+              <p class="field-error">{{ getFieldError('process_id') }}</p>
+            }
+            <p class="field-help">Select which contract you want to share with the supplier</p>
+          </div>
+
+          <!-- Supplier Public Key -->
+          <div class="form-group">
+            <label for="supplier_public_key" class="form-label">
+              <svg class="label-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/>
+              </svg>
+              Supplier Public Key *
+            </label>
+            <input
+              type="text"
+              id="supplier_public_key"
+              formControlName="supplier_public_key"
+              class="form-input"
+              [class.invalid]="isFieldInvalid('supplier_public_key')"
+              placeholder="GBSA7ZMGACXOXLS7RDT4OWBWAV6D2A5NIKSCUUUTSNCGDYQD2QEKVYQ4"
+              (input)="onPublicKeyInput($event)"
+              maxlength="56">
+            @if (isFieldInvalid('supplier_public_key')) {
+              <p class="field-error">{{ getFieldError('supplier_public_key') }}</p>
+            }
+            <p class="field-help">
+              Enter the supplier's Stellar public key (56 characters, starts with 'G')
+            </p>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="goBack()">
+              Cancel
+            </button>
+            
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="shareForm.invalid || sharing()">
+              @if (sharing()) {
+                <div class="btn-spinner"></div>
+                Sharing...
+              } @else {
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
+                </svg>
+                Share Contract
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Info Section -->
+      <div class="info-section">
+        <h3>
+          <svg fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+          </svg>
+          How Contract Sharing Works
+        </h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-icon">🔐</div>
+            <div class="info-content">
+              <h4>Secure Encryption</h4>
+              <p>Contract data is encrypted using the supplier's public key, ensuring only they can access it.</p>
+            </div>
+          </div>
+          
+          <div class="info-item">
+            <div class="info-icon">🔑</div>
+            <div class="info-content">
+              <h4>Public Key Required</h4>
+              <p>You need the supplier's Stellar public key to share the contract securely.</p>
+            </div>
+          </div>
+          
+          <div class="info-item">
+            <div class="info-icon">👥</div>
+            <div class="info-content">
+              <h4>Access Control</h4>
+              <p>Only the supplier with the corresponding private key can decrypt and view the contract.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

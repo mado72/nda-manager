@@ -1,74 +1,57 @@
-import { Injectable } from '@angular/core';
+import { computed, inject, Injectable } from '@angular/core';
+import { catchError, map, throwError } from 'rxjs';
+import { Observable } from 'rxjs/internal/Observable';
+import { UserRole } from '../models/user.model';
+import { UserService } from './user.service';
 
 export interface Client {
   id: string;
   name: string;
   email: string;
   password: string;
+  stellar_public_key?: string;
+  isClient(): boolean;
+  isSupplier(): boolean;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class ClientService {
-  private clients: Client[] = [];
-  private loggedClient: Client | null = null;
 
-  constructor() {
-    this.loadClients();
-    this.loadLoggedClient();
-  }
+  private userService = inject(UserService);
 
-  private loadClients(): void {
-    const data = localStorage.getItem('clients');
-    this.clients = data ? JSON.parse(data) : [];
-  }
-
-  private saveClients(): void {
-    localStorage.setItem('clients', JSON.stringify(this.clients));
-  }
-
-  private loadLoggedClient(): void {
-    const data = localStorage.getItem('loggedClient');
-    this.loggedClient = data ? JSON.parse(data) : null;
-  }
-
-  private saveLoggedClient(): void {
-    if (this.loggedClient) {
-      localStorage.setItem('loggedClient', JSON.stringify(this.loggedClient));
-    } else {
-      localStorage.removeItem('loggedClient');
+  loggedClient = computed<Client | null>(() => {
+    const currentUser = this.userService.currentUser();
+    if (currentUser && currentUser.roles.includes('client' as UserRole)) {
+      return {
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.username,
+        password: '', // Password is not stored for security reasons
+        stellar_public_key: currentUser.stellar_public_key,
+        isClient: () => currentUser.roles.includes('client' as UserRole),
+        isSupplier: () => currentUser.roles.includes('supplier' as UserRole)
+      };
     }
+    return null;
+  });
+
+  registerClient(name: string, email: string, password: string): Observable<void> {
+    return this.userService.register({ username: email, name, password, roles: ['client'] }).pipe(
+      map((response) => {
+        if (response && response.id) {
+          console.log('✅ User registered:', response);
+        }
+        else {
+          throw new Error('Registration failed');
+        }
+      }),
+      catchError((error) => {
+        console.error('Error registering user:', error);
+        return throwError(() => new Error('Registration failed'));
+      })
+    );
   }
 
-  registerClient(name: string, email: string, password: string): Client {
-    const newClient: Client = {
-      id: crypto.randomUUID(),
-      name,
-      email,
-      password
-    };
-    this.clients.push(newClient);
-    this.saveClients();
-    return newClient;
-  }
-
-  authenticateClient(email: string, password: string): boolean {
-    const client = this.clients.find(c => c.email === email && c.password === password);
-    if (client) {
-      this.loggedClient = client;
-      this.saveLoggedClient();
-      return true;
-    }
-    return false;
-  }
-
-  getLoggedClient(): Client | null {
-    return this.loggedClient;
-  }
-
-  logout(): void {
-    this.loggedClient = null;
-    this.saveLoggedClient();
-  }
 }

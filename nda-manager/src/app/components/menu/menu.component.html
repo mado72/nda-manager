@@ -1,12 +1,269 @@
-<nav class="menu">
-	<ul>
-		<li><a routerLink="/contracts">Listar Contratos</a></li>
-		<li><a routerLink="/contracts/add">Novo Contrato</a></li>
-	</ul>
-		@if (userName) {
-			<div class="user-info">
-				<span>Usuário: {{ userName }}</span>
-				<button (click)="logout()">Logout</button>
-			</div>
-		}
-</nav>
+<!-- Templates reutilizáveis -->
+<ng-template #desktopMenuButton let-route="route" let-icon="icon" let-text="text" let-condition="condition" let-exactMatch="exactMatch">
+  @if (condition) {
+    <button 
+      mat-button 
+      [routerLink]="route" 
+      routerLinkActive="active-link"
+      [routerLinkActiveOptions]="exactMatch ? {exact: false} : {exact: true}">
+      <mat-icon>{{ icon }}</mat-icon>
+      <span>{{ text }}</span>
+    </button>
+  }
+</ng-template>
+
+<ng-template #mobileNavItem let-route="route" let-icon="icon" let-text="text" let-condition="condition" let-sidenav="sidenav">
+  @if (condition) {
+    <a
+      mat-list-item
+      [routerLink]="route"
+      routerLinkActive="active-link"
+      (click)="sidenav.close()">
+      <mat-icon matListItemIcon>{{ icon }}</mat-icon>
+      <span matListItemTitle>{{ text }}</span>
+    </a>
+  }
+</ng-template>
+
+<ng-template #menuItem let-action="action" let-icon="icon" let-text="text" let-class="class">
+  <button mat-menu-item (click)="action()" [class]="class">
+    <mat-icon>{{ icon }}</mat-icon>
+    <span>{{ text }}</span>
+  </button>
+</ng-template>
+
+<ng-template #mobileMenuItem let-action="action" let-icon="icon" let-text="text" let-class="class" let-sidenav="sidenav">
+  <a mat-list-item (click)="action(); sidenav?.close()" [class]="class">
+    <mat-icon matListItemIcon>{{ icon }}</mat-icon>
+    <span matListItemTitle>{{ text }}</span>
+  </a>
+</ng-template>
+
+<mat-toolbar class="main-toolbar">
+  <!-- Logo/Brand -->
+  <div class="brand-section">
+    @if (isMobile) {
+      <button 
+        mat-icon-button 
+        class="menu-toggle" 
+        (click)="toggleSidenav()" 
+        aria-label="Open menu">
+        <mat-icon>menu</mat-icon>
+      </button>
+    }
+    <span class="brand-title">NDA Manager</span>
+  </div>
+
+  @if(currentClient()) {
+	  <!-- Desktop Menu - COM OPÇÕES CONDICIONAIS -->
+	  @if (!isMobile) {
+		<div class="desktop-menu">
+		  <!-- Contracts (sempre visível) -->
+		  <ng-container 
+			*ngTemplateOutlet="desktopMenuButton; context: {
+			  route: '/contracts', 
+			  icon: 'description', 
+			  text: 'Contracts', 
+			  condition: true,
+			  exactMatch: true
+			}">
+		  </ng-container>
+	
+		  <!-- New Contract (apenas para clients) -->
+		  <ng-container 
+			*ngTemplateOutlet="desktopMenuButton; context: {
+			  route: '/contracts/add', 
+			  icon: 'add_circle', 
+			  text: 'New Contract', 
+			  condition: canCreateContracts,
+			  exactMatch: false
+			}">
+		  </ng-container>
+	
+		  <!-- Share Contract (apenas para clients) -->
+		  <ng-container 
+			*ngTemplateOutlet="desktopMenuButton; context: {
+			  route: '/contracts/share', 
+			  icon: 'share', 
+			  text: 'Share Contract', 
+			  condition: canShareContracts,
+			  exactMatch: false
+			}">
+		  </ng-container>
+		</div>
+	  }
+	
+	  <!-- Spacer -->
+	  <span class="spacer"></span>
+	
+	  <!-- User Info - COM TIPO DE USUÁRIO -->
+	  @if (userName()) {
+		<div class="user-section">
+		  <button
+			mat-button
+			[matMenuTriggerFor]="userMenu"
+			class="user-button"
+			aria-label="User menu">
+			<mat-icon>account_circle</mat-icon>
+			@if (!isMobile) {
+			  <span class="user-name">{{ userName() }}</span>
+			}
+			<!-- ✅ NOVO: Mostrar tipo de usuário -->
+			@if (!isMobile && currentClient()) {
+			  <span class="user-type">
+				({{ userTypeDisplay() }})
+			  </span>
+			}
+			<mat-icon>arrow_drop_down</mat-icon>
+		  </button>
+	
+		  <mat-menu #userMenu="matMenu" class="user-menu">
+			<!-- Header do usuário com tipo -->
+			@if (isMobile) {
+			  <div class="user-info-header">
+				<mat-icon>account_circle</mat-icon>
+				<div class="user-details">
+				  <span class="user-name-mobile">{{ userName() }}</span>
+				  <span class="user-type-mobile">{{ userTypeDisplay() }}</span>
+				</div>
+			  </div>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- ✅ NOVO: Informações do usuário (desktop) -->
+			@if (!isMobile && currentClient()) {
+			  <div class="user-info-desktop">
+				<div class="user-type-badge" [class]="userRoleBadgeClass()">
+				  <mat-icon>{{ userTypeIcon() }}</mat-icon>
+				  <span>{{ userTypeDisplay() }}</span>
+				</div>
+			  </div>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
+			@if (currentClient()) {
+			  <ng-container 
+				*ngTemplateOutlet="menuItem; context: {
+				  action: switchUserType, 
+				  icon: 'swap_horiz', 
+				  text: displaySwitchUserTypeLabel(), 
+				  class: 'debug-item'
+				}">
+			  </ng-container>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- Logout -->
+			<ng-container 
+			  *ngTemplateOutlet="menuItem; context: {
+				action: logout, 
+				icon: 'logout', 
+				text: 'Logout', 
+				class: 'logout-item'
+			  }">
+			</ng-container>
+		  </mat-menu>
+		</div>
+	  }
+  }
+</mat-toolbar>
+
+<!-- Sidebar for Mobile - COM OPÇÕES CONDICIONAIS -->
+@if (isMobile) {
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #sidenav mode="over" class="sidenav" [fixedInViewport]="true">
+      <div class="sidenav-header">
+        <h3>NDA Manager</h3>
+        <button mat-icon-button (click)="sidenav.close()" aria-label="Close menu">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+	  @if (currentClient()) {
+		  <mat-nav-list>
+			<h3 matSubheader>Main Menu</h3>
+	
+			<!-- Contracts (sempre visível) -->
+			<ng-container 
+			  *ngTemplateOutlet="mobileNavItem; context: {
+				route: '/contracts', 
+				icon: 'description', 
+				text: 'Contracts', 
+				condition: true,
+				sidenav: sidenav
+			  }">
+			</ng-container>
+	
+			<!-- New Contract (apenas para clients) -->
+			<ng-container 
+			  *ngTemplateOutlet="mobileNavItem; context: {
+				route: '/contracts/add', 
+				icon: 'add_circle', 
+				text: 'New Contract', 
+				condition: canCreateContracts,
+				sidenav: sidenav
+			  }">
+			</ng-container>
+	
+			<!-- Share Contract (apenas para clients) -->
+			<ng-container 
+			  *ngTemplateOutlet="mobileNavItem; context: {
+				route: '/contracts/share', 
+				icon: 'share', 
+				text: 'Share Contract', 
+				condition: canShareContracts,
+				sidenav: sidenav
+			  }">
+			</ng-container>
+	
+			<mat-divider></mat-divider>
+	
+			<!-- Account Section -->
+			<h3 matSubheader>Account</h3>
+	
+			<!-- ✅ NOVO: User Info no mobile -->
+			@if (currentClient()) {
+			  <div class="mobile-user-info">
+				<mat-list-item class="user-info-item">
+				  <mat-icon matListItemIcon>{{ userTypeIcon() }}</mat-icon>
+				  <div matListItemTitle>
+					<span class="user-type-label">Account Type</span>
+					<span class="user-type-value">{{ userTypeDisplay() }}</span>
+				  </div>
+				</mat-list-item>
+			  </div>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- ✅ NOVO: Debug - Switch User Type (remover em produção) -->
+			@if (currentClient()) {
+			  <ng-container 
+				*ngTemplateOutlet="mobileMenuItem; context: {
+				  action: switchUserType, 
+				  icon: 'swap_horiz', 
+				  text: displaySwitchUserTypeLabel(), 
+				  class: 'debug-item',
+				  sidenav: sidenav
+				}">
+			  </ng-container>
+			  <mat-divider></mat-divider>
+			}
+	
+			<!-- Logout -->
+			<ng-container 
+			  *ngTemplateOutlet="mobileMenuItem; context: {
+				action: logout, 
+				icon: 'logout', 
+				text: 'Logout', 
+				class: 'logout-item',
+				sidenav: sidenav
+			  }">
+			</ng-container>
+		  </mat-nav-list>
+	  }
+    </mat-sidenav>
+  </mat-sidenav-container>
+}
+
+<pre class="debug-info">{{ currentClient() | json }}</pre>

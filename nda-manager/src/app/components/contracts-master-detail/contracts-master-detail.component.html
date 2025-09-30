@@ -1,15 +1,11 @@
-<div class="master-detail-container">
-  <div class="master">
-    <a routerLink="/contracts/add" class="new-contract-link">New Contract</a>
+<div class="contracts-master-detail-container">
+  <!-- List View -->
+  @if (currentView() === 'list') {
     <app-list-contracts></app-list-contracts>
-  </div>
-  <div class="detail">
-    @if (mode() === 'add') {
+  }
+
+  <!-- Add Contract View -->
+  @if (currentView() === 'add') {
     <app-register-contract></app-register-contract>
-    } @else if (mode() === 'edit' && contractId()) {
-    <app-register-contract [contractId]="contractId()"></app-register-contract>
-    } @else {
-    <div class="placeholder">Select or add a contract.</div>
-    }
-  </div>
+  }
 </div>

@@ -1,0 +1,18 @@
+// Layout principal considerando a barra de menu Material Design
+.main-content {
+  min-height: calc(100vh - 64px);
+  padding-top: 0;
+  
+  // Para dispositivos móveis (breakpoint padrão do Material Design)
+  @media (max-width: 599px) {
+    min-height: calc(100vh - 56px);
+  }
+}
+
+// Garante que o componente de menu tenha o comportamento correto
+app-menu {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}

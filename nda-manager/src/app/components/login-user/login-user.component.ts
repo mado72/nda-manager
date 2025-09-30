@@ -1,40 +1,84 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ClientService } from '../../services/client.service';
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-login-user',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './login-user.component.html',
   styleUrl: './login-user.component.scss'
 })
-export class LoginUserComponent {
-  email = signal('');
-  password = signal('');
-  message = signal('');
-  loggedIn = signal(false);
+export class LoginUserComponent implements OnInit {
+  user = {
+    email: '',
+    password: ''
+  };
+  
+  rememberMe = false; // Controls whether user credentials are preserved in localStorage
+  isLoading = false;
+  errorMessage = '';
+  successMessage = '';
 
-  constructor(private clientService: ClientService, private router: Router) {}
+  constructor(private userService: UserService, private router: Router) {}
+
+  ngOnInit() {
+    // Tenta fazer auto-login quando o componente inicializa
+    this.tryAutoLogin();
+  }
+
+  private tryAutoLogin() {
+    // Só tenta auto-login se não houver usuário logado
+    if (!this.userService.isLoggedIn()) {
+      this.userService.tryAutoLogin().subscribe({
+        next: (user) => {
+          if (user) {
+            this.successMessage = 'Login automático realizado com sucesso!';
+            setTimeout(() => {
+              this.router.navigate(['/']);
+            }, 1000);
+          }
+        },
+        error: () => {
+          // Erro no auto-login é silencioso - usuário pode fazer login manual
+          console.log('Auto-login não disponível');
+        }
+      });
+    }
+  }
+
   goToRegister() {
     this.router.navigate(['/register']);
   }
 
-  login() {
-    if (!this.email() || !this.password()) {
-      this.message.set('Please enter email and password.');
+  onSubmit() {
+    if (!this.user.email || !this.user.password) {
+      this.errorMessage = 'Please enter email and password.';
       return;
     }
-    const success = this.clientService.authenticateClient(this.email(), this.password());
-    if (success) {
-      this.loggedIn.set(true);
-      this.message.set('Login successful!');
-    } else {
-      this.message.set('Invalid credentials.');
-      this.loggedIn.set(false);
-    }
+
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.userService.login({ username: this.user.email, password: this.user.password }, this.rememberMe).subscribe({
+      next: (user) => {
+        this.isLoading = false;
+        if (user) {
+          this.successMessage = 'Login successful!';
+          setTimeout(() => {
+            this.router.navigate(['/']);
+          }, 1000);
+        } else {
+          this.errorMessage = 'Invalid credentials.';
+        }
+      },
+      error: () => {
+        this.isLoading = false;
+        this.errorMessage = 'An error occurred. Please try again.';
+      }
+    });
   }
 }

@@ -1,18 +1,41 @@
-.master-detail-container {
-  display: flex;
-  gap: 2rem;
+.contracts-master-detail-container {
+  min-height: calc(100vh - 64px); // Altura total menos header
+  background-color: #f8fafc;
+  padding: 1rem;
 }
-.master {
-  flex: 1;
-  border-right: 1px solid #eee;
-  padding-right: 1rem;
+
+// Para views individuais, garantir que ocupem toda a área disponível
+app-list-contracts,
+app-register-contract {
+  display: block;
+  width: 100%;
+  min-height: 400px;
 }
-.detail {
-  flex: 2;
-  padding-left: 1rem;
-}
+
+// Estilo para o placeholder se necessário
 .placeholder {
-  color: #888;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #64748b;
   font-style: italic;
-  margin-top: 2rem;
+  text-align: center;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  
+  &::before {
+    content: '📄';
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+}
+
+// Responsividade
+@media (max-width: 768px) {
+  .contracts-master-detail-container {
+    padding: 0.5rem;
+  }
 }

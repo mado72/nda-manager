@@ -1,0 +1,41 @@
+[package]
+name = "nda-backend"  # ← Mudança aqui
+version = "0.1.0"
+edition = "2021"
+default-run = "nda-backend"  # ← Mudança aqui
+
+[dependencies]
+# tide = "0.16"
+# async-std = "1.10"
+tokio = { version = "1.0", features = ["full"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-rustls", "chrono", "uuid"] }
+reqwest = { version = "0.11", features = ["json"] }
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+aes-gcm = "0.10"
+base64 = "0.21"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
+dotenv = "0.15"
+url = "2.4"
+bcrypt = "0.17.1"
+
+# Stellar específico - versões compatíveis
+stellar-strkey = "0.0.8"
+ed25519-dalek = "1.0"
+sha2 = "0.10"
+hex = "0.4"
+rand = "0.7"
+
+[[bin]]
+name = "nda-backend"  # ← Mudança aqui
+path = "src/main.rs"
+
+[[bin]]
+name = "test_stellar"
+path = "src/bin/test_stellar.rs"
