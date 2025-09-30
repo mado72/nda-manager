@@ -181,7 +181,7 @@ export class ShareContractComponent implements OnInit {
 
       const shareData: ShareRequest = {
         process_id: this.shareForm.get('process_id')?.value,
-        supplier_public_key: this.shareForm.get('supplier_public_key')?.value,
+        partner_public_key: this.shareForm.get('partner_public_key')?.value,
         client_username: user.username
       };
 
@@ -190,7 +190,7 @@ export class ShareContractComponent implements OnInit {
       this.contractService.shareContract(shareData).subscribe({
         next: (response) => {
           console.log('✅ Share successful:', response);
-          this.success.set('Contract shared successfully with supplier!');
+          this.success.set('Contract shared successfully with partner!');
           this.sharing.set(false);
           this.shareForm.reset();
           this.shareForm.patchValue({ client_username: user.username });
