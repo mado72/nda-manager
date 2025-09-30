@@ -2,7 +2,7 @@
 export interface Contract {
   id?: string;
   clientId: string;
-  supplierId: string;
+  partnerId: string;
   status: string;
   data: any;
   title: string;
@@ -11,7 +11,7 @@ export interface Contract {
 
 export interface ShareRequest {
   process_id: string;
-  supplier_public_key: string;
+  partner_public_key: string;
   client_username: string;
 }
 

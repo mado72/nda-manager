@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for user in users {
         println!("ID: {}", user.id.as_deref().unwrap_or("N/A"));
         println!("Username: {}", user.username);
-        println!("Roles: {}", if user.roles.is_empty() { "N/A" } else { &user.roles });
+        println!("Roles: {}", user.roles.as_deref().unwrap_or("N/A"));
         println!("-------------------------------------");
     }
     

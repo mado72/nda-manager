@@ -1,5 +1,5 @@
 // src/app/components/share-contract/share-contract.component.ts
-import { SlicePipe } from '@angular/common';
+import { JsonPipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,7 +11,7 @@ import { UserService } from '../../services/user.service';
 @Component({
   selector: 'app-share-contract',
   standalone: true,
-  imports: [SlicePipe, ReactiveFormsModule],
+  imports: [JsonPipe, ReactiveFormsModule],
   templateUrl: './share-contract.component.html',
   styleUrl: './share-contract.component.scss'
 })
@@ -52,6 +52,29 @@ export class ShareContractComponent implements OnInit {
     }
     
     return 'user-unknown';
+  }
+
+  // ✅ NOVO: Função helper para truncar texto da combobox
+  getTruncatedContractText(contract: Contract, maxLength: number = 45): string {
+    const text = `${contract.title} (ID: ${contract.id})`;
+    // Use Intl.Segmenter to split into grapheme clusters
+    const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl
+      ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+      : null;
+
+    if (!segmenter) {
+      // Fallback to original logic if Segmenter is not available
+      if (text.length <= maxLength) {
+        return text;
+      }
+      return text.substring(0, maxLength - 3) + '...';
+    }
+
+    const graphemes = Array.from(segmenter.segment(text), seg => seg.segment);
+    if (graphemes.length <= maxLength) {
+      return text;
+    }
+    return graphemes.slice(0, maxLength - 3).join('') + '...';
   }
 
   constructor(

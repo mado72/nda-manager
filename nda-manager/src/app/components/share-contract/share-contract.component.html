@@ -21,7 +21,7 @@
     </div>
   </div>
 
-  <!-- ✅ VERIFICAÇÃO DE PERMISSÕES -->
+  <!-- ✅ PERMISSION CHECK -->
   @if (!canShare() && currentUser()) {
     <div class="permission-denied">
       <div class="permission-icon">
@@ -124,9 +124,9 @@
               class="form-select"
               [class.invalid]="isFieldInvalid('process_id')">
               <option value="">Choose a contract...</option>
-              @for (contract of contracts(); track contract.data) {
-                <option [value]="contract.data">
-                  {{ contract.title }} ({{ contract.data | slice:0:8 }}...)
+              @for (contract of contracts(); track contract.id) {
+                <option [value]="contract.id" [title]="contract.title + ' (ID: ' + contract.id + ')'">
+                  {{ getTruncatedContractText(contract) }}
                 </option>
               }
             </select>
@@ -225,3 +225,6 @@
     </div>
   }
 </div>
+<pre class="debug-info">
+  {{ contracts() | json }}
+</pre>
