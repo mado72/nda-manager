@@ -379,6 +379,75 @@ pub async fn login_user(
     Ok(ResponseJson(user.into()))
 }
 
+/// Performs automatic login using localStorage information.
+/// 
+/// This endpoint enables automatic user authentication using information 
+/// stored in the frontend's localStorage (user_name and user_id). It provides
+/// a convenient way to restore user sessions without requiring password re-entry.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state containing database pool
+/// * `payload` - Auto login request with user_name and user_id from localStorage
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<UserResponse>)` - Successfully authenticated user data
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: Auto login successful, user data returned
+/// - **401 Unauthorized**: User not found or ID/username mismatch
+/// - **500 Internal Server Error**: Database error
+/// 
+/// # Request Body
+/// 
+/// ```json
+/// {
+///   "user_name": "john_doe",
+///   "user_id": "user-uuid-from-localstorage"
+/// }
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// {
+///   "id": "user-uuid-from-localstorage",
+///   "username": "john_doe", 
+///   "name": "John Doe",
+///   "stellar_public_key": "GABC...",
+///   "roles": ["client", "supplier"],
+///   "created_at": "2024-01-15T10:30:00Z"
+/// }
+/// ```
+/// 
+/// # Security Notes
+/// 
+/// - Validates that user_id exists and matches the provided username
+/// - Does not require password verification (convenient but less secure)
+/// - Suitable for maintaining user sessions in trusted environments
+/// - Consider implementing additional security measures for production use
+pub async fn auto_login_user(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<AutoLoginRequest>,
+) -> Result<ResponseJson<UserResponse>, StatusCode> {
+    // Find user by ID and verify username matches
+    let user = queries::find_user_by_id(&state.pool, &payload.user_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    // Verify that the username matches the stored user data
+    if user.username != payload.user_name {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    Ok(ResponseJson(user.into()))
+}
+
 /// Creates a new NDA process with encrypted content.
 /// 
 /// This endpoint allows clients to create new NDA processes with confidential

@@ -22,6 +22,7 @@
 //! ### User Management
 //! - `POST /api/users/register` - Register new users with Stellar accounts
 //! - `POST /api/users/login` - User authentication
+//! - `POST /api/users/auto-login` - Automatic login using localStorage data
 //! 
 //! ### Process Management
 //! - `POST /api/processes` - Create new encrypted NDA processes
@@ -129,6 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // User management endpoints - authentication and account creation
         .route("/api/users/register", post(handlers::register_user))
         .route("/api/users/login", post(handlers::login_user))
+        .route("/api/users/auto-login", post(handlers::auto_login_user))
         
         // Process management endpoints - CRUD operations for NDA processes
         .route("/api/processes", post(handlers::create_process))  // Create encrypted process

@@ -335,6 +335,28 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+/// Auto login request payload using localStorage information.
+/// 
+/// Contains the information stored in localStorage for automatic login.
+/// This endpoint authenticates users without requiring password re-entry,
+/// using the user_name and user_id that are persisted in the frontend.
+/// 
+/// # Fields
+/// 
+/// * `user_name` - Username stored in localStorage
+/// * `user_id` - User ID stored in localStorage  
+/// 
+/// # Security Notes
+/// 
+/// - This endpoint relies on client-side data persistence
+/// - Should be used only for convenience, not as primary authentication
+/// - Consider implementing session tokens for enhanced security
+#[derive(Debug, Deserialize)]
+pub struct AutoLoginRequest {
+    pub user_name: String,
+    pub user_id: String,
+}
+
 /// Process creation request payload.
 /// 
 /// Contains the information needed to create a new encrypted NDA process.
