@@ -95,10 +95,10 @@ export class ContractService {
       map((processes) => {
         const contracts = processes.map(p => {
           return {
-            id: p.id,
+            id: p.process_id,
             title: p.process_title,
             description: p.process_description,
-            data: null,
+            data: { info: 'Omitted', created_at: p.accessed_at || '' },
             status: p.process_status,
             clientId: client.id,
             supplierId: p.supplier_id,

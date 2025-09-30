@@ -26,11 +26,11 @@ export class ProcessService {
 
     listProcesses(client_id: string): Observable<ProcessResponse[]> {
         const params = new HttpParams().set('client_id', client_id);
-        return this.http.get<ProcessResponse[]>(`${this.apiUrl}/processes`, { params });
+        return this.http.get<ProcessResponse[]>(`${this.apiUrl}/api/processes`, { params });
     }
 
     getNotifications(client_id: string): Observable<ProcessAccessWithDetails[]> {
         const params = new HttpParams().set('client_id', client_id);
-        return this.http.get<ProcessAccessWithDetails[]>(`${this.apiUrl}/notifications`, { params });
+        return this.http.get<ProcessAccessWithDetails[]>(`${this.apiUrl}/api/notifications`, { params });
     }
 }
