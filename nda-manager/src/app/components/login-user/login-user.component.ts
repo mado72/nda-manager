@@ -1,8 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ClientService } from '../../services/client.service';
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-login-user',
@@ -11,17 +11,43 @@ import { ClientService } from '../../services/client.service';
   templateUrl: './login-user.component.html',
   styleUrl: './login-user.component.scss'
 })
-export class LoginUserComponent {
+export class LoginUserComponent implements OnInit {
   user = {
     email: '',
     password: ''
   };
   
+  rememberMe = false; // Controls whether user credentials are preserved in localStorage
   isLoading = false;
   errorMessage = '';
   successMessage = '';
 
-  constructor(private clientService: ClientService, private router: Router) {}
+  constructor(private userService: UserService, private router: Router) {}
+
+  ngOnInit() {
+    // Tenta fazer auto-login quando o componente inicializa
+    this.tryAutoLogin();
+  }
+
+  private tryAutoLogin() {
+    // Só tenta auto-login se não houver usuário logado
+    if (!this.userService.isLoggedIn()) {
+      this.userService.tryAutoLogin().subscribe({
+        next: (user) => {
+          if (user) {
+            this.successMessage = 'Login automático realizado com sucesso!';
+            setTimeout(() => {
+              this.router.navigate(['/']);
+            }, 1000);
+          }
+        },
+        error: () => {
+          // Erro no auto-login é silencioso - usuário pode fazer login manual
+          console.log('Auto-login não disponível');
+        }
+      });
+    }
+  }
 
   goToRegister() {
     this.router.navigate(['/register']);
@@ -37,7 +63,7 @@ export class LoginUserComponent {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.clientService.authenticateClient(this.user.email, this.user.password).subscribe({
+    this.userService.login({ username: this.user.email, password: this.user.password }, this.rememberMe).subscribe({
       next: (user) => {
         this.isLoading = false;
         if (user) {

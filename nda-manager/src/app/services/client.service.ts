@@ -1,4 +1,4 @@
-import { computed, Injectable } from '@angular/core';
+import { computed, inject, Injectable } from '@angular/core';
 import { catchError, map, throwError } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';
 import { UserRole } from '../models/user.model';
@@ -18,6 +18,9 @@ export interface Client {
   providedIn: 'root'
 })
 export class ClientService {
+
+  private userService = inject(UserService);
+
   loggedClient = computed<Client | null>(() => {
     const currentUser = this.userService.currentUser();
     if (currentUser && currentUser.roles.includes('client' as UserRole)) {
@@ -33,23 +36,6 @@ export class ClientService {
     }
     return null;
   });
-
-  constructor(private userService: UserService) {
-    this.loadLoggedClient();
-  }
-
-  private loadLoggedClient(): void {
-    const data = JSON.parse(localStorage.getItem('loggedClient') || '{}') as Client;
-    this.authenticateClient(data?.email, data?.password).subscribe();
-  }
-
-  private saveLoggedClient(preserve: boolean): void {
-    if (preserve && this.loggedClient) {
-      localStorage.setItem('loggedClient', JSON.stringify(this.loggedClient));
-    } else {
-      localStorage.removeItem('loggedClient');
-    }
-  }
 
   registerClient(name: string, email: string, password: string): Observable<void> {
     return this.userService.register({ username: email, name, password, roles: ['client'] }).pipe(
@@ -68,24 +54,4 @@ export class ClientService {
     );
   }
 
-  authenticateClient(email: string, password: string, preserve?: boolean): Observable<Client> {
-    return this.userService.login({ username: email, password }).pipe(
-      map((user) => {
-        if (user) {
-          this.saveLoggedClient(preserve || false);
-          return this.loggedClient() as Client;
-        }
-        throw new Error('Invalid credentials');
-      }),
-      catchError((error) => {
-        console.error('Error during user login:', error);
-        return throwError(() => new Error('Authentication failed'));
-      })
-    );
-  }
-
-
-  logout(): void {
-    this.userService.logout();
-  }
 }

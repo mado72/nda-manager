@@ -28,6 +28,11 @@ export interface UserLoginRequest {
     password: string;
 }
 
+export interface AutoLoginRequest {
+    user_name: string;
+    user_id: string;
+}
+
 export interface UserResponse {
     id: string;
     username: string;

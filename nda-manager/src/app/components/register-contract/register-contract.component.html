@@ -18,7 +18,7 @@
     <!-- Error/Success Messages -->
     @if (message()) {
       <div class="message-container" 
-           [ngClass]="{
+           [class]="{
              'success-message': message().includes('successfully'),
              'error-message': message().includes('Error') || message().includes('Please')
            }">

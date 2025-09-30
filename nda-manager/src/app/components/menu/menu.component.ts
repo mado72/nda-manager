@@ -190,7 +190,7 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   logout = () => {
     console.log('🚪 Logging out...');
-    this.clientService.logout();
+    this.userService.logout();
     this.router.navigate(['/login']);
   }
 

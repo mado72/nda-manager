@@ -123,7 +123,7 @@
       <!-- Error/success messages -->
       @if (message()) {
         <div class="mt-4 p-3 rounded text-sm" 
-             [ngClass]="{
+             [class]="{
                'bg-green-50 border border-green-200 text-green-700': message().includes('registered'),
                'bg-red-50 border border-red-200 text-red-700': !message().includes('registered')
              }">
