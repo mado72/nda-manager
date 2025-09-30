@@ -203,16 +203,16 @@ export class MenuComponent implements OnInit, OnDestroy {
       if (this.isClient && this.isSupplier) {
         // Se tem múltiplas roles, remover uma
         if (this.isClient) {
-          newRoles = ['supplier'];
+          newRoles = ['partner'];
         } else {
           newRoles = ['client'];
         }
       } else if (this.isClient) {
-        // Se é só cliente, adicionar supplier
-        newRoles = ['client', 'supplier'];
+        // Se é só cliente, adicionar partner
+        newRoles = ['client', 'partner'];
       } else if (this.isSupplier) {
-        // Se é só supplier, adicionar client
-        newRoles = ['client', 'supplier'];
+        // Se é só partner, adicionar client
+        newRoles = ['client', 'partner'];
       } else {
         // Fallback - definir como cliente
         newRoles = ['client'];
