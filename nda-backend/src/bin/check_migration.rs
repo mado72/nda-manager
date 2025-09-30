@@ -25,10 +25,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     
     for user in users {
-        println!("ID: {}, Username: {}, Roles: {}", 
-            user.id.as_deref().unwrap_or("N/A"), 
+        println!("ID: {:?}, Username: {:?}, Roles: {:?}", 
+            user.id, 
             user.username, 
-            user.roles.as_deref().unwrap_or("N/A")
+            user.roles
         );
     }
     
