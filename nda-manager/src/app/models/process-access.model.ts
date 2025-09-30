@@ -11,6 +11,7 @@ export interface ProcessAccessWithDetails {
     supplier_id: string;
     accessed_at: string;
     process_title: string;
+    process_description: string;
     supplier_username: string;
 }
 
