@@ -84,9 +84,38 @@ export class ContractService {
 
   listContracts(): Observable<Contract[]> {
     this.loading.set(true);
-    // Simulação de listagem de contratos em memória
-    this.loading.set(false);
-    return of(this.contracts());
+    const client = this.clientService.loggedClient();
+    if (!client) {
+      this.error.set('No logged client found');
+      this.loading.set(false);
+      return of([]);
+    }
+    
+    return this.processService.getNotifications(client.id).pipe(
+      map((processes) => {
+        const contracts = processes.map(p => {
+          return {
+            id: p.id,
+            title: p.process_title,
+            description: p.process_description,
+            data: null,
+            status: p.process_status,
+            clientId: client.id,
+            supplierId: p.supplier_id,
+          } as Contract;
+        });
+        this.contracts.set(contracts);
+        return contracts;
+      }),
+      catchError((err) => {
+        console.error('❌ Error listing processes:', err);
+        this.error.set('Error listing processes');
+        return of([]);
+      }),
+      finalize(() => {
+        this.loading.set(false);
+      })
+    );
   }
   
   shareContract(shareData: ShareRequest): Observable<ShareResponse> {

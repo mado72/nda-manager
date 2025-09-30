@@ -1,5 +1,5 @@
 // src/app/components/share-contract/share-contract.component.ts
-import { CommonModule, SlicePipe } from '@angular/common';
+import { SlicePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';

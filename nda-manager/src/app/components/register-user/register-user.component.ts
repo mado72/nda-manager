@@ -8,7 +8,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-register-user',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterModule],
+  imports: [FormsModule, RouterModule],
   templateUrl: './register-user.component.html',
   styleUrl: './register-user.component.scss'
 })
@@ -39,8 +39,8 @@ export class RegisterUserComponent {
       this.email(),
       this.password()
     ).subscribe({
-      next: client => {
-        this.message.set(`User registered: ${client.name}`);
+      next: _ => {
+        this.message.set(`User registered: ${this.name()}`);
         this.loading.set(false);
         // Reset form
         this.name.set('');
@@ -50,7 +50,7 @@ export class RegisterUserComponent {
         // Redirect to login after 2 seconds
         setTimeout(() => {
           this.router.navigate(['/login']);
-        }, 2000);
+        }, 500);
       },
       error: err => {
         this.message.set('Error registering user. Please try again.');

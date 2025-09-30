@@ -1,5 +1,4 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { ListContractsComponent } from '../list-contracts/list-contracts.component';
 import { RegisterContractComponent } from '../register-contract/register-contract.component';
@@ -7,7 +6,7 @@ import { RegisterContractComponent } from '../register-contract/register-contrac
 @Component({
   selector: 'app-contracts-master-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, ListContractsComponent, RegisterContractComponent],
+  imports: [RouterModule, ListContractsComponent, RegisterContractComponent],
   templateUrl: './contracts-master-detail.component.html',
   styleUrl: './contracts-master-detail.component.scss'
 })

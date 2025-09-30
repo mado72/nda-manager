@@ -27,10 +27,16 @@
             required
             minlength="2"
             #fullName="ngModel">
-          <div *ngIf="fullName.invalid && fullName.touched" class="form-error">
-            <span *ngIf="fullName.errors?.['required']">Full name is required</span>      
-            <span *ngIf="fullName.errors?.['minlength']">Name must be at least 2 characters</span>
-          </div>
+          @if (fullName.invalid && fullName.touched) {
+            <div class="form-error">
+              @if (fullName.errors?.['required']) {
+                <span>Full name is required</span>      
+              }
+              @if (fullName.errors?.['minlength']) {
+                <span>Name must be at least 2 characters</span>
+              }
+            </div>
+          }
         </div>
 
         <!-- Email -->
@@ -47,10 +53,16 @@
             required
             email
             #emailField="ngModel">
-          <div *ngIf="emailField.invalid && emailField.touched" class="form-error">
-            <span *ngIf="emailField.errors?.['required']">Email is required</span>
-            <span *ngIf="emailField.errors?.['email']">Email must be valid</span>
-          </div>
+          @if (emailField.invalid && emailField.touched) {
+            <div class="form-error">
+              @if (emailField.errors?.['required']) {
+                <span>Email is required</span>
+              }
+              @if (emailField.errors?.['email']) {
+                <span>Email must be valid</span>
+              }
+            </div>
+          }
         </div>
 
         <!-- Password -->
@@ -67,10 +79,16 @@
             required
             minlength="6"
             #passwordField="ngModel">
-          <div *ngIf="passwordField.invalid && passwordField.touched" class="form-error">
-            <span *ngIf="passwordField.errors?.['required']">Password is required</span>
-            <span *ngIf="passwordField.errors?.['minlength']">Password must be at least 6 characters</span>
-          </div>
+          @if (passwordField.invalid && passwordField.touched) {
+            <div class="form-error">
+              @if (passwordField.errors?.['required']) {
+                <span>Password is required</span>
+              }
+              @if (passwordField.errors?.['minlength']) {
+                <span>Password must be at least 6 characters</span>
+              }
+            </div>
+          }
         </div>
 
         <!-- Registration Button -->

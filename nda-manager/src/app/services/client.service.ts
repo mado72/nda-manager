@@ -51,10 +51,15 @@ export class ClientService {
     }
   }
 
-  registerClient(name: string, email: string, password: string): Observable<Client> {
+  registerClient(name: string, email: string, password: string): Observable<void> {
     return this.userService.register({ username: email, name, password, roles: ['client'] }).pipe(
-      map((_) => {
-        return this.loggedClient() as Client;
+      map((response) => {
+        if (response && response.id) {
+          console.log('✅ User registered:', response);
+        }
+        else {
+          throw new Error('Registration failed');
+        }
       }),
       catchError((error) => {
         console.error('Error registering user:', error);
