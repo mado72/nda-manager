@@ -38,7 +38,7 @@ export interface UserResponse {
     username: string;
     name: string;
     stellar_public_key: string;
-    roles: UserRoles; // ["client"], ["supplier"], ou ["client", "supplier"]
+    roles: UserRoles; // ["client"], ["partner"], ou ["client", "partner"]
     created_at: string;
 }
 
@@ -70,14 +70,6 @@ export class UserUtils {
      */
     static isPartner(user: User | UserResponse): boolean {
         return this.hasRole(user, 'partner');
-    }
-
-    /**
-     * Legacy method for backwards compatibility
-     * @deprecated Use isPartner() instead
-     */
-    static isSupplier(user: User | UserResponse): boolean {
-        return this.isPartner(user);
     }
 
     /**

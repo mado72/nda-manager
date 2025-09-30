@@ -41,7 +41,7 @@
 //! - **Role-Based Access Control**: Endpoints verify user roles before operations
 //! - **AES-256-GCM Encryption**: All process content is encrypted with unique keys
 //! - **Blockchain Verification**: Process sharing is recorded on Stellar network
-//! - **Access Control**: Suppliers can only access processes explicitly shared with them
+//! - **Access Control**: Partners can only access processes explicitly shared with them
 //! - **Complete Audit Trail**: All access events are logged for compliance
 //! 
 //! ## Updated Request Flow Example

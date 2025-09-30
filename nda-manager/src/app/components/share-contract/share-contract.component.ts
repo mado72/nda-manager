@@ -47,8 +47,8 @@ export class ShareContractComponent implements OnInit {
       return 'user-client';
     }
     
-    if (UserUtils.isSupplier(user)) {
-      return 'user-supplier';
+    if (UserUtils.isPartner(user)) {
+      return 'user-partner';
     }
     
     return 'user-unknown';
@@ -83,7 +83,7 @@ export class ShareContractComponent implements OnInit {
   ) {
     this.shareForm = this.fb.group({
       process_id: ['', [Validators.required]],
-      supplier_public_key: ['', [
+      partner_public_key: ['', [
         Validators.required,
         Validators.minLength(56),
         Validators.maxLength(56),
@@ -118,7 +118,7 @@ export class ShareContractComponent implements OnInit {
         console.log('🔐 Can share contracts:', this.canShare());
 
         if (!this.canShare()) {
-          this.error.set('Only clients can share contracts. You are logged in as a supplier.');
+          this.error.set('Only clients can share contracts. You are logged in as a partner  .');
         }
 
         // Preencher username no formulário
@@ -181,7 +181,7 @@ export class ShareContractComponent implements OnInit {
 
       const shareData: ShareRequest = {
         process_id: this.shareForm.get('process_id')?.value,
-        supplier_public_key: this.shareForm.get('supplier_public_key')?.value,
+        partner_public_key: this.shareForm.get('partner_public_key')?.value,
         client_username: user.username
       };
 
@@ -190,7 +190,7 @@ export class ShareContractComponent implements OnInit {
       this.contractService.shareContract(shareData).subscribe({
         next: (response) => {
           console.log('✅ Share successful:', response);
-          this.success.set('Contract shared successfully with supplier!');
+          this.success.set('Contract shared successfully with partner!');
           this.sharing.set(false);
           this.shareForm.reset();
           this.shareForm.patchValue({ client_username: user.username });
@@ -248,6 +248,6 @@ export class ShareContractComponent implements OnInit {
   onPublicKeyInput(event: Event) {
     const input = event.target as HTMLInputElement;
     const value = input.value.toUpperCase();
-    this.shareForm.patchValue({ supplier_public_key: value });
+    this.shareForm.patchValue({ partner_public_key: value });
   }
 }

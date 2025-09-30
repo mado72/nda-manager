@@ -114,7 +114,7 @@ pub struct User {
     pub stellar_public_key: String,
     pub stellar_secret_key: String, // In production, use KMS (Key Management Service)
     pub password_hash: String, // Bcrypt hashed password
-    pub roles: String, // JSON string: ["client"] | ["supplier"] | ["client","supplier"]
+    pub roles: String, // JSON string: ["client"] | ["partner"] | ["client","partner"]
     pub created_at: DateTime<Utc>,
 }
 
@@ -137,7 +137,7 @@ impl std::fmt::Debug for User {
 /// NDA process with encrypted confidential content.
 /// 
 /// Represents a Non-Disclosure Agreement process containing encrypted sensitive
-/// information that can be selectively shared with suppliers via blockchain transactions.
+/// information that can be selectively shared with partners via blockchain transactions.
 /// 
 /// # Fields
 /// 
@@ -160,8 +160,8 @@ impl std::fmt::Debug for User {
 /// # Lifecycle
 /// 
 /// 1. **Creation**: Client creates process with encrypted content
-/// 2. **Sharing**: Client shares with suppliers via Stellar blockchain transaction
-/// 3. **Access**: Suppliers decrypt and access content with proper authorization
+/// 2. **Sharing**: Client shares with partners via Stellar blockchain transaction
+/// 3. **Access**: Partners decrypt and access content with proper authorization
 /// 4. **Audit**: All access events are logged for compliance reporting
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Process {
@@ -310,7 +310,7 @@ pub struct ProcessAccessWithDetails {
 /// {
 ///   "username": "john_doe",
 ///   "password": "secure_password",
-///   "roles": ["client", "supplier"]
+///   "roles": ["client", "partner"]
 /// }
 /// ```
 #[derive(Debug, Deserialize)]
@@ -505,18 +505,18 @@ pub struct UserResponse {
 ///     username: "john_doe".to_string(),
 ///     stellar_public_key: "GABC...".to_string(),
 ///     stellar_secret_key: "SABC...".to_string(),
-///     roles: r#"["client","supplier"]"#.to_string(),
+///     roles: r#"["client","partner"]"#.to_string(),
 ///     created_at: chrono::Utc::now(),
 /// };
 /// let response: UserResponse = user.into();
-/// assert_eq!(response.roles, vec!["client", "supplier"]);
+/// assert_eq!(response.roles, vec!["client", "partner"]);
 /// ```
 impl User {
     /// Checks if the user has a specific role.
     /// 
     /// # Parameters
     /// 
-    /// * `role` - The role to check for ("client" or "supplier")
+    /// * `role` - The role to check for ("client" or "partner")
     /// 
     /// # Returns
     /// 
@@ -563,15 +563,6 @@ impl User {
         self.has_role("partner")
     }
 
-    /// Legacy method for backwards compatibility.
-    /// 
-    /// # Deprecated
-    /// Use `is_partner()` instead. This method will be removed in a future version.
-    #[deprecated(since = "1.0.0", note = "Use `is_partner()` instead")]
-    pub fn is_supplier(&self) -> bool {
-        self.is_partner()
-    }
-    
     /// Gets all roles assigned to the user.
     /// 
     /// # Returns
@@ -686,7 +677,7 @@ impl From<Process> for ProcessResponse {
 /// Decrypted process content for authorized access responses.
 /// 
 /// Contains the decrypted confidential content that is returned when
-/// a supplier successfully accesses a shared process. This response
+/// a partner successfully accesses a shared process. This response
 /// is only generated after proper authorization verification.
 /// 
 /// # Fields
@@ -706,7 +697,7 @@ impl From<Process> for ProcessResponse {
 /// # Usage Context
 /// 
 /// This model is used exclusively for successful process access operations
-/// where the supplier has proven authorization to view the content.
+/// where the partner has proven authorization to view the content.
 #[derive(Debug, Serialize)]
 pub struct ProcessAccessResponse {
     pub process_id: String,
