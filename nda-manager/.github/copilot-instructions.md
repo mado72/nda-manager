@@ -156,3 +156,16 @@ The system is designed as a cohesive blockchain-secured NDA contract management 
 **Supplier Side**: Receive contract invitation → Review NDA terms → "Sign" via blockchain transaction → Access confidential content → Ongoing compliance tracking
 
 **System Integration**: Every interaction creates immutable audit trails, ensuring legal compliance and providing cryptographic proof of confidentiality agreements.
+
+### General Guidelines for Copilot
+- **Language**: Use TypeScript for Angular frontend, Rust for backend
+- **Frameworks**: Follow Angular 20 standalone component patterns, Axum for Rust backend
+- **Database**: Use DBeaver to inspect and manage the SQLite database.
+- **Error Handling**: Implement robust error handling with user-friendly messages
+- **Code Style**: Follow existing code style and conventions in both frontend and backend
+- **Comments**: Add clear comments and documentation for all new code
+- **Terminal Commands Summary**: Use powershell syntax for terminal commands.
+- **Testing**: Write unit tests for new features and ensure existing tests pass
+- **Security**: Ensure all sensitive data is encrypted and access is properly controlled
+- **Version Control**: Commit changes with clear messages and follow branching strategy. Use commit patterns like `feat:`, `fix:`, `docs:`, etc.
+- **Angular**: Use newer controls like signals, standalone components, @if and @for. Avoid NgModules and CommonModule.
