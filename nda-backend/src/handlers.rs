@@ -28,9 +28,9 @@
 //! 
 //! The API supports a flexible role-based access control system:
 //! 
-//! - **Client Role**: Can create and manage NDA processes, share with suppliers
-//! - **Supplier Role**: Can access shared processes and view confidential content
-//! - **Hybrid Users**: Can have both roles (`["client", "supplier"]`) for full functionality
+//! - **Client Role**: Can create and manage NDA processes, share with partners
+//! - **Partner Role**: Can access shared processes and view confidential content
+//! - **Hybrid Users**: Can have both roles (`["client", "partner"]`) for full functionality
 //! 
 //! Role verification is enforced at the handler level for appropriate operations.
 //! 
@@ -54,10 +54,10 @@
 //!     roles: vec!["client".to_string()],
 //! }).await?;
 //! 
-//! let supplier = register_user(RegisterRequest {
-//!     username: "supplier_corp".to_string(),
-//!     name: "Supplier Corporation".to_string(),
-//!     roles: vec!["supplier".to_string()],
+//! let partner = register_user(RegisterRequest {
+//!     username: "partner_corp".to_string(),
+//!     name: "Partner Corporation".to_string(),
+//!     roles: vec!["partner".to_string()],
 //! }).await?;
 //! 
 //! // 2. Create encrypted process (client role required)
@@ -72,14 +72,14 @@
 //! let share = share_process(ShareProcessRequest {
 //!     client_username: "client_company".to_string(),
 //!     process_id: process.id,
-//!     supplier_public_key: supplier.stellar_public_key,
+//!     partner_public_key: partner.stellar_public_key,
 //! }).await?;
 //! 
-//! // 4. Supplier accesses content (supplier role required)
+//! // 4. Partner accesses content (partner role required)
 //! let content = access_process(AccessProcessRequest {
 //!     process_id: process.id,
-//!     supplier_username: "supplier_corp".to_string(),
-//!     supplier_public_key: supplier.stellar_public_key,
+//!     partner_username: "partner_corp".to_string(),
+//!     partner_public_key: partner.stellar_public_key,
 //! }).await?;
 //! ```
 //! 
@@ -237,7 +237,7 @@ pub async fn health_check() -> ResponseJson<HealthResponse> {
 /// {
 ///   "username": "hybrid_user",
 ///   "name": "Hybrid Business Solutions", 
-///   "roles": ["client", "supplier"]
+///   "roles": ["client", "partner"]
 /// }
 /// ```
 ///
@@ -419,7 +419,7 @@ pub async fn login_user(
 ///   "username": "john_doe", 
 ///   "name": "John Doe",
 ///   "stellar_public_key": "GABC...",
-///   "roles": ["client", "supplier"],
+///   ///   \"roles\": [\"client\", \"partner\"],
 ///   "created_at": "2024-01-15T10:30:00Z"
 /// }
 /// ```
@@ -501,13 +501,13 @@ pub async fn auto_login_user(
 /// - Content is encrypted with AES-256-GCM before storage
 /// - Each process gets a unique encryption key
 /// - Encryption keys are stored separately from content
-/// - Only the process owner and explicitly shared suppliers can decrypt
+/// - Only the process owner and explicitly shared partners can decrypt
 /// 
 /// # Process Lifecycle
 /// 
 /// 1. Content is encrypted with a generated key
 /// 2. Process record is created in database
-/// 3. Process can be shared with suppliers via blockchain transactions
+/// 3. Process can be shared with partners via blockchain transactions
 /// 4. Access events are logged for audit trails
 pub async fn create_process(
     State(state): State<Arc<AppState>>,
@@ -542,11 +542,11 @@ pub async fn create_process(
     Ok(ResponseJson(process.into()))
 }
 
-/// Shares a process with a supplier via Stellar blockchain transaction.
+/// Shares a process with a partner via Stellar blockchain transaction.
 /// 
 /// This endpoint creates an immutable record of process sharing on the Stellar
 /// blockchain. It submits a transaction that proves the client has shared access
-/// to a specific process with a specific supplier, creating an audit trail.
+/// to a specific process with a specific partner, creating an audit trail.
 /// 
 /// # Parameters
 /// 
@@ -571,7 +571,7 @@ pub async fn create_process(
 /// {
 ///   "client_username": "client_company",
 ///   "process_id": "process-uuid",
-///   "supplier_public_key": "GCKFBEIYTKP..."
+///   "partner_public_key": "GCKFBEIYTKP..."
 /// }
 /// ```
 /// 
@@ -581,7 +581,7 @@ pub async fn create_process(
 /// {
 ///   "id": "share-uuid",
 ///   "process_id": "process-uuid",
-///   "supplier_public_key": "GCKFBEIYTKP...",
+///   "partner_public_key": "GCKFBEIYTKP...",
 ///   "stellar_transaction_hash": "abc123...",
 ///   "shared_at": "2024-01-01T00:00:00Z"
 /// }
@@ -622,7 +622,7 @@ pub async fn share_process(
     let tx_result = stellar_client
         .share_process_transaction(
             &client.stellar_secret_key,
-            &payload.supplier_public_key,
+            &payload.partner_public_key,
             &payload.process_id,
             &format!("NDA_SHARE:{}", payload.process_id),
         )
@@ -633,7 +633,7 @@ pub async fn share_process(
     let share = queries::create_process_share(
         &state.pool,
         &payload.process_id,
-        &payload.supplier_public_key,
+        &payload.partner_public_key,
         &tx_result.hash,
     )
     .await
@@ -642,16 +642,16 @@ pub async fn share_process(
     Ok(ResponseJson(share))
 }
 
-/// Allows suppliers to access shared process content with decryption.
+/// Allows partners to access shared process content with decryption.
 /// 
-/// This endpoint verifies that a process has been properly shared with a supplier
+/// This endpoint verifies that a process has been properly shared with a partner
 /// (by checking the sharing records), then decrypts and returns the confidential
 /// content. It also logs the access event for audit trails and compliance.
 /// 
 /// # Parameters
 /// 
 /// * `state` - Shared application state containing database pool
-/// * `payload` - Process access request with process ID and supplier username
+/// * `payload` - Process access request with process ID and partner username
 /// 
 /// # Returns
 /// 
@@ -662,8 +662,8 @@ pub async fn share_process(
 /// # HTTP Responses
 /// 
 /// - **200 OK**: Access granted, content decrypted and returned
-/// - **403 Forbidden**: Process not shared with this supplier or insufficient supplier role
-/// - **404 Not Found**: Process or supplier not found
+/// - **403 Forbidden**: Process not shared with this partner or insufficient partner role
+/// - **404 Not Found**: Process or partner not found
 /// - **500 Internal Server Error**: Decryption or database error
 /// 
 /// # Request Body
@@ -671,8 +671,8 @@ pub async fn share_process(
 /// ```json
 /// {
 ///   "process_id": "process-uuid",
-///   "supplier_username": "supplier_company",
-///   "supplier_public_key": "GCKFBEIYTKP..."
+///   "partner_username": "partner_company",
+///   "partner_public_key": "GCKFBEIYTKP..."
 /// }
 /// ```
 /// 
@@ -692,7 +692,7 @@ pub async fn share_process(
 /// 
 /// The endpoint performs several security checks:
 /// 1. Verifies the process exists
-/// 2. Verifies the supplier exists
+/// 2. Verifies the partner exists
 /// 3. Checks that sharing record exists in database
 /// 4. Only then decrypts and returns content
 /// 
@@ -700,7 +700,7 @@ pub async fn share_process(
 /// 
 /// Every successful access is logged with:
 /// - Timestamp of access
-/// - Supplier who accessed the content
+/// - Partner who accessed the content
 /// - Process that was accessed
 /// - Complete audit trail for compliance
 /// 
@@ -727,29 +727,29 @@ pub async fn access_process(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
     .ok_or(StatusCode::NOT_FOUND)?;
 
-    // Find supplier with specific fields and verify supplier role
-    let supplier = queries::find_user_by_username(&state.pool, &payload.supplier_username)
+    // Find partner with specific fields and verify partner role
+    let partner = queries::find_user_by_username(&state.pool, &payload.partner_username)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
         
-    // Verify user has supplier role
-    if !supplier.is_supplier() {
+    // Verify user has partner role
+    if !partner.is_partner() {
         return Err(StatusCode::FORBIDDEN);
     }
 
     // Verify if sharing exists in database
     let share_exists = sqlx::query!(
-        "SELECT id FROM process_shares WHERE process_id = ? AND supplier_public_key = ?",
+        "SELECT id FROM process_shares WHERE process_id = ? AND partner_public_key = ?",
         payload.process_id,
-        payload.supplier_public_key
+        payload.partner_public_key
     )
     .fetch_optional(&state.pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if share_exists.is_none() {
-        println!("❌ Access denied: Process was not shared with this supplier");
+        println!("❌ Access denied: Process was not shared with this partner");
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -766,12 +766,12 @@ pub async fn access_process(
     
     sqlx::query!(
         r#"
-        INSERT INTO process_accesses (id, process_id, supplier_id, accessed_at)
+        INSERT INTO process_accesses (id, process_id, partner_id, accessed_at)
         VALUES (?, ?, ?, ?)
         "#,
         access_id,
         payload.process_id,
-        supplier.id,
+        partner.id,
         now_string
     )
     .execute(&state.pool)
@@ -876,8 +876,8 @@ pub async fn list_processes(
 /// Retrieves access notifications for a client's processes.
 /// 
 /// This endpoint provides clients with a comprehensive audit trail showing
-/// when suppliers have accessed their shared processes. It returns denormalized
-/// data including process titles, descriptions, status, and supplier usernames for detailed reporting.
+/// when partners have accessed their shared processes. It returns denormalized
+/// data including process titles, descriptions, status, and partner usernames for detailed reporting.
 /// 
 /// # Parameters
 /// 
@@ -914,22 +914,22 @@ pub async fn list_processes(
 ///   {
 ///     "id": "access-uuid-1",
 ///     "process_id": "process-uuid",
-///     "supplier_id": "supplier-uuid",
+///     "partner_id": "partner-uuid",
 ///     "accessed_at": "2024-01-01T10:30:00Z",
 ///     "process_title": "Software Development NDA",
 ///     "process_description": "Comprehensive confidentiality agreement for software development partnership",
 ///     "process_status": "active",
-///     "supplier_username": "supplier_company"
+///     "partner_username": "partner_company"
 ///   },
 ///   {
 ///     "id": "access-uuid-2",
 ///     "process_id": "process-uuid-2",
-///     "supplier_id": "supplier-uuid-2",
+///     "partner_id": "partner-uuid-2",
 ///     "accessed_at": "2024-01-01T09:15:00Z",
 ///     "process_title": "Marketing Partnership NDA",
 ///     "process_description": "Non-disclosure agreement for marketing collaboration and data sharing",
 ///     "process_status": "completed",
-///     "supplier_username": "another_supplier"
+///     "partner_username": "another_partner"
 ///   }
 /// ]
 /// ```
@@ -944,7 +944,7 @@ pub async fn list_processes(
 /// # Data Privacy
 /// 
 /// - Only shows access to processes owned by the requesting client
-/// - Includes process descriptions, status, and supplier usernames but not sensitive encrypted content
+/// - Includes process descriptions, status, and partner usernames but not sensitive encrypted content
 /// - Ordered by access time (most recent first) for easy monitoring
 pub async fn get_notifications(
     State(state): State<Arc<AppState>>,

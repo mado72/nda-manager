@@ -1,10 +1,10 @@
 export enum UserType {
     client = 'client',
-    supplier = 'supplier'
+    partner = 'partner'
 }
 
-// Tipos para o novo sistema de roles
-export type UserRole = 'client' | 'supplier';
+// Types for the new roles system
+export type UserRole = 'client' | 'partner';
 export type UserRoles = UserRole[];
 
 export interface User {
@@ -12,7 +12,7 @@ export interface User {
     username: string;
     name: string;
     stellar_public_key: string;
-    roles: UserRoles; // ["client"], ["supplier"], ou ["client", "supplier"]
+    roles: UserRoles; // ["client"], ["partner"], ou ["client", "partner"]
     created_at: string; // ISO date string
 }
 
@@ -20,7 +20,7 @@ export interface UserRegisterRequest {
     username: string;
     name: string;
     password: string;
-    roles: UserRoles; // ["client"], ["supplier"], ou ["client", "supplier"]
+    roles: UserRoles; // ["client"], ["partner"], ou ["client", "partner"]
 }
 
 export interface UserLoginRequest {
@@ -42,77 +42,85 @@ export interface UserResponse {
     created_at: string;
 }
 
-// Funções utilitárias para trabalhar com roles
+// Utility functions for working with roles
 export class UserUtils {
     /**
-     * Verifica se o usuário tem um papel específico
-     * @param user Usuário a ser verificado
-     * @param role Papel a ser verificado
-     * @returns true se o usuário tem o papel especificado
+     * Checks if the user has a specific role
+     * @param user User to check
+     * @param role Role to check
+     * @returns true if the user has the specified role
      */
     static hasRole(user: User | UserResponse, role: UserRole): boolean {
         return user.roles.includes(role);
     }
 
     /**
-     * Verifica se o usuário pode atuar como cliente
-     * @param user Usuário a ser verificado
-     * @returns true se o usuário pode criar e gerenciar processos NDA
+     * Checks if the user can act as a client
+     * @param user User to check
+     * @returns true if the user can create and manage NDA processes
      */
     static isClient(user: User | UserResponse): boolean {
         return this.hasRole(user, 'client');
     }
 
     /**
-     * Verifica se o usuário pode atuar como fornecedor
-     * @param user Usuário a ser verificado
-     * @returns true se o usuário pode acessar processos compartilhados
+     * Checks if the user can act as a partner
+     * @param user User to check
+     * @returns true if the user can access shared processes
      */
-    static isSupplier(user: User | UserResponse): boolean {
-        return this.hasRole(user, 'supplier');
+    static isPartner(user: User | UserResponse): boolean {
+        return this.hasRole(user, 'partner');
     }
 
     /**
-     * Verifica se o usuário tem múltiplos papéis
-     * @param user Usuário a ser verificado
-     * @returns true se o usuário tem mais de um papel
+     * Legacy method for backwards compatibility
+     * @deprecated Use isPartner() instead
+     */
+    static isSupplier(user: User | UserResponse): boolean {
+        return this.isPartner(user);
+    }
+
+    /**
+     * Checks if the user has multiple roles
+     * @param user User to check
+     * @returns true if the user has more than one role
      */
     static hasMultipleRoles(user: User | UserResponse): boolean {
         return user.roles.length > 1;
     }
 
     /**
-     * Retorna uma descrição legível dos papéis do usuário
-     * @param user Usuário a ser verificado
-     * @returns Descrição dos papéis (ex: "Cliente", "Fornecedor", "Cliente e Fornecedor")
+     * Returns a readable description of the user's roles
+     * @param user User to check
+     * @returns Description of roles (e.g., "Client", "Partner", "Client and Partner")
      */
     static getRoleDescription(user: User | UserResponse): string {
         const { roles } = user;
         
         if (roles.length === 0) {
-            return 'Sem papel definido';
+            return 'No role defined';
         }
         
         if (roles.length === 1) {
-            return roles[0] === 'client' ? 'Cliente' : 'Fornecedor';
+            return roles[0] === 'client' ? 'Client' : 'Partner';
         }
         
-        if (roles.includes('client') && roles.includes('supplier')) {
-            return 'Cliente e Fornecedor';
+        if (roles.includes('client') && roles.includes('partner')) {
+            return 'Client and Partner';
         }
         
-        // Para casos futuros com outros papéis
-        return roles.map(role => role === 'client' ? 'Cliente' : 'Fornecedor').join(', ');
+        // For future cases with other roles
+        return roles.map(role => role === 'client' ? 'Client' : 'Partner').join(', ');
     }
 
     /**
-     * Cria um array de roles a partir de valores individuais
-     * @param roles Papéis individuais
-     * @returns Array de roles válido
+     * Creates a roles array from individual values
+     * @param roles Individual roles
+     * @returns Valid roles array
      */
     static createRoles(...roles: UserRole[]): UserRoles {
-        // Remove duplicatas e garante ordem consistente
+        // Remove duplicates and ensure consistent order
         const uniqueRoles = Array.from(new Set(roles));
-        return uniqueRoles.sort(); // client vem antes de supplier alfabeticamente
+        return uniqueRoles.sort(); // client comes before partner alphabetically
     }
 }

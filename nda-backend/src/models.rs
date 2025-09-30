@@ -77,7 +77,7 @@ use sqlx::FromRow;
 /// User account with Stellar blockchain integration.
 /// 
 /// Represents a user in the NDA system with associated Stellar network credentials.
-/// Users can have multiple roles: client (who create and own processes), supplier
+/// Users can have multiple roles: client (who create and own processes), partner
 /// (who receive shared access to processes), or both simultaneously.
 /// 
 /// # Fields
@@ -87,14 +87,14 @@ use sqlx::FromRow;
 /// * `name` - Full name or display name of the user
 /// * `stellar_public_key` - Stellar network public key for blockchain operations
 /// * `stellar_secret_key` - Stellar network secret key (encrypted in production)
-/// * `roles` - JSON string containing user roles: `["client"]`, `["supplier"]`, or `["client","supplier"]`
+/// * `roles` - JSON string containing user roles: `["client"]`, `["partner"]`, or `["client","partner"]`
 /// * `created_at` - Account creation timestamp
 /// 
 /// # Role System
 /// 
 /// The `roles` field contains a JSON array of role strings:
 /// - `"client"` - Can create and manage NDA processes
-/// - `"supplier"` - Can access shared processes
+/// - `"partner"` - Can access shared processes
 /// - Users can have both roles simultaneously for maximum flexibility
 /// 
 /// # Security Notes
@@ -177,14 +177,14 @@ pub struct Process {
 
 /// Blockchain-recorded process sharing event.
 /// 
-/// Records when a process has been shared with a supplier via a Stellar blockchain
+/// Records when a process has been shared with a partner via a Stellar blockchain
 /// transaction, providing immutable proof of sharing for audit and verification.
 /// 
 /// # Fields
 /// 
 /// * `id` - Unique sharing record identifier (UUID)
 /// * `process_id` - Reference to the shared process
-/// * `supplier_public_key` - Stellar public key of the recipient supplier
+/// * `partner_public_key` - Stellar public key of the recipient partner
 /// * `stellar_transaction_hash` - Immutable blockchain transaction hash
 /// * `shared_at` - Timestamp when sharing occurred
 /// 
@@ -205,21 +205,21 @@ pub struct Process {
 pub struct ProcessShare {
     pub id: String,
     pub process_id: String,
-    pub supplier_public_key: String,
+    pub partner_public_key: String,
     pub stellar_transaction_hash: String,
     pub shared_at: DateTime<Utc>,
 }
 
 /// Process access audit record.
 /// 
-/// Logs when a supplier accesses a shared process, creating a complete
+/// Logs when a partner accesses a shared process, creating a complete
 /// audit trail for compliance and monitoring purposes.
 /// 
 /// # Fields
 /// 
 /// * `id` - Unique access record identifier (UUID)
 /// * `process_id` - Reference to the accessed process
-/// * `supplier_id` - Reference to the accessing supplier user
+/// * `partner_id` - Reference to the accessing partner user
 /// * `accessed_at` - Timestamp when access occurred
 /// 
 /// # Compliance Features
@@ -232,7 +232,7 @@ pub struct ProcessShare {
 pub struct ProcessAccess {
     pub id: String,
     pub process_id: String,
-    pub supplier_id: String,
+    pub partner_id: String,
     pub accessed_at: DateTime<Utc>,
 }
 
@@ -245,12 +245,12 @@ pub struct ProcessAccess {
 /// 
 /// * `id` - Unique access record identifier (UUID)
 /// * `process_id` - Reference to the accessed process
-/// * `supplier_id` - Reference to the accessing supplier user
+/// * `partner_id` - Reference to the accessing partner user
 /// * `accessed_at` - Timestamp when access occurred
 /// * `process_title` - Denormalized process title for display
 /// * `process_description` - Denormalized process description for context
 /// * `process_status` - Current process status ('active', 'completed', etc.)
-/// * `supplier_username` - Denormalized supplier username for display
+/// * `partner_username` - Denormalized partner username for display
 /// 
 /// # Usage
 /// 
@@ -263,20 +263,20 @@ pub struct ProcessAccess {
 /// # Optional Fields
 /// 
 /// Some fields may be `None` when using LEFT OUTER JOIN queries:
-/// - `id`, `supplier_id`, `accessed_at`: Optional when no access record exists
-/// - `supplier_username`: Optional when supplier user data is not available
+/// - `id`, `partner_id`, `accessed_at`: Optional when no access record exists
+/// - `partner_username`: Optional when partner user data is not available
 /// 
 /// The `process_*` fields are always present as they come from the main processes table.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessAccessWithDetails {
     pub id: Option<String>,
     pub process_id: String,
-    pub supplier_id: Option<String>,
+    pub partner_id: Option<String>,
     pub accessed_at: Option<DateTime<Utc>>,
     pub process_title: String,
     pub process_description: String,
     pub process_status: String,
-    pub supplier_username: Option<String>,
+    pub partner_username: Option<String>,
 }
 
 /// User registration request payload.
@@ -288,12 +288,12 @@ pub struct ProcessAccessWithDetails {
 /// 
 /// * `username` - Desired unique username
 /// * `password` - User password (currently unused in MVP)
-/// * `roles` - Array of user roles: `["client"]`, `["supplier"]`, or `["client","supplier"]`
+/// * `roles` - Array of user roles: `["client"]`, `["partner"]`, or `["client","partner"]`
 /// 
 /// # Role Validation
 /// 
 /// - Username must be unique across all users
-/// - Roles must contain valid values: "client" and/or "supplier"
+/// - Roles must contain valid values: "client" and/or "partner"
 /// - At least one role must be specified
 /// - Password field exists for future authentication enhancement
 /// 
@@ -394,13 +394,13 @@ pub struct CreateProcessRequest {
 
 /// Process sharing request payload.
 /// 
-/// Contains the information needed to share a process with a supplier
+/// Contains the information needed to share a process with a partner
 /// via a Stellar blockchain transaction.
 /// 
 /// # Fields
 /// 
 /// * `process_id` - ID of the process to share
-/// * `supplier_public_key` - Stellar public key of the recipient
+/// * `partner_public_key` - Stellar public key of the recipient
 /// * `client_username` - Username of the client sharing the process
 /// 
 /// # Blockchain Integration
@@ -409,38 +409,38 @@ pub struct CreateProcessRequest {
 /// 1. Verification of process ownership by client
 /// 2. Creation of a Stellar blockchain transaction
 /// 3. Recording of the transaction hash for audit
-/// 4. Granting of access permissions to the supplier
+/// 4. Granting of access permissions to the partner
 #[derive(Debug, Deserialize)]
 pub struct ShareProcessRequest {
     pub process_id: String,
-    pub supplier_public_key: String,
+    pub partner_public_key: String,
     pub client_username: String,
 }
 
 /// Process access request payload.
 /// 
-/// Contains the information needed for a supplier to access
+/// Contains the information needed for a partner to access
 /// a shared process and decrypt its contents.
 /// 
 /// # Fields
 /// 
 /// * `process_id` - ID of the process to access
-/// * `supplier_public_key` - Stellar public key for verification
-/// * `supplier_username` - Username of the requesting supplier
+/// * `partner_public_key` - Stellar public key for verification
+/// * `partner_username` - Username of the requesting partner
 /// 
 /// # Access Control
 /// 
 /// Before granting access, the system:
 /// 1. Verifies the process exists
 /// 2. Checks that sharing record exists in database
-/// 3. Validates supplier credentials
+/// 3. Validates partner credentials
 /// 4. Logs the access event for audit
 /// 5. Decrypts and returns the content
 #[derive(Debug, Deserialize)]
 pub struct AccessProcessRequest {
     pub process_id: String,
-    pub supplier_public_key: String,
-    pub supplier_username: String,
+    pub partner_public_key: String,
+    pub partner_username: String,
 }
 
 /// User data for API responses (excludes sensitive fields).
@@ -453,14 +453,14 @@ pub struct AccessProcessRequest {
 /// * `id` - User identifier
 /// * `username` - Public username
 /// * `stellar_public_key` - Stellar public key (safe to expose)
-/// * `roles` - Array of user roles: `["client"]`, `["supplier"]`, or `["client","supplier"]`
+/// * `roles` - Array of user roles: `["client"]`, `["partner"]`, or `["client","partner"]`
 /// * `created_at` - Account creation timestamp
 /// 
 /// # Role System
 /// 
 /// The `roles` field contains an array of role strings:
 /// - `"client"` - Can create and manage NDA processes
-/// - `"supplier"` - Can access shared processes
+/// - `"partner"` - Can access shared processes
 /// - Users can have both roles simultaneously
 /// 
 /// # Security Features
@@ -526,11 +526,11 @@ impl User {
     /// 
     /// ```rust
     /// let user = User {
-    ///     roles: r#"["client","supplier"]"#.to_string(),
+    ///     roles: r#"["client","partner"]"#.to_string(),
     ///     // ... other fields
     /// };
     /// assert!(user.has_role("client"));
-    /// assert!(user.has_role("supplier"));
+    /// assert!(user.has_role("partner"));
     /// ```
     pub fn has_role(&self, role: &str) -> bool {
         if let Ok(roles) = serde_json::from_str::<Vec<String>>(&self.roles) {
@@ -552,15 +552,24 @@ impl User {
         self.has_role("client")
     }
     
-    /// Checks if the user has the "supplier" role.
+    /// Checks if the user has the "partner" role.
     /// 
-    /// Suppliers can access processes that have been shared with them.
+    /// Partners can access processes that have been shared with them.
     /// 
     /// # Returns
     /// 
-    /// Returns `true` if the user can act as a supplier.
+    /// Returns `true` if the user can act as a partner.
+    pub fn is_partner(&self) -> bool {
+        self.has_role("partner")
+    }
+
+    /// Legacy method for backwards compatibility.
+    /// 
+    /// # Deprecated
+    /// Use `is_partner()` instead. This method will be removed in a future version.
+    #[deprecated(since = "1.0.0", note = "Use `is_partner()` instead")]
     pub fn is_supplier(&self) -> bool {
-        self.has_role("supplier")
+        self.is_partner()
     }
     
     /// Gets all roles assigned to the user.
@@ -574,11 +583,11 @@ impl User {
     /// 
     /// ```rust
     /// let user = User {
-    ///     roles: r#"["client","supplier"]"#.to_string(),
+    ///     roles: r#"["client","partner"]"#.to_string(),
     ///     // ... other fields
     /// };
     /// let roles = user.get_roles();
-    /// assert_eq!(roles, vec!["client", "supplier"]);
+    /// assert_eq!(roles, vec!["client", "partner"]);
     /// ```
     pub fn get_roles(&self) -> Vec<String> {
         serde_json::from_str::<Vec<String>>(&self.roles)
