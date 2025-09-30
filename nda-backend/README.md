@@ -20,7 +20,7 @@ The system allows companies to create, share, and control access to confidential
 
 ### 👥 **User Management**
 - Automatic registration with automatically generated Stellar wallets
-- User types: Client (NDA creator) and Supplier (recipient)
+- User types: Client (NDA creator) and Partner (recipient)
 - Secure authentication with credential verification
 
 ### 📄 **NDA Process Management**
@@ -149,7 +149,7 @@ Content-Type: application/json
 {
     "username": "user@company.com",
     "password": "password123",
-    "roles": ["client"]  // ["client"], ["supplier"], or ["client", "supplier"]
+    "roles": ["client"]  // ["client"], ["partner"], or ["client", "partner"]
 }
 ```
 **Purpose**: Register new users with automatic Stellar wallet creation for blockchain identity.
@@ -159,7 +159,7 @@ Content-Type: application/json
 {
     "username": "hybrid_user@company.com",
     "password": "password123",
-    "roles": ["client", "supplier"]
+    "roles": ["client", "partner"]
 }
 ```
 
@@ -212,7 +212,7 @@ Content-Type: application/json
 {
     "process_id": "process-uuid",
     "client_username": "client@company.com",
-    "supplier_public_key": "SUPPLIER_STELLAR_PUBLIC_KEY"
+    "partner_public_key": "PARTNER_STELLAR_PUBLIC_KEY"
 }
 ```
 **Purpose**: Share process via Stellar transaction, creating immutable authorization record on blockchain.
@@ -224,8 +224,8 @@ Content-Type: application/json
 
 {
     "process_id": "process-uuid",
-    "supplier_public_key": "STELLAR_PUBLIC_KEY",
-    "supplier_username": "supplier@company.com"
+    "partner_public_key": "STELLAR_PUBLIC_KEY",
+    "partner_username": "partner@company.com"
 }
 ```
 **Purpose**: Access shared process with blockchain verification and automatic decryption for authorized users.
@@ -261,22 +261,22 @@ curl -X POST http://localhost:3000/api/users/register \
     "roles": ["client"]
   }'
 
-# Register Supplier (NDA recipient)
+# Register Partner (NDA recipient)
 curl -X POST http://localhost:3000/api/users/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "supplier@company.com",
+    "username": "partner@company.com",
     "password": "password456",
-    "roles": ["supplier"]
+    "roles": ["partner"]
   }'
 
-# Register Hybrid User (both client and supplier)
+# Register Hybrid User (both client and partner)
 curl -X POST http://localhost:3000/api/users/register \
   -H "Content-Type: application/json" \
   -d '{
     "username": "hybrid@company.com",
     "password": "password789",
-    "roles": ["client", "supplier"]
+    "roles": ["client", "partner"]
   }'
 
 # Response: Stellar wallet automatically created for each user
@@ -320,7 +320,7 @@ curl -X POST http://localhost:3000/api/processes/share \
   -d '{
     "process_id": "PROCESS_UUID_FROM_STEP_4",
     "client_username": "client@company.com",
-    "supplier_public_key": "SUPPLIER_STELLAR_PUBLIC_KEY"
+    "partner_public_key": "PARTNER_STELLAR_PUBLIC_KEY"
   }'
 
 # Result: Transaction registered on Stellar Testnet with verifiable hash
@@ -328,13 +328,13 @@ curl -X POST http://localhost:3000/api/processes/share \
 
 #### **7. Access Decrypted Content**
 ```bash
-# ✅ AUTHORIZED Supplier - Success with decryption
+# ✅ AUTHORIZED Partner - Success with decryption
 curl -X POST http://localhost:3000/api/processes/access \
   -H "Content-Type: application/json" \
   -d '{
     "process_id": "PROCESS_UUID",
-    "supplier_public_key": "AUTHORIZED_STELLAR_KEY",
-    "supplier_username": "supplier@company.com"
+    "partner_public_key": "AUTHORIZED_STELLAR_KEY",
+    "partner_username": "partner@company.com"
   }'
 
 # Response 200: Decrypted content + notification generated for client
@@ -344,8 +344,8 @@ curl -X POST http://localhost:3000/api/processes/access \
   -H "Content-Type: application/json" \
   -d '{
     "process_id": "PROCESS_UUID",
-    "supplier_public_key": "UNAUTHORIZED_KEY",
-    "supplier_username": "hacker@company.com"
+    "partner_public_key": "UNAUTHORIZED_KEY",
+    "partner_username": "hacker@company.com"
   }'
 
 # Response 403: Forbidden - Access blocked by blockchain verification
@@ -436,7 +436,7 @@ CREATE TABLE users (
     username TEXT UNIQUE NOT NULL,          -- Unique email/username
     stellar_public_key TEXT NOT NULL,       -- Stellar public key for blockchain
     stellar_secret_key TEXT NOT NULL,       -- Stellar private key (encrypted)
-    roles TEXT NOT NULL,                    -- JSON array: ["client"], ["supplier"], or ["client","supplier"]
+    roles TEXT NOT NULL,                    -- JSON array: ["client"], ["partner"], or ["client","partner"]
     created_at TEXT NOT NULL                -- ISO 8601 timestamp
 );
 
@@ -456,7 +456,7 @@ CREATE TABLE processes (
 CREATE TABLE process_shares (
     id TEXT PRIMARY KEY,                    -- Unique sharing UUID
     process_id TEXT NOT NULL,               -- Reference to shared process
-    supplier_public_key TEXT NOT NULL,     -- Authorized supplier's Stellar key
+    partner_public_key TEXT NOT NULL,     -- Authorized partner's Stellar key
     stellar_transaction_hash TEXT NOT NULL, -- Blockchain transaction hash
     shared_at TEXT NOT NULL,                -- Sharing timestamp
     FOREIGN KEY (process_id) REFERENCES processes (id)
@@ -466,10 +466,10 @@ CREATE TABLE process_shares (
 CREATE TABLE process_accesses (
     id TEXT PRIMARY KEY,                    -- Unique access UUID
     process_id TEXT NOT NULL,               -- Reference to accessed process
-    supplier_id TEXT NOT NULL,              -- Reference to user who accessed
+    partner_id TEXT NOT NULL,              -- Reference to user who accessed
     accessed_at TEXT NOT NULL,              -- Precise access timestamp
     FOREIGN KEY (process_id) REFERENCES processes (id),
-    FOREIGN KEY (supplier_id) REFERENCES users (id)
+    FOREIGN KEY (partner_id) REFERENCES users (id)
 );
 ```
 

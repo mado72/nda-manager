@@ -51,7 +51,7 @@ export class MenuComponent implements OnInit, OnDestroy {
   
   // ✅ NOVO: Propriedades para o novo sistema de roles
   isClient = false;
-  isSupplier = false;
+  isPartner = false;
   hasMultipleRoles = false;
 
   ngOnInit() {
@@ -63,21 +63,21 @@ export class MenuComponent implements OnInit, OnDestroy {
     if (currentClient) {
       // Atualizar propriedades baseadas em roles
       this.isClient = currentClient.isClient();
-      this.isSupplier = currentClient.isSupplier();
-      this.hasMultipleRoles = this.isClient && this.isSupplier;
+      this.isPartner = currentClient.isPartner();
+      this.hasMultipleRoles = this.isClient && this.isPartner;
       
       // Atualizar permissões baseadas em roles
       this.canCreateContracts = this.isClient;
-      this.canShareContracts = this.isSupplier;
+      this.canShareContracts = this.isPartner;
       
       this.contractService.getPermissions().subscribe(permissions => {
         this.canCreateContracts = permissions.canCreate && this.isClient;
-        this.canShareContracts = permissions.canShare && this.isSupplier;
+        this.canShareContracts = permissions.canShare && this.isPartner;
       });
     } else {
       // Fallback se não houver usuário logado
       this.isClient = false;
-      this.isSupplier = false;
+      this.isPartner = false;
       this.hasMultipleRoles = false;
       this.canCreateContracts = false;
       this.canShareContracts = false;
@@ -85,7 +85,7 @@ export class MenuComponent implements OnInit, OnDestroy {
 
     console.log('👤 Client loaded:', currentClient);
     console.log('🔑 Is Client:', this.isClient);
-    console.log('🏭 Is Supplier:', this.isSupplier);
+    console.log('🏭 Is Partner:', this.isPartner);
     console.log('🔄 Has Multiple Roles:', this.hasMultipleRoles);
     console.log('🔨 Can create contracts:', this.canCreateContracts);
     console.log('🔗 Can share contracts:', this.canShareContracts);
@@ -99,7 +99,7 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   userTypeDisplay = computed(() => {
     const currentUser = this.currentClient();
-    return currentUser ? this.isClient ? 'Client' : 'Supplier' : 'Guest';
+    return currentUser ? this.isClient ? 'Client' : 'Partner' : 'Guest';
   });
 
   userTypeIcon = computed(() => {
@@ -117,7 +117,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       return 'business';
     }
     
-    if (this.isSupplier) {
+    if (this.isPartner) {
       return 'inventory';
     }
     
@@ -131,7 +131,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     }
     
     // Para usuários com múltiplas roles
-    if (this.isClient && this.isSupplier) {
+    if (this.isClient && this.isPartner) {
       return 'Gerenciar Roles';
     }
     
@@ -140,7 +140,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       return 'Adicionar Role: Fornecedor';
     }
     
-    if (this.isSupplier) {
+    if (this.isPartner) {
       return 'Adicionar Role: Cliente';
     }
     
@@ -155,7 +155,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     }
     
     // Para usuários com múltiplas roles
-    if (this.isClient && this.isSupplier) {
+    if (this.isClient && this.isPartner) {
       return 'badge-multiple';
     }
     
@@ -164,8 +164,8 @@ export class MenuComponent implements OnInit, OnDestroy {
       return 'badge-client';
     }
     
-    if (this.isSupplier) {
-      return 'badge-supplier';
+    if (this.isPartner) {
+      return 'badge-partner';
     }
     
     return 'badge-unknown';
@@ -200,7 +200,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     if (currentUser) {
       let newRoles: UserRole[];
       
-      if (this.isClient && this.isSupplier) {
+      if (this.isClient && this.isPartner) {
         // Se tem múltiplas roles, remover uma
         if (this.isClient) {
           newRoles = ['partner'];
@@ -210,7 +210,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       } else if (this.isClient) {
         // Se é só cliente, adicionar partner
         newRoles = ['client', 'partner'];
-      } else if (this.isSupplier) {
+      } else if (this.isPartner) {
         // Se é só partner, adicionar client
         newRoles = ['client', 'partner'];
       } else {
