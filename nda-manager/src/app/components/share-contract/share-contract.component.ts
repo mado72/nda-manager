@@ -57,10 +57,24 @@ export class ShareContractComponent implements OnInit {
   // ✅ NOVO: Função helper para truncar texto da combobox
   getTruncatedContractText(contract: Contract, maxLength: number = 45): string {
     const text = `${contract.title} (ID: ${contract.id})`;
-    if (text.length <= maxLength) {
+    // Use Intl.Segmenter to split into grapheme clusters
+    const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl
+      ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+      : null;
+
+    if (!segmenter) {
+      // Fallback to original logic if Segmenter is not available
+      if (text.length <= maxLength) {
+        return text;
+      }
+      return text.substring(0, maxLength - 3) + '...';
+    }
+
+    const graphemes = Array.from(segmenter.segment(text), seg => seg.segment);
+    if (graphemes.length <= maxLength) {
       return text;
     }
-    return text.substring(0, maxLength - 3) + '...';
+    return graphemes.slice(0, maxLength - 3).join('') + '...';
   }
 
   constructor(
