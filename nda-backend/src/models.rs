@@ -249,15 +249,16 @@ pub struct ProcessAccess {
 /// * `accessed_at` - Timestamp when access occurred
 /// * `process_title` - Denormalized process title for display
 /// * `process_description` - Denormalized process description for context
+/// * `process_status` - Current process status ('active', 'completed', etc.)
 /// * `supplier_username` - Denormalized supplier username for display
 /// 
 /// # Usage
 /// 
 /// This model is typically used for:
-/// - Client dashboard notifications with detailed process information
-/// - Compliance reporting interfaces with full context
-/// - Access analytics and monitoring with process descriptions
-/// - Real-time access alerts with meaningful process details
+/// - Client dashboard notifications with detailed process information and status
+/// - Compliance reporting interfaces with full context and current status
+/// - Access analytics and monitoring with process descriptions and status tracking
+/// - Real-time access alerts with meaningful process details and status updates
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct ProcessAccessWithDetails {
     pub id: String,
@@ -266,6 +267,7 @@ pub struct ProcessAccessWithDetails {
     pub accessed_at: DateTime<Utc>,
     pub process_title: String,
     pub process_description: String,
+    pub process_status: String,
     pub supplier_username: String,
 }
 

@@ -808,7 +808,7 @@ pub async fn list_processes(
 /// 
 /// This endpoint provides clients with a comprehensive audit trail showing
 /// when suppliers have accessed their shared processes. It returns denormalized
-/// data including process titles, descriptions, and supplier usernames for detailed reporting.
+/// data including process titles, descriptions, status, and supplier usernames for detailed reporting.
 /// 
 /// # Parameters
 /// 
@@ -818,7 +818,7 @@ pub async fn list_processes(
 /// # Returns
 /// 
 /// Returns `Result` containing:
-/// - `Ok(ResponseJson<Vec<ProcessAccessWithDetails>>)` - List of access events with process details
+/// - `Ok(ResponseJson<Vec<ProcessAccessWithDetails>>)` - List of access events with complete process details
 /// - `Err(StatusCode)` - HTTP error code indicating failure reason
 /// 
 /// # HTTP Responses
@@ -849,6 +849,7 @@ pub async fn list_processes(
 ///     "accessed_at": "2024-01-01T10:30:00Z",
 ///     "process_title": "Software Development NDA",
 ///     "process_description": "Comprehensive confidentiality agreement for software development partnership",
+///     "process_status": "active",
 ///     "supplier_username": "supplier_company"
 ///   },
 ///   {
@@ -858,6 +859,7 @@ pub async fn list_processes(
 ///     "accessed_at": "2024-01-01T09:15:00Z",
 ///     "process_title": "Marketing Partnership NDA",
 ///     "process_description": "Non-disclosure agreement for marketing collaboration and data sharing",
+///     "process_status": "completed",
 ///     "supplier_username": "another_supplier"
 ///   }
 /// ]
@@ -865,15 +867,15 @@ pub async fn list_processes(
 /// 
 /// # Use Cases
 /// 
-/// - **Enhanced Compliance Reporting**: Generate detailed audit reports with process context
-/// - **Contextual Usage Analytics**: Track access patterns with meaningful process descriptions
-/// - **Security Monitoring**: Monitor access with full process details for better threat detection
-/// - **Rich Client Dashboard**: Provide comprehensive notifications with process context
+/// - **Enhanced Compliance Reporting**: Generate detailed audit reports with process context and status tracking
+/// - **Status-Aware Analytics**: Track access patterns with process descriptions and current status information
+/// - **Security Monitoring**: Monitor access with full process details including status for better threat detection
+/// - **Rich Client Dashboard**: Provide comprehensive notifications with process context and status updates
 /// 
 /// # Data Privacy
 /// 
 /// - Only shows access to processes owned by the requesting client
-/// - Includes process descriptions and supplier usernames but not sensitive encrypted content
+/// - Includes process descriptions, status, and supplier usernames but not sensitive encrypted content
 /// - Ordered by access time (most recent first) for easy monitoring
 pub async fn get_notifications(
     State(state): State<Arc<AppState>>,

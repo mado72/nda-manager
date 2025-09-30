@@ -843,7 +843,7 @@ pub async fn create_user(
     /// 
     /// This function retrieves a comprehensive audit trail showing when
     /// suppliers have accessed the client's processes. It includes denormalized
-    /// data (process titles, descriptions, and supplier usernames) for easier reporting.
+    /// data (process titles, descriptions, status, and supplier usernames) for easier reporting.
     /// 
     /// # Parameters
     /// 
@@ -853,7 +853,7 @@ pub async fn create_user(
     /// # Returns
     /// 
     /// Returns `Result` containing:
-    /// - `Ok(Vec<ProcessAccessWithDetails>)` - List of access events with process details
+    /// - `Ok(Vec<ProcessAccessWithDetails>)` - List of access events with complete process details
     /// - `Err(sqlx::Error)` - Database error or datetime parsing failure
     /// 
     /// # Examples
@@ -861,9 +861,10 @@ pub async fn create_user(
     /// ```rust
     /// let accesses = queries::list_process_accesses_by_client(&pool, &client_id).await?;
     /// for access in accesses {
-    ///     println!("{} accessed '{}': {} at {}", 
+    ///     println!("{} accessed '{}' ({}): {} at {}", 
     ///         access.supplier_username, 
     ///         access.process_title,
+    ///         access.process_status,
     ///         access.process_description,
     ///         access.accessed_at
     ///     );
@@ -874,7 +875,7 @@ pub async fn create_user(
     /// 
     /// This function performs a JOIN across three tables:
     /// - `process_accesses`: Core access records
-    /// - `processes`: To get process titles, descriptions, and verify ownership
+    /// - `processes`: To get process titles, descriptions, status, and verify ownership
     /// - `users`: To get supplier usernames for readability
     /// 
     /// Results are ordered by access time (newest first) for chronological review.
@@ -891,6 +892,7 @@ pub async fn create_user(
                 pa.accessed_at,
                 p.title as process_title,
                 p.description as process_description,
+                p.status as process_status,
                 u.username as supplier_username
             FROM process_accesses pa
             JOIN processes p ON pa.process_id = p.id
@@ -919,6 +921,7 @@ pub async fn create_user(
                 accessed_at,
                 process_title: row.get("process_title"),
                 process_description: row.get("process_description"),
+                process_status: row.get("process_status"),
                 supplier_username: row.get("supplier_username"),
             });
         }
