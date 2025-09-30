@@ -259,16 +259,24 @@ pub struct ProcessAccess {
 /// - Compliance reporting interfaces with full context and current status
 /// - Access analytics and monitoring with process descriptions and status tracking
 /// - Real-time access alerts with meaningful process details and status updates
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+/// 
+/// # Optional Fields
+/// 
+/// Some fields may be `None` when using LEFT OUTER JOIN queries:
+/// - `id`, `supplier_id`, `accessed_at`: Optional when no access record exists
+/// - `supplier_username`: Optional when supplier user data is not available
+/// 
+/// The `process_*` fields are always present as they come from the main processes table.
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProcessAccessWithDetails {
-    pub id: String,
+    pub id: Option<String>,
     pub process_id: String,
-    pub supplier_id: String,
-    pub accessed_at: DateTime<Utc>,
+    pub supplier_id: Option<String>,
+    pub accessed_at: Option<DateTime<Utc>>,
     pub process_title: String,
     pub process_description: String,
     pub process_status: String,
-    pub supplier_username: String,
+    pub supplier_username: Option<String>,
 }
 
 /// User registration request payload.

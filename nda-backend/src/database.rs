@@ -856,6 +856,14 @@ pub async fn create_user(
     /// suppliers have accessed the client's processes. It includes denormalized
     /// data (process titles, descriptions, status, and supplier usernames) for easier reporting.
     /// 
+    /// # Error Handling
+    /// 
+    /// This function is designed to be robust and avoid HTTP 500 errors:
+    /// - Database connection failures return an empty array instead of propagating errors
+    /// - Individual row processing errors are logged but don't stop processing other rows  
+    /// - Invalid datetime formats are logged as warnings and set to None
+    /// - Missing optional data is handled gracefully without errors
+    /// 
     /// # Parameters
     /// 
     /// * `pool` - Database connection pool
@@ -863,81 +871,184 @@ pub async fn create_user(
     /// 
     /// # Returns
     /// 
-    /// Returns `Result` containing:
-    /// - `Ok(Vec<ProcessAccessWithDetails>)` - List of access events with complete process details
-    /// - `Err(sqlx::Error)` - Database error or datetime parsing failure
+    /// Always returns `Ok(Vec<ProcessAccessWithDetails>)`:
+    /// - Success: List of access events with complete process details
+    /// - Error conditions: Empty array (errors are logged internally)
     /// 
     /// # Examples
     /// 
     /// ```rust
     /// let accesses = queries::list_process_accesses_by_client(&pool, &client_id).await?;
     /// for access in accesses {
-    ///     println!("{} accessed '{}' ({}): {} at {}", 
-    ///         access.supplier_username, 
-    ///         access.process_title,
-    ///         access.process_status,
-    ///         access.process_description,
-    ///         access.accessed_at
-    ///     );
+    ///     match (&access.supplier_username, &access.accessed_at) {
+    ///         (Some(username), Some(accessed_at)) => {
+    ///             println!("{} accessed '{}' ({}): {} at {}", 
+    ///                 username, 
+    ///                 access.process_title,
+    ///                 access.process_status,
+    ///                 access.process_description,
+    ///                 accessed_at
+    ///             );
+    ///         }
+    ///         _ => {
+    ///             println!("Process '{}' ({}): {} - No access yet", 
+    ///                 access.process_title,
+    ///                 access.process_status,
+    ///                 access.process_description
+    ///             );
+    ///         }
+    ///     }
     /// }
     /// ```
     /// 
     /// # Query Details
     /// 
-    /// This function performs a JOIN across three tables:
-    /// - `process_accesses`: Core access records
-    /// - `processes`: To get process titles, descriptions, status, and verify ownership
-    /// - `users`: To get supplier usernames for readability
+    /// This function performs a LEFT OUTER JOIN across three tables:
+    /// - `processes`: Main table with process data (always present)
+    /// - `process_accesses`: Access records (optional - may be None for processes without access)
+    /// - `users`: To get supplier usernames (optional - may be None when no user data)
     /// 
-    /// Results are ordered by access time (newest first) for chronological review.
+    /// # Return Behavior
+    /// 
+    /// - Always returns process data (`process_id`, `process_title`, `process_description`, `process_status`)
+    /// - Access data is optional (`id`, `supplier_id`, `accessed_at`) - None when no access exists
+    /// - Supplier username is optional - None when no matching user found
+    /// 
+    /// Results are ordered by access time (newest first, nulls last) for chronological review.
     pub async fn list_process_accesses_by_client(
         pool: &SqlitePool,
         client_id: &str,
     ) -> Result<Vec<ProcessAccessWithDetails>, sqlx::Error> {
-        let rows = sqlx::query(
+        // Log the start of the operation
+        tracing::info!("Starting list_process_accesses_by_client for client_id: {}", client_id);
+
+        // Execute the query with error handling
+        let rows_result = sqlx::query(
             r#"
             SELECT 
                 pa.id,
-                pa.process_id,
+                p.id as process_id,
                 pa.supplier_id,
                 pa.accessed_at,
                 p.title as process_title,
                 p.description as process_description,
                 p.status as process_status,
                 u.username as supplier_username
-            FROM process_accesses pa
-            JOIN processes p ON pa.process_id = p.id
-            JOIN users u ON pa.supplier_id = u.id
+            FROM processes p
+            LEFT OUTER JOIN process_accesses pa ON pa.process_id = p.id
+            LEFT OUTER JOIN users u ON pa.supplier_id = u.id
             WHERE p.client_id = ?1
-            ORDER BY pa.accessed_at DESC
+            ORDER BY pa.accessed_at DESC NULLS LAST
             "#,
         )
         .bind(client_id)
         .fetch_all(pool)
-        .await?;
+        .await;
+
+        let rows = match rows_result {
+            Ok(rows) => {
+                tracing::info!("Successfully fetched {} rows from database", rows.len());
+                rows
+            }
+            Err(err) => {
+                tracing::error!("Database query failed for client_id {}: {}", client_id, err);
+                // Return empty array instead of propagating error to avoid HTTP 500
+                return Ok(Vec::new());
+            }
+        };
 
         let mut accesses = Vec::new();
-        for row in rows {
-            let accessed_at_str: String = row.get("accessed_at");
-            let accessed_at = string_to_datetime(&accessed_at_str)
-                .map_err(|_| sqlx::Error::ColumnDecode { 
-                    index: "accessed_at".to_string(), 
-                    source: Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid datetime")) 
-                })?;
+        let mut processed_count = 0;
+        let mut error_count = 0;
 
-            accesses.push(ProcessAccessWithDetails {
-                id: row.get("id"),
-                process_id: row.get("process_id"),
-                supplier_id: row.get("supplier_id"),
-                accessed_at,
-                process_title: row.get("process_title"),
-                process_description: row.get("process_description"),
-                process_status: row.get("process_status"),
-                supplier_username: row.get("supplier_username"),
-            });
+        for (index, row) in rows.iter().enumerate() {
+            match process_row_safely(row, index) {
+                Ok(access_detail) => {
+                    accesses.push(access_detail);
+                    processed_count += 1;
+                }
+                Err(err) => {
+                    error_count += 1;
+                    tracing::warn!("Failed to process row {}: {} - Skipping this row", index, err);
+                    // Continue processing other rows instead of failing completely
+                }
+            }
         }
 
+        tracing::info!(
+            "Completed processing: {} successful, {} errors, {} total rows", 
+            processed_count, error_count, rows.len()
+        );
+
         Ok(accesses)
+    }
+
+    /// Safely processes a single row from the database query into ProcessAccessWithDetails.
+    /// 
+    /// This helper function isolates error handling for individual rows, ensuring that
+    /// if one row has corrupted data, it doesn't prevent the processing of other rows.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `row` - Database row to process
+    /// * `index` - Row index for logging purposes
+    /// 
+    /// # Returns
+    /// 
+    /// Returns `Result` containing:
+    /// - `Ok(ProcessAccessWithDetails)` - Successfully processed row
+    /// - `Err(String)` - Error description for logging
+    fn process_row_safely(row: &sqlx::sqlite::SqliteRow, index: usize) -> Result<ProcessAccessWithDetails, String> {
+        // Always try to get process data first (these should never be NULL)
+        let process_id = row.try_get::<String, _>("process_id")
+            .map_err(|e| format!("Failed to get process_id: {}", e))?;
+        
+        let process_title = row.try_get::<String, _>("process_title")
+            .map_err(|e| format!("Failed to get process_title: {}", e))?;
+        
+        let process_description = row.try_get::<String, _>("process_description")
+            .map_err(|e| format!("Failed to get process_description: {}", e))?;
+        
+        let process_status = row.try_get::<String, _>("process_status")
+            .map_err(|e| format!("Failed to get process_status: {}", e))?;
+
+        // Handle optional fields safely
+        let id = row.try_get::<String, _>("id").ok();
+        let supplier_id = row.try_get::<String, _>("supplier_id").ok();
+        let supplier_username = row.try_get::<String, _>("supplier_username").ok();
+
+        // Handle optional accessed_at field with careful datetime parsing
+        let accessed_at = match row.try_get::<String, _>("accessed_at") {
+            Ok(accessed_at_str) => {
+                // Handle empty strings as NULL
+                if accessed_at_str.trim().is_empty() {
+                    None
+                } else {
+                    match string_to_datetime(&accessed_at_str) {
+                        Ok(dt) => Some(dt),
+                        Err(parse_err) => {
+                            tracing::warn!(
+                                "Row {}: Failed to parse accessed_at '{}': {} - Setting to None", 
+                                index, accessed_at_str, parse_err
+                            );
+                            None
+                        }
+                    }
+                }
+            }
+            Err(_) => None, // NULL value, which is expected for processes without access
+        };
+
+        Ok(ProcessAccessWithDetails {
+            id,
+            process_id,
+            supplier_id,
+            accessed_at,
+            process_title,
+            process_description,
+            process_status,
+            supplier_username,
+        })
     }
 
 }

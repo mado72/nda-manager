@@ -6,14 +6,14 @@ export interface ProcessAccess {
 }
 
 export interface ProcessAccessWithDetails {
-    id: string;
+    id: string | null;
     process_id: string;
-    supplier_id: string;
-    accessed_at: string;
+    supplier_id: string | null;
+    accessed_at: string | null;
     process_title: string;
     process_description: string;
     process_status: string;
-    supplier_username: string;
+    supplier_username: string | null;
 }
 
 export interface AccessProcessRequest {
