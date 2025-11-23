@@ -21,12 +21,14 @@
 //! 
 //! ### User Management
 //! - `POST /api/users/register` - Register new users with Stellar accounts
-//! - `POST /api/users/login` - User authentication
+//! - `POST /api/users/login` - User authentication (returns JWT tokens)
 //! - `POST /api/users/auto-login` - Automatic login using localStorage data
+//! - `POST /api/users/refresh` - Refresh access token using refresh token
+//! - `POST /api/users/logout` - Logout and blacklist tokens
 //! 
-//! ### Process Management
-//! - `POST /api/processes` - Create new encrypted NDA processes
-//! - `GET /api/processes` - List processes owned by a client
+//! ### Process Management (🔒 JWT Required)
+//! - `POST /api/processes` - Create new encrypted NDA processes (requires "client" role)
+//! - `GET /api/processes` - List processes owned by a client (requires authentication)
 //! 
 //! ### Sharing & Access
 //! - `POST /api/processes/share` - Share processes via blockchain transactions
@@ -35,6 +37,12 @@
 //! 
 //! ## Security Features
 //! 
+//! - **JWT Authentication**: Stateless authentication with access and refresh tokens
+//!   - Access tokens: 15 minutes lifetime
+//!   - Refresh tokens: 7 days lifetime
+//!   - Token blacklist for immediate revocation
+//!   - Role-based authorization (client, partner, admin)
+//! - **Password Security**: Bcrypt hashing with automatic salt generation
 //! - **End-to-End Encryption**: All sensitive content encrypted with AES-256-GCM
 //! - **Blockchain Verification**: Immutable sharing records on Stellar network
 //! - **Access Control**: Cryptographically verified sharing permissions
@@ -54,6 +62,8 @@
 //! 
 //! The application can be configured via environment variables:
 //! - `DATABASE_URL`: SQLite database path (default: `sqlite:./stellar_mvp.db`)
+//! - `JWT_SECRET`: Secret key for JWT signing (REQUIRED for production, min 32 chars)
+//! - `RUST_LOG`: Logging level (trace, debug, info, warn, error)
 //! - Server binds to `0.0.0.0:3000` by default
 
 use axum::{
@@ -124,7 +134,7 @@ use models::*;
     info(
         title = "NDA Backend API",
         version = "1.0.0",
-        description = "Blockchain-secured Non-Disclosure Agreement (NDA) contract management system with AES-256-GCM encryption and Stellar network integration.",
+        description = "Blockchain-secured Non-Disclosure Agreement (NDA) contract management system with JWT authentication, AES-256-GCM encryption, and Stellar network integration.\n\n## Authentication\n\nThis API uses JWT (JSON Web Tokens) for authentication:\n\n1. **Login**: POST `/api/users/login` to receive `access_token` and `refresh_token`\n2. **Access Token**: Valid for 15 minutes - use in `Authorization: Bearer <token>` header\n3. **Refresh Token**: Valid for 7 days - use to obtain new access tokens\n4. **Logout**: POST `/api/users/logout` to revoke tokens\n\n## Protected Endpoints\n\nEndpoints marked with 🔒 require JWT authentication:\n- POST `/api/processes` - Requires \"client\" role\n- GET `/api/processes` - Requires authentication\n- POST `/api/users/logout` - Requires authentication",
         contact(
             name = "API Support",
             email = "support@nda-backend.com"
@@ -133,9 +143,39 @@ use models::*;
             name = "MIT",
             url = "https://opensource.org/licenses/MIT"
         )
-    )
+    ),
+    modifiers(&SecurityAddon)
 )]
 struct ApiDoc;
+
+/// Security scheme for JWT Bearer authentication in Swagger UI
+struct SecurityAddon;
+
+impl utoipa::Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
+        
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "bearer_auth",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("JWT")
+                        .description(Some(
+                            "Enter your JWT access token.\n\n\
+                            To obtain a token:\n\
+                            1. Use POST /api/users/login with your credentials\n\
+                            2. Copy the 'access_token' from the response\n\
+                            3. Click 'Authorize' button and paste the token\n\n\
+                            Token format: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        ))
+                        .build()
+                )
+            )
+        }
+    }
+}
 
 /// Application entry point.
 /// 
