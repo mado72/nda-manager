@@ -73,6 +73,7 @@
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
+use utoipa::ToSchema;
 
 /// User account with Stellar blockchain integration.
 /// 
@@ -201,7 +202,7 @@ pub struct Process {
 /// - Cryptographically verifiable sharing permissions
 /// - Dispute resolution through blockchain evidence
 /// - Time-stamped sharing events for legal requirements
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct ProcessShare {
     pub id: String,
     pub process_id: String,
@@ -267,7 +268,7 @@ pub struct ProcessAccess {
 /// - `partner_username`: Optional when partner user data is not available
 /// 
 /// The `process_*` fields are always present as they come from the main processes table.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ProcessAccessWithDetails {
     pub id: Option<String>,
     pub process_id: String,
@@ -313,7 +314,7 @@ pub struct ProcessAccessWithDetails {
 ///   "roles": ["client", "partner"]
 /// }
 /// ```
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct RegisterRequest {
     pub username: String,
     pub name: String,
@@ -337,7 +338,7 @@ pub struct RegisterRequest {
 /// - Password field exists for future security enhancement
 /// - Production systems should implement proper password hashing
 /// - Consider adding JWT tokens for session management
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
@@ -359,7 +360,7 @@ pub struct LoginRequest {
 /// - This endpoint relies on client-side data persistence
 /// - Should be used only for convenience, not as primary authentication
 /// - Consider implementing session tokens for enhanced security
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AutoLoginRequest {
     pub user_name: String,
     pub user_id: String,
@@ -384,7 +385,7 @@ pub struct AutoLoginRequest {
 /// 2. A unique encryption key is generated
 /// 3. Process is associated with the client user
 /// 4. Encrypted data is stored in the database
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateProcessRequest {
     pub title: String,
     pub description: String,
@@ -410,7 +411,7 @@ pub struct CreateProcessRequest {
 /// 2. Creation of a Stellar blockchain transaction
 /// 3. Recording of the transaction hash for audit
 /// 4. Granting of access permissions to the partner
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ShareProcessRequest {
     pub process_id: String,
     pub partner_public_key: String,
@@ -436,7 +437,7 @@ pub struct ShareProcessRequest {
 /// 3. Validates partner credentials
 /// 4. Logs the access event for audit
 /// 5. Decrypts and returns the content
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AccessProcessRequest {
     pub process_id: String,
     pub partner_public_key: String,
@@ -468,7 +469,7 @@ pub struct AccessProcessRequest {
 /// - Excludes `stellar_secret_key` for security
 /// - Safe for JSON serialization in API responses
 /// - Automatically converted from [`User`] via `From` trait
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UserResponse {
     pub id: String,
     pub username: String,
@@ -625,7 +626,7 @@ impl From<User> for UserResponse {
 /// - Excludes `encrypted_content` and `encryption_key` for security
 /// - Safe for public API responses and process listings
 /// - Automatically converted from [`Process`] via `From` trait
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ProcessResponse {
     pub id: String,
     pub title: String,
@@ -698,7 +699,7 @@ impl From<Process> for ProcessResponse {
 /// 
 /// This model is used exclusively for successful process access operations
 /// where the partner has proven authorization to view the content.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ProcessAccessResponse {
     pub process_id: String,
     pub title: String,
@@ -721,7 +722,7 @@ pub struct ProcessAccessResponse {
 /// 
 /// This model is used by the `/health` endpoint to provide structured
 /// health information that can be consumed by monitoring systems.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct HealthResponse {
     pub status: String,
     pub timestamp: DateTime<Utc>,

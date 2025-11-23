@@ -63,6 +63,8 @@ use axum::{
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 mod models;
 mod handlers;
@@ -71,7 +73,62 @@ mod crypto;
 mod stellar_real;
 mod auth;
 
-use handlers::AppState;
+use handlers::{AppState, ListProcessesQuery};
+use models::*;
+
+/// OpenAPI documentation structure
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        handlers::health_check,
+        handlers::register_user,
+        handlers::login_user,
+        handlers::auto_login_user,
+        handlers::create_process,
+        handlers::share_process,
+        handlers::access_process,
+        handlers::list_processes,
+        handlers::get_notifications,
+    ),
+    components(
+        schemas(
+            RegisterRequest,
+            LoginRequest,
+            AutoLoginRequest,
+            CreateProcessRequest,
+            ShareProcessRequest,
+            AccessProcessRequest,
+            UserResponse,
+            ProcessResponse,
+            ProcessShare,
+            ProcessAccessResponse,
+            ProcessAccessWithDetails,
+            HealthResponse,
+            ListProcessesQuery,
+        )
+    ),
+    tags(
+        (name = "Health", description = "Health check endpoints"),
+        (name = "User Management", description = "User registration and authentication"),
+        (name = "Process Management", description = "NDA process creation and listing"),
+        (name = "Sharing & Access", description = "Blockchain-secured sharing and content access"),
+        (name = "Audit & Compliance", description = "Access notifications and audit trails")
+    ),
+    info(
+        title = "NDA Backend API",
+        version = "1.0.0",
+        description = "Blockchain-secured Non-Disclosure Agreement (NDA) contract management system with AES-256-GCM encryption and Stellar network integration.",
+        contact(
+            name = "API Support",
+            email = "support@nda-backend.com"
+        ),
+        license(
+            name = "MIT",
+            url = "https://opensource.org/licenses/MIT"
+        )
+    )
+)]
+struct ApiDoc;
 
 /// Application entry point.
 /// 
@@ -142,6 +199,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         // Audit and compliance endpoint - access notifications for process owners
         .route("/api/notifications", get(handlers::get_notifications))
+        
+        // Swagger UI for API documentation
+        .merge(SwaggerUi::new("/swagger-ui")
+            .url("/api-docs/openapi.json", ApiDoc::openapi()))
+        
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -149,7 +211,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     println!("🚀 Server running at http://localhost:3000");
     println!("📊 Health check available at http://localhost:3000/health");
-    println!("📋 API documentation: All endpoints support JSON request/response");
+    println!("📖 Swagger UI available at http://localhost:3000/swagger-ui");
+    println!("📄 OpenAPI spec at http://localhost:3000/api-docs/openapi.json");
     println!("🔐 Security: AES-256-GCM encryption + Stellar blockchain integration");
     
     axum::serve(listener, app).await?;

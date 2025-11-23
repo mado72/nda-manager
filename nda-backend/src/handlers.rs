@@ -113,6 +113,7 @@ use chrono::Utc;
 use serde::Deserialize;
 use uuid::Uuid;
 use sqlx;
+use utoipa::ToSchema;
 
 use crate::{
     models::*,
@@ -165,7 +166,7 @@ pub struct AppState {
 /// ```
 /// GET /api/processes?client_id=client-uuid
 /// ```
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ListProcessesQuery {
     pub client_id: Option<String>,
 }
@@ -191,6 +192,14 @@ pub struct ListProcessesQuery {
 /// → 200 OK
 /// → {"status": "OK", "timestamp": "2024-01-01T00:00:00Z"}
 /// ```
+#[utoipa::path(
+    get,
+    path = "/health",
+    responses(
+        (status = 200, description = "Service is healthy", body = HealthResponse)
+    ),
+    tag = "Health"
+)]
 pub async fn health_check() -> ResponseJson<HealthResponse> {
     ResponseJson(HealthResponse {
         status: "OK".to_string(),
@@ -266,6 +275,17 @@ pub async fn health_check() -> ResponseJson<HealthResponse> {
 /// - A unique Stellar keypair (public/secret key)
 /// - Automatic testnet funding for immediate use
 /// - Integration ready for blockchain transactions
+#[utoipa::path(
+    post,
+    path = "/api/users/register",
+    request_body = RegisterRequest,
+    responses(
+        (status = 200, description = "User registered successfully", body = UserResponse),
+        (status = 409, description = "Username already exists"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "User Management"
+)]
 pub async fn register_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RegisterRequest>,
@@ -358,6 +378,17 @@ pub async fn register_user(
 /// - Passwords are hashed using bcrypt with salt for secure storage
 /// - Failed login attempts return generic "unauthorized" for security
 /// - Consider adding JWT tokens for session management and rate limiting
+#[utoipa::path(
+    post,
+    path = "/api/users/login",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = UserResponse),
+        (status = 401, description = "Invalid credentials"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "User Management"
+)]
 pub async fn login_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
@@ -430,6 +461,17 @@ pub async fn login_user(
 /// - Does not require password verification (convenient but less secure)
 /// - Suitable for maintaining user sessions in trusted environments
 /// - Consider implementing additional security measures for production use
+#[utoipa::path(
+    post,
+    path = "/api/users/auto-login",
+    request_body = AutoLoginRequest,
+    responses(
+        (status = 200, description = "Auto login successful", body = UserResponse),
+        (status = 401, description = "User not found or username mismatch"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "User Management"
+)]
 pub async fn auto_login_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AutoLoginRequest>,
@@ -509,6 +551,18 @@ pub async fn auto_login_user(
 /// 2. Process record is created in database
 /// 3. Process can be shared with partners via blockchain transactions
 /// 4. Access events are logged for audit trails
+#[utoipa::path(
+    post,
+    path = "/api/processes",
+    request_body = CreateProcessRequest,
+    responses(
+        (status = 200, description = "Process created successfully", body = ProcessResponse),
+        (status = 403, description = "User doesn't have client role"),
+        (status = 422, description = "Client ID not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Process Management"
+)]
 pub async fn create_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateProcessRequest>,
@@ -600,6 +654,17 @@ pub async fn create_process(
 /// - Transaction hash can be independently verified
 /// - Sharing permissions are cryptographically provable
 /// - Audit trail meets regulatory requirements
+#[utoipa::path(
+    post,
+    path = "/api/processes/share",
+    request_body = ShareProcessRequest,
+    responses(
+        (status = 200, description = "Process shared successfully", body = ProcessShare),
+        (status = 404, description = "Process or client not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Sharing & Access"
+)]
 pub async fn share_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ShareProcessRequest>,
@@ -710,6 +775,18 @@ pub async fn share_process(
 /// - Access is logged for regulatory compliance
 /// - Failed access attempts are also logged
 /// - Sharing verification prevents unauthorized access
+#[utoipa::path(
+    post,
+    path = "/api/processes/access",
+    request_body = AccessProcessRequest,
+    responses(
+        (status = 200, description = "Access granted, content decrypted", body = ProcessAccessResponse),
+        (status = 403, description = "Process not shared with partner or insufficient role"),
+        (status = 404, description = "Process or partner not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Sharing & Access"
+)]
 pub async fn access_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AccessProcessRequest>,
@@ -853,6 +930,20 @@ pub async fn access_process(
 /// - Only returns processes owned by the specified client
 /// - Encrypted content is not included in the response
 /// - Process access requires separate authorization via sharing
+#[utoipa::path(
+    get,
+    path = "/api/processes",
+    params(
+        ("client_id" = String, Query, description = "Client ID to filter processes")
+    ),
+    responses(
+        (status = 200, description = "Processes retrieved successfully", body = [ProcessResponse]),
+        (status = 400, description = "Missing client_id parameter"),
+        (status = 404, description = "Client not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Process Management"
+)]
 pub async fn list_processes(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListProcessesQuery>,
@@ -946,6 +1037,20 @@ pub async fn list_processes(
 /// - Only shows access to processes owned by the requesting client
 /// - Includes process descriptions, status, and partner usernames but not sensitive encrypted content
 /// - Ordered by access time (most recent first) for easy monitoring
+#[utoipa::path(
+    get,
+    path = "/api/notifications",
+    params(
+        ("client_id" = String, Query, description = "Client ID to retrieve notifications for")
+    ),
+    responses(
+        (status = 200, description = "Notifications retrieved successfully", body = [ProcessAccessWithDetails]),
+        (status = 400, description = "Missing client_id parameter"),
+        (status = 404, description = "Client not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Audit & Compliance"
+)]
 pub async fn get_notifications(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListProcessesQuery>,
