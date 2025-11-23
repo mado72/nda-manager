@@ -64,10 +64,12 @@ export class LoginUserComponent implements OnInit {
     this.successMessage = '';
 
     this.userService.login({ username: this.user.email, password: this.user.password }, this.rememberMe).subscribe({
-      next: (user) => {
+      next: (response) => {
         this.isLoading = false;
-        if (user) {
+        if (response && response.user) {
+          // Tokens are automatically saved by the service
           this.successMessage = 'Login successful!';
+          console.log('Login successful:', response.user);
           setTimeout(() => {
             this.router.navigate(['/']);
           }, 1000);
@@ -75,9 +77,10 @@ export class LoginUserComponent implements OnInit {
           this.errorMessage = 'Invalid credentials.';
         }
       },
-      error: () => {
+      error: (error) => {
         this.isLoading = false;
-        this.errorMessage = 'An error occurred. Please try again.';
+        console.error('Login failed:', error);
+        this.errorMessage = error.error?.message || 'An error occurred. Please try again.';
       }
     });
   }
