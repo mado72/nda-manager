@@ -2,6 +2,14 @@
 
 Este documento contém diagramas Mermaid que ilustram os fluxos de informação e processos do sistema NDA Backend.
 
+---
+
+**Configuração de Tema**: Para melhor visualização, os diagramas utilizam fundo branco e cores otimizadas para impressão.
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#fff','primaryTextColor':'#000','primaryBorderColor':'#000','lineColor':'#000','secondaryColor':'#f5f5f5','tertiaryColor':'#fff', 'background':'#ffffff', 'mainBkg':'#ffffff', 'secondBkg':'#f5f5f5'}}}%%
+```
+
 ## Índice
 
 - [NDA Backend - Diagramas de Fluxo](#nda-backend---diagramas-de-fluxo)
