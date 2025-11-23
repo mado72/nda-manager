@@ -106,7 +106,7 @@
 use axum::{
     extract::{State, Json, Query},
     response::Json as ResponseJson,
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
 };
 use std::sync::Arc;
 use chrono::Utc;
@@ -796,18 +796,30 @@ pub async fn logout_user(
 )]
 pub async fn create_process(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreateProcessRequest>,
 ) -> Result<ResponseJson<ProcessResponse>, StatusCode> {
-    // Find client by ID and verify client role
+    // Validate JWT token and extract claims
+    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
+    let claims = jwt::validate_auth_header(auth_header, &state.jwt_secret, &state.token_blacklist)
+        .await
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    
+    // Verify token user ID matches payload client ID
+    if claims.sub != payload.client_id {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    
+    // Verify user has client role in JWT claims
+    if !claims.roles.contains(&"client".to_string()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    
+    // Find client by ID (already validated via JWT)
     let client = queries::find_user_by_id(&state.pool, &payload.client_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
-        
-    // Verify user has client role
-    if !client.is_client() {
-        return Err(StatusCode::FORBIDDEN);
-    }
 
     let encryption_key = generate_key();
     let encrypted_content = encrypt_content(&payload.confidential_content, &encryption_key)
@@ -1177,9 +1189,22 @@ pub async fn access_process(
 )]
 pub async fn list_processes(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Query(params): Query<ListProcessesQuery>,
 ) -> Result<ResponseJson<Vec<ProcessResponse>>, StatusCode> {
-    let client_id = params.client_id.ok_or(StatusCode::BAD_REQUEST)?;
+    // Validate JWT token and extract claims
+    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
+    let claims = jwt::validate_auth_header(auth_header, &state.jwt_secret, &state.token_blacklist)
+        .await
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    
+    // Use client_id from query params if provided, otherwise use token user ID
+    let client_id = params.client_id.unwrap_or(claims.sub.clone());
+    
+    // Verify user is requesting their own processes or has appropriate role
+    if client_id != claims.sub && !claims.roles.contains(&"admin".to_string()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
     
     // Find client by ID
     let client = queries::find_user_by_id(&state.pool, &client_id)
