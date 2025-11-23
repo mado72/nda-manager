@@ -74,22 +74,6 @@ use rand::Rng;
 #[derive(Debug)]
 pub struct CryptoError(String);
 
-impl CryptoError {
-    /// Creates a new CryptoError with the specified message.
-    /// 
-    /// # Parameters
-    /// 
-    /// * `message` - A descriptive error message
-    pub fn new(message: impl Into<String>) -> Self {
-        CryptoError(message.into())
-    }
-    
-    /// Returns the error message.
-    pub fn message(&self) -> &str {
-        &self.0
-    }
-}
-
 impl std::fmt::Display for CryptoError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "Cryptographic operation failed: {}", self.0)
