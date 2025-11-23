@@ -72,6 +72,7 @@ mod database;
 mod crypto;
 mod stellar_real;
 mod auth;
+mod jwt;
 
 use handlers::{AppState, ListProcessesQuery};
 use models::*;
@@ -84,6 +85,8 @@ use models::*;
         handlers::register_user,
         handlers::login_user,
         handlers::auto_login_user,
+        handlers::refresh_token,
+        handlers::logout_user,
         handlers::create_process,
         handlers::share_process,
         handlers::access_process,
@@ -95,16 +98,20 @@ use models::*;
             RegisterRequest,
             LoginRequest,
             AutoLoginRequest,
+            RefreshTokenRequest,
+            LogoutRequest,
             CreateProcessRequest,
             ShareProcessRequest,
             AccessProcessRequest,
             UserResponse,
+            LoginResponse,
             ProcessResponse,
             ProcessShare,
             ProcessAccessResponse,
             ProcessAccessWithDetails,
             HealthResponse,
             ListProcessesQuery,
+            jwt::Claims,
         )
     ),
     tags(
@@ -176,8 +183,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to database and run migrations
     let pool = database::init_database().await?;
 
+    // Get JWT secret from environment or use default (WARNING: use strong secret in production)
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| {
+            tracing::warn!("JWT_SECRET not set, using default (NOT SECURE FOR PRODUCTION)");
+            "default-jwt-secret-change-this-in-production-min-32-chars".to_string()
+        });
+
+    // Create token blacklist for logout/revocation
+    let token_blacklist = jwt::TokenBlacklist::new();
+
     // Create application state for dependency injection
-    let state = Arc::new(AppState { pool });
+    let state = Arc::new(AppState { 
+        pool,
+        jwt_secret,
+        token_blacklist,
+    });
 
     // Configure API routes with RESTful design
     let app = Router::new()
@@ -188,6 +209,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/users/register", post(handlers::register_user))
         .route("/api/users/login", post(handlers::login_user))
         .route("/api/users/auto-login", post(handlers::auto_login_user))
+        .route("/api/users/refresh", post(handlers::refresh_token))
+        .route("/api/users/logout", post(handlers::logout_user))
         
         // Process management endpoints - CRUD operations for NDA processes
         .route("/api/processes", post(handlers::create_process))  // Create encrypted process
@@ -213,7 +236,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📊 Health check available at http://localhost:3000/health");
     println!("📖 Swagger UI available at http://localhost:3000/swagger-ui");
     println!("📄 OpenAPI spec at http://localhost:3000/api-docs/openapi.json");
-    println!("🔐 Security: AES-256-GCM encryption + Stellar blockchain integration");
+    println!("🔐 Security: JWT authentication + AES-256-GCM encryption + Stellar blockchain");
     
     axum::serve(listener, app).await?;
 

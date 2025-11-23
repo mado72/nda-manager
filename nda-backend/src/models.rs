@@ -727,3 +727,104 @@ pub struct HealthResponse {
     pub status: String,
     pub timestamp: DateTime<Utc>,
 }
+
+/// Login response with JWT tokens.
+/// 
+/// Contains user information and JWT tokens for authentication.
+/// The access token should be stored in memory, while the refresh
+/// token should be stored securely (e.g., HttpOnly cookie).
+/// 
+/// # Fields
+/// 
+/// * `user` - User information (without sensitive data)
+/// * `access_token` - Short-lived JWT for API authentication (15 min)
+/// * `refresh_token` - Long-lived JWT for token renewal (7 days)
+/// * `token_type` - Token type (always "Bearer")
+/// * `expires_in` - Access token expiration time in seconds
+/// 
+/// # Security Best Practices
+/// 
+/// - Access token: Store in memory (JavaScript variable)
+/// - Refresh token: Store in secure HttpOnly cookie or secure storage
+/// - Never store tokens in localStorage (XSS vulnerability)
+/// - Always use HTTPS in production
+/// 
+/// # Usage
+/// 
+/// ```json
+/// {
+///   "user": {
+///     "id": "user-123",
+///     "username": "john@example.com",
+///     "roles": ["client"]
+///   },
+///   "access_token": "eyJhbGc...",
+///   "refresh_token": "eyJhbGc...",
+///   "token_type": "Bearer",
+///   "expires_in": 900
+/// }
+/// ```
+#[derive(Debug, Serialize, ToSchema)]
+pub struct LoginResponse {
+    pub user: UserResponse,
+    pub access_token: String,
+    pub refresh_token: String,
+    pub token_type: String,
+    pub expires_in: i64,
+}
+
+/// Refresh token request payload.
+/// 
+/// Contains the refresh token to be exchanged for new access and refresh tokens.
+/// 
+/// # Fields
+/// 
+/// * `refresh_token` - Valid refresh token from previous login/refresh
+/// 
+/// # Security Notes
+/// 
+/// - Refresh tokens are long-lived (7 days)
+/// - Old refresh token is revoked when new one is issued
+/// - Tokens are validated and checked against blacklist
+/// 
+/// # Usage
+/// 
+/// ```json
+/// {
+///   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+/// }
+/// ```
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct RefreshTokenRequest {
+    pub refresh_token: String,
+}
+
+/// Logout request payload.
+/// 
+/// Contains the tokens to be revoked during logout.
+/// Both access and refresh tokens should be provided.
+/// 
+/// # Fields
+/// 
+/// * `access_token` - Current access token to revoke
+/// * `refresh_token` - Current refresh token to revoke
+/// 
+/// # Security Notes
+/// 
+/// - Both tokens are added to the blacklist
+/// - Revoked tokens cannot be used for authentication
+/// - Frontend should clear all stored tokens after logout
+/// 
+/// # Usage
+/// 
+/// ```json
+/// {
+///   "access_token": "eyJhbGc...",
+///   "refresh_token": "eyJhbGc..."
+/// }
+/// ```
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct LogoutRequest {
+    pub access_token: Option<String>,
+    pub refresh_token: Option<String>,
+}
