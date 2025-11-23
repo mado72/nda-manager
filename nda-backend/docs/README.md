@@ -2,6 +2,20 @@
 
 Comprehensive documentation for the blockchain-secured NDA contract management backend system.
 
+## 📚 Documentation Structure
+
+```
+docs/
+├── README.md                  ← You are here (Documentation index)
+├── API_REFERENCE.md           ← Complete API endpoint documentation
+├── ARCHITECTURE.md            ← System design and technical architecture
+├── QUICKSTART.md              ← Getting started guide
+├── SWAGGER_GUIDE.md           ← Interactive API documentation (Swagger UI)
+├── SWAGGER_TESTS.md           ← Swagger verification and testing guide
+├── FLOW_DIAGRAMS.md           ← Visual flow diagrams (Mermaid)
+└── IMPLEMENTATION_SUMMARY.md  ← Complete implementation summary
+```
+
 ## Documentation Index
 
 ### 📘 [API Reference](API_REFERENCE.md)
@@ -62,6 +76,87 @@ Step-by-step guide to get the backend running quickly.
 - Security Best Practices
 
 **Best for**: New developers, quick setup, troubleshooting
+
+---
+
+### 📖 [Swagger/OpenAPI Guide](SWAGGER_GUIDE.md)
+Interactive API documentation with Swagger UI integration.
+
+**Contents**:
+- Accessing Swagger UI
+- Quick Start Guide
+- Testing Endpoints via Browser
+- API Organization
+- Authentication Flow Testing
+- Blockchain Integration Testing
+- OpenAPI Specification Export
+- Integration with Postman/Insomnia
+- Implementation Details
+- Troubleshooting
+- Production Considerations
+
+**Best for**: API testing, endpoint exploration, client SDK generation, integration testing
+
+**Quick Access**: http://localhost:3000/swagger-ui (when server is running)
+
+---
+
+### 🧪 [Swagger Tests](SWAGGER_TESTS.md)
+Comprehensive testing guide for Swagger/OpenAPI integration.
+
+**Contents**:
+- Quick verification tests
+- PowerShell test scripts
+- Health check testing
+- OpenAPI spec validation
+- Swagger UI interactive testing
+- User registration/login tests
+- Process creation tests
+- Complete integration workflow
+- Troubleshooting guide
+- Success criteria
+
+**Best for**: QA testing, API verification, integration testing, troubleshooting
+
+---
+
+### 📊 [Flow Diagrams](FLOW_DIAGRAMS.md)
+Visual representation of system flows using Mermaid diagrams.
+
+**Contents**:
+- Complete System Flow
+- User Registration/Login/Auto-Login flows
+- Process Creation Flow
+- Blockchain Sharing Flow
+- Partner Access Flow
+- Security Layers Architecture
+- Encryption Flow
+- Blockchain Trust Bond
+- Database Schema (ERD)
+- HTTP Request Flow
+
+**Format**: Mermaid diagrams with white background theme
+
+**Best for**: Visual learners, system design review, presentations
+
+---
+
+### 📋 [Implementation Summary](IMPLEMENTATION_SUMMARY.md)
+Complete summary of Swagger/OpenAPI integration implementation.
+
+**Contents**:
+- Project overview
+- What was accomplished (detailed)
+- Documentation created (6 files, 3,500+ lines)
+- Code changes and statistics
+- Technology stack
+- Architecture integration
+- Verification checklist
+- Next steps and recommendations
+- Learning resources
+- Support information
+
+**Best for**: Project review, stakeholder updates, technical summary
 
 ---
 
