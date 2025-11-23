@@ -348,6 +348,72 @@ pub fn extract_token_from_header(auth_header: &str) -> Option<&str> {
     }
 }
 
+/// Validate JWT token from Authorization header and check blacklist.
+/// 
+/// This function extracts and validates a JWT token from the Authorization header,
+/// checking both the token signature/expiration and whether it has been revoked.
+/// 
+/// # Arguments
+/// 
+/// * `auth_header` - Optional Authorization header value
+/// * `jwt_secret` - JWT secret key for validation
+/// * `blacklist` - Token blacklist to check for revoked tokens
+/// 
+/// # Returns
+/// 
+/// Returns `Result<Claims, &'static str>` containing:
+/// - `Ok(Claims)` - Valid, non-revoked token claims
+/// - `Err(&str)` - Error message describing validation failure
+/// 
+/// # Errors
+/// 
+/// Returns error if:
+/// - Authorization header is missing
+/// - Token format is invalid (not "Bearer <token>")
+/// - Token signature is invalid
+/// - Token is expired
+/// - Token has been revoked (in blacklist)
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use nda_backend::jwt::{validate_auth_header, TokenBlacklist};
+/// 
+/// #[tokio::main]
+/// async fn main() {
+///     let blacklist = TokenBlacklist::new();
+///     let header = Some("Bearer eyJhbGc...".to_string());
+///     
+///     match validate_auth_header(header.as_deref(), "secret", &blacklist).await {
+///         Ok(claims) => println!("User: {}", claims.sub),
+///         Err(e) => eprintln!("Auth error: {}", e),
+///     }
+/// }
+/// ```
+pub async fn validate_auth_header(
+    auth_header: Option<&str>,
+    jwt_secret: &str,
+    blacklist: &TokenBlacklist,
+) -> Result<Claims, &'static str> {
+    // Check if Authorization header exists
+    let auth_header = auth_header.ok_or("Missing Authorization header")?;
+    
+    // Extract token from "Bearer <token>" format
+    let token = extract_token_from_header(auth_header)
+        .ok_or("Invalid Authorization header format")?;
+    
+    // Validate token signature and expiration
+    let claims = validate_token(token, jwt_secret)
+        .map_err(|_| "Invalid or expired token")?;
+    
+    // Check if token has been revoked
+    if blacklist.is_revoked(&claims.jti).await {
+        return Err("Token has been revoked");
+    }
+    
+    Ok(claims)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
