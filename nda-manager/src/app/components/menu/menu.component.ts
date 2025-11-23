@@ -190,8 +190,17 @@ export class MenuComponent implements OnInit, OnDestroy {
 
   logout = () => {
     console.log('🚪 Logging out...');
-    this.userService.logout();
-    this.router.navigate(['/login']);
+    this.userService.logout().subscribe({
+      next: () => {
+        console.log('✅ Logout successful');
+        this.router.navigate(['/login']);
+      },
+      error: (error) => {
+        console.error('❌ Logout error:', error);
+        // Redirecionar mesmo com erro
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   // ✅ NOVO: Método para alternar roles do usuário (modo debug)
