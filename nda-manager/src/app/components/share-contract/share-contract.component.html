@@ -16,12 +16,12 @@
         Share Contract Access
       </h1>
       <p class="page-description">
-        Share confidential contract information with suppliers using their public keys
+        Share confidential contract information with partners using their public keys
       </p>
     </div>
   </div>
 
-  <!-- ✅ VERIFICAÇÃO DE PERMISSÕES -->
+  <!-- ✅ PERMISSION CHECK -->
   @if (!canShare() && currentUser()) {
     <div class="permission-denied">
       <div class="permission-icon">
@@ -31,7 +31,7 @@
       </div>
       <h2>Access Restricted</h2>
       <p>
-        Only <strong>clients</strong> can share contracts with suppliers.<br>
+        Only <strong>clients</strong> can share contracts with partners.<br>
         You are currently logged in as: <strong>{{ getUserRoleDescription() }}</strong>
       </p>
       <div class="user-info">
@@ -124,40 +124,40 @@
               class="form-select"
               [class.invalid]="isFieldInvalid('process_id')">
               <option value="">Choose a contract...</option>
-              @for (contract of contracts(); track contract.data) {
-                <option [value]="contract.data">
-                  {{ contract.title }} ({{ contract.data | slice:0:8 }}...)
+              @for (contract of contracts(); track contract.id) {
+                <option [value]="contract.id" [title]="contract.title + ' (ID: ' + contract.id + ')'">
+                  {{ getTruncatedContractText(contract) }}
                 </option>
               }
             </select>
             @if (isFieldInvalid('process_id')) {
               <p class="field-error">{{ getFieldError('process_id') }}</p>
             }
-            <p class="field-help">Select which contract you want to share with the supplier</p>
+            <p class="field-help">Select which contract you want to share with the partner</p>
           </div>
 
-          <!-- Supplier Public Key -->
+          <!-- Partner Public Key -->
           <div class="form-group">
-            <label for="supplier_public_key" class="form-label">
+            <label for="partner_public_key" class="form-label">
               <svg class="label-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/>
               </svg>
-              Supplier Public Key *
+              Partner Public Key *
             </label>
             <input
               type="text"
-              id="supplier_public_key"
-              formControlName="supplier_public_key"
+              id="partner_public_key"
+              formControlName="partner_public_key"
               class="form-input"
-              [class.invalid]="isFieldInvalid('supplier_public_key')"
+              [class.invalid]="isFieldInvalid('partner_public_key')"
               placeholder="GBSA7ZMGACXOXLS7RDT4OWBWAV6D2A5NIKSCUUUTSNCGDYQD2QEKVYQ4"
               (input)="onPublicKeyInput($event)"
               maxlength="56">
-            @if (isFieldInvalid('supplier_public_key')) {
-              <p class="field-error">{{ getFieldError('supplier_public_key') }}</p>
+            @if (isFieldInvalid('partner_public_key')) {
+              <p class="field-error">{{ getFieldError('partner_public_key') }}</p>
             }
             <p class="field-help">
-              Enter the supplier's Stellar public key (56 characters, starts with 'G')
+              Enter the partner's Stellar public key (56 characters, starts with 'G')
             </p>
           </div>
 
@@ -201,7 +201,7 @@
             <div class="info-icon">🔐</div>
             <div class="info-content">
               <h4>Secure Encryption</h4>
-              <p>Contract data is encrypted using the supplier's public key, ensuring only they can access it.</p>
+              <p>Contract data is encrypted using the partner's public key, ensuring only they can access it.</p>
             </div>
           </div>
           
@@ -209,7 +209,7 @@
             <div class="info-icon">🔑</div>
             <div class="info-content">
               <h4>Public Key Required</h4>
-              <p>You need the supplier's Stellar public key to share the contract securely.</p>
+              <p>You need the partner's Stellar public key to share the contract securely.</p>
             </div>
           </div>
           
@@ -217,7 +217,7 @@
             <div class="info-icon">👥</div>
             <div class="info-content">
               <h4>Access Control</h4>
-              <p>Only the supplier with the corresponding private key can decrypt and view the contract.</p>
+              <p>Only the partner with the corresponding private key can decrypt and view the contract.</p>
             </div>
           </div>
         </div>
@@ -225,3 +225,6 @@
     </div>
   }
 </div>
+<pre class="debug-info">
+  {{ contracts() | json }}
+</pre>

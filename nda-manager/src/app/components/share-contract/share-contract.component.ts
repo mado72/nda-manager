@@ -1,5 +1,5 @@
 // src/app/components/share-contract/share-contract.component.ts
-import { SlicePipe } from '@angular/common';
+import { JsonPipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,7 +11,7 @@ import { UserService } from '../../services/user.service';
 @Component({
   selector: 'app-share-contract',
   standalone: true,
-  imports: [SlicePipe, ReactiveFormsModule],
+  imports: [JsonPipe, ReactiveFormsModule],
   templateUrl: './share-contract.component.html',
   styleUrl: './share-contract.component.scss'
 })
@@ -47,11 +47,34 @@ export class ShareContractComponent implements OnInit {
       return 'user-client';
     }
     
-    if (UserUtils.isSupplier(user)) {
-      return 'user-supplier';
+    if (UserUtils.isPartner(user)) {
+      return 'user-partner';
     }
     
     return 'user-unknown';
+  }
+
+  // ✅ NOVO: Função helper para truncar texto da combobox
+  getTruncatedContractText(contract: Contract, maxLength: number = 45): string {
+    const text = `${contract.title} (ID: ${contract.id})`;
+    // Use Intl.Segmenter to split into grapheme clusters
+    const segmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl
+      ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+      : null;
+
+    if (!segmenter) {
+      // Fallback to original logic if Segmenter is not available
+      if (text.length <= maxLength) {
+        return text;
+      }
+      return text.substring(0, maxLength - 3) + '...';
+    }
+
+    const graphemes = Array.from(segmenter.segment(text), seg => seg.segment);
+    if (graphemes.length <= maxLength) {
+      return text;
+    }
+    return graphemes.slice(0, maxLength - 3).join('') + '...';
   }
 
   constructor(
@@ -60,7 +83,7 @@ export class ShareContractComponent implements OnInit {
   ) {
     this.shareForm = this.fb.group({
       process_id: ['', [Validators.required]],
-      supplier_public_key: ['', [
+      partner_public_key: ['', [
         Validators.required,
         Validators.minLength(56),
         Validators.maxLength(56),
@@ -95,7 +118,7 @@ export class ShareContractComponent implements OnInit {
         console.log('🔐 Can share contracts:', this.canShare());
 
         if (!this.canShare()) {
-          this.error.set('Only clients can share contracts. You are logged in as a supplier.');
+          this.error.set('Only clients can share contracts. You are logged in as a partner  .');
         }
 
         // Preencher username no formulário
@@ -158,7 +181,7 @@ export class ShareContractComponent implements OnInit {
 
       const shareData: ShareRequest = {
         process_id: this.shareForm.get('process_id')?.value,
-        supplier_public_key: this.shareForm.get('supplier_public_key')?.value,
+        partner_public_key: this.shareForm.get('partner_public_key')?.value,
         client_username: user.username
       };
 
@@ -167,7 +190,7 @@ export class ShareContractComponent implements OnInit {
       this.contractService.shareContract(shareData).subscribe({
         next: (response) => {
           console.log('✅ Share successful:', response);
-          this.success.set('Contract shared successfully with supplier!');
+          this.success.set('Contract shared successfully with partner!');
           this.sharing.set(false);
           this.shareForm.reset();
           this.shareForm.patchValue({ client_username: user.username });
@@ -225,6 +248,6 @@ export class ShareContractComponent implements OnInit {
   onPublicKeyInput(event: Event) {
     const input = event.target as HTMLInputElement;
     const value = input.value.toUpperCase();
-    this.shareForm.patchValue({ supplier_public_key: value });
+    this.shareForm.patchValue({ partner_public_key: value });
   }
 }

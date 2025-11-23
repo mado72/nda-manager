@@ -2,12 +2,12 @@
 
 ## Architecture Overview
 
-This is a **blockchain-secured NDA (Non-Disclosure Agreement) contract management system** with a **Rust backend** (`nda-backend`) and **Angular 20 frontend** (`nda-manager`). The system enables secure sharing of confidential contracts where clients create NDAs with sensitive information, generate unique contract keys, and allow suppliers to digitally "sign" confidentiality terms through blockchain verification.
+This is a **blockchain-secured NDA (Non-Disclosure Agreement) contract management system** with a **Rust backend** (`nda-backend`) and **Angular 20 frontend** (`nda-manager`). The system enables secure sharing of confidential contracts where clients create NDAs with sensitive information, generate unique contract keys, and allow partners to digitally "sign" confidentiality terms through blockchain verification.
 
 ### Core Business Flow
 ```
-Client Creates Contract → Generates Unique Key → Shares with Supplier → 
-Supplier "Signs" via Blockchain → Establishes Trust Bond → Content Access Granted
+Client Creates Contract → Generates Unique Key → Shares with Partner → 
+Partner "Signs" via Blockchain → Establishes Trust Bond → Content Access Granted
 ```
 
 ### Key Components
@@ -15,7 +15,7 @@ Supplier "Signs" via Blockchain → Establishes Trust Bond → Content Access Gr
 - **Frontend**: Angular 20 with standalone components, Angular Material UI
 - **Security**: End-to-end encryption + blockchain verification for contract signing
 - **Database**: SQLite with SQLx for type-safe queries and automatic migrations
-- **Contract Workflow**: Unique keys for document sharing and supplier signature verification
+- **Contract Workflow**: Unique keys for document sharing and partner signature verification
 
 ## Development Workflow
 
@@ -53,15 +53,15 @@ ng serve   # Starts on localhost:4200, proxies to backend
 ```
 Client Registration → Contract Creation with Confidential Data → 
 Unique Key Generation → Contract Sharing (Link/Direct) → 
-Supplier "Signs" Confidentiality Term → Blockchain Trust Bond → 
+Partner "Signs" Confidentiality Term → Blockchain Trust Bond → 
 Secure Access to Confidential Information → Complete Audit Trail
 ```
 
 ### API Structure
 - **REST Design**: `/api/users`, `/api/processes`, `/api/share`, `/api/access`
 - **Contract Management**: Create, list, and manage NDA contracts with confidential content
-- **Sharing Mechanism**: Generate unique contract links for supplier access
-- **Signature Verification**: Blockchain-based supplier "signing" of confidentiality terms
+- **Sharing Mechanism**: Generate unique contract links for partner access
+- **Signature Verification**: Blockchain-based partner "signing" of confidentiality terms
 - **JSON Payloads**: All requests/responses use JSON with type-safe models
 - **Error Handling**: Standard HTTP status codes with detailed error messages
 - **CORS Enabled**: Configured for development frontend access
@@ -71,25 +71,25 @@ Secure Access to Confidential Information → Complete Audit Trail
 ### Contract Security Workflow
 1. **Contract Creation**: Confidential content encrypted with unique AES-256-GCM key per contract
 2. **Unique Key Generation**: Each contract gets a unique identifier/key for secure sharing
-3. **Supplier Authentication**: Blockchain transaction serves as digital "signature" of confidentiality terms
+3. **Partner Authentication**: Blockchain transaction serves as digital "signature" of confidentiality terms
 4. **Trust Bond Establishment**: Immutable blockchain record creates legal proof of NDA acceptance
 5. **Controlled Access**: Content decryption only after verified blockchain signature
 6. **Audit Compliance**: Complete traceability for regulatory and legal requirements
 
 ### Stellar Blockchain Usage
-- **Account Generation**: Ed25519 keypairs auto-generated for all users (clients and suppliers)
+- **Account Generation**: Ed25519 keypairs auto-generated for all users (clients and partners)
 - **Digital Signatures**: Blockchain transactions act as cryptographic "signatures" of NDA terms
 - **Testnet Integration**: Auto-funded accounts for development and testing
 - **Immutable Records**: Transaction proof cannot be altered, providing legal certainty
-- **Trust Verification**: Suppliers must complete blockchain transaction to access confidential content
+- **Trust Verification**: Partners must complete blockchain transaction to access confidential content
 
 ## Database Schema Notes
 
 ### Core Tables
-- `users`: Stellar keypairs + role system (`["client"]`, `["supplier"]`, or both)
+- `users`: Stellar keypairs + role system (`["client"]`, `["partner"]`, or both)
 - `processes`: Encrypted NDA contracts + metadata + client ownership
-- `process_shares`: Blockchain transaction hashes proving supplier "signature" of confidentiality terms
-- `process_accesses`: Audit trail tracking when suppliers access confidential content
+- `process_shares`: Blockchain transaction hashes proving partner "signature" of confidentiality terms
+- `process_accesses`: Audit trail tracking when partners access confidential content
 - **Unique Keys**: Each process/contract has unique identifiers for secure sharing links
 
 ### Migration Pattern
@@ -113,8 +113,8 @@ Secure Access to Confidential Information → Complete Audit Trail
 
 ### Contract Management Features
 - **Create Contract**: `register-contract` component for NDA creation with confidential content
-- **Share Contract**: `share-contract` component generates unique links and handles supplier sharing
-- **Access Contract**: Supplier interface for "signing" confidentiality terms via blockchain
+- **Share Contract**: `share-contract` component generates unique links and handles partner sharing
+- **Access Contract**: Partner interface for "signing" confidentiality terms via blockchain
 - **List Contracts**: Master-detail view for contract management and status tracking
 
 ### Database Changes
@@ -151,9 +151,9 @@ Secure Access to Confidential Information → Complete Audit Trail
 
 The system is designed as a cohesive blockchain-secured NDA contract management platform. When working on features, consider the complete business flow:
 
-**Client Side**: User registration → Contract creation with confidential data → Unique key generation → Contract sharing (direct or via links) → Monitoring supplier signatures
+**Client Side**: User registration → Contract creation with confidential data → Unique key generation → Contract sharing (direct or via links) → Monitoring partner signatures
 
-**Supplier Side**: Receive contract invitation → Review NDA terms → "Sign" via blockchain transaction → Access confidential content → Ongoing compliance tracking
+**Partner Side**: Receive contract invitation → Review NDA terms → "Sign" via blockchain transaction → Access confidential content → Ongoing compliance tracking
 
 **System Integration**: Every interaction creates immutable audit trails, ensuring legal compliance and providing cryptographic proof of confidentiality agreements.
 

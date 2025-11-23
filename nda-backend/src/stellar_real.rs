@@ -72,7 +72,7 @@
 //! // Share a process via blockchain
 //! let tx_result = client.share_process_transaction(
 //!     &account.secret_key,
-//!     &supplier_public_key,
+//!     &partner_public_key,
 //!     &process_id,
 //!     "NDA_SHARE"
 //! ).await?;
@@ -80,7 +80,7 @@
 //! // Verify access permissions
 //! let has_access = client.verify_process_access(
 //!     &process_id,
-//!     &supplier_public_key
+//!     &partner_public_key
 //! ).await?;
 //! ```
 //! 
@@ -563,7 +563,7 @@ impl StellarClient {
     /// ```rust
     /// let tx_result = client.share_process_transaction(
     ///     &client_secret_key,
-    ///     &supplier_public_key,
+    ///     &partner_public_key,
     ///     &process_id,
     ///     "NDA_SHARE:confidential_project"
     /// ).await?;
@@ -640,7 +640,7 @@ impl StellarClient {
     /// ```rust
     /// let has_access = client.verify_process_access(
     ///     &process_id,
-    ///     &supplier_public_key
+    ///     &partner_public_key
     /// ).await?;
     /// 
     /// if has_access {

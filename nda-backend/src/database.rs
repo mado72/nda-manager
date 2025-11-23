@@ -14,7 +14,7 @@
 //! - `username`: Unique username for authentication
 //! - `stellar_public_key`: Stellar network public key
 //! - `stellar_secret_key`: Encrypted Stellar network secret key
-//! - `roles`: User roles as JSON array: `["client"]`, `["supplier"]`, or `["client","supplier"]`
+//! - `roles`: User roles as JSON array: `["client"]`, `["partner"]`, or `["client","partner"]`
 //! - `created_at`: Account creation timestamp
 //! 
 //! ### Processes Table
@@ -29,18 +29,18 @@
 //! - `created_at`: Process creation timestamp
 //! 
 //! ### Process Shares Table
-//! Tracks when processes are shared with suppliers via Stellar:
+//! Tracks when processes are shared with partners via Stellar:
 //! - `id`: Unique share record identifier (UUID)
 //! - `process_id`: Reference to the shared process
-//! - `supplier_public_key`: Stellar public key of the recipient
+//! - `partner_public_key`: Stellar public key of the recipient
 //! - `stellar_transaction_hash`: Blockchain transaction hash
 //! - `shared_at`: Share timestamp
 //! 
 //! ### Process Accesses Table
-//! Logs when suppliers access shared processes:
+//! Logs when partners access shared processes:
 //! - `id`: Unique access record identifier (UUID)
 //! - `process_id`: Reference to the accessed process
-//! - `supplier_id`: Reference to the accessing supplier
+//! - `partner_id`: Reference to the accessing partner
 //! - `accessed_at`: Access timestamp
 //! 
 //! ## Usage Example
@@ -252,7 +252,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         CREATE TABLE IF NOT EXISTS process_shares (
             id TEXT PRIMARY KEY,
             process_id TEXT NOT NULL,
-            supplier_public_key TEXT NOT NULL,
+            partner_public_key TEXT NOT NULL,
             stellar_transaction_hash TEXT NOT NULL,
             shared_at TEXT NOT NULL
         )
@@ -267,7 +267,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         CREATE TABLE IF NOT EXISTS process_accesses (
             id TEXT PRIMARY KEY,
             process_id TEXT NOT NULL,
-            supplier_id TEXT NOT NULL,
+            partner_id TEXT NOT NULL,
             accessed_at TEXT NOT NULL
         )
         "#,
@@ -336,7 +336,7 @@ pub mod queries {
     /// * `name` - Full name or display name of the user
     /// * `stellar_public_key` - User's Stellar network public key
     /// * `stellar_secret_key` - Encrypted Stellar network secret key
-    /// * `roles` - User roles as JSON string: `["client"]`, `["supplier"]`, or `["client","supplier"]`
+    /// * `roles` - User roles as JSON string: `["client"]`, `["partner"]`, or `["client","partner"]`
     ///
     /// # Returns
     ///
@@ -719,7 +719,7 @@ pub async fn create_user(
 
     /// Records a process sharing event on the Stellar blockchain.
     /// 
-    /// This function creates a record when a process is shared with a supplier
+    /// This function creates a record when a process is shared with a partner
     /// via the Stellar network. It stores the blockchain transaction hash for
     /// audit and verification purposes.
     /// 
@@ -727,7 +727,7 @@ pub async fn create_user(
     /// 
     /// * `pool` - Database connection pool
     /// * `process_id` - ID of the process being shared
-    /// * `supplier_public_key` - Stellar public key of the recipient supplier
+    /// * `partner_public_key` - Stellar public key of the recipient partner
     /// * `stellar_transaction_hash` - Hash of the blockchain transaction
     /// 
     /// # Returns
@@ -755,7 +755,7 @@ pub async fn create_user(
     pub async fn create_process_share(
         pool: &SqlitePool,
         process_id: &str,
-        supplier_public_key: &str,
+        partner_public_key: &str,
         stellar_transaction_hash: &str,
     ) -> Result<ProcessShare, sqlx::Error> {
         let id = Uuid::new_v4().to_string();
@@ -764,13 +764,13 @@ pub async fn create_user(
 
         sqlx::query(
             r#"
-            INSERT INTO process_shares (id, process_id, supplier_public_key, stellar_transaction_hash, shared_at)
+            INSERT INTO process_shares (id, process_id, partner_public_key, stellar_transaction_hash, shared_at)
             VALUES (?1, ?2, ?3, ?4, ?5)
             "#,
         )
         .bind(&id)
         .bind(process_id)
-        .bind(supplier_public_key)
+        .bind(partner_public_key)
         .bind(stellar_transaction_hash)
         .bind(&shared_at_str)
         .execute(pool)
@@ -779,23 +779,23 @@ pub async fn create_user(
         Ok(ProcessShare {
             id,
             process_id: process_id.to_string(),
-            supplier_public_key: supplier_public_key.to_string(),
+            partner_public_key: partner_public_key.to_string(),
             stellar_transaction_hash: stellar_transaction_hash.to_string(),
             shared_at,
         })
     }
 
-    /// Records when a supplier accesses a shared process.
+    /// Records when a partner accesses a shared process.
     /// 
     /// This function logs access events for audit trails and compliance
-    /// monitoring. It creates a timestamped record each time a supplier
+    /// monitoring. It creates a timestamped record each time a partner
     /// views or downloads process content.
     /// 
     /// # Parameters
     /// 
     /// * `pool` - Database connection pool
     /// * `process_id` - ID of the accessed process
-    /// * `supplier_id` - ID of the supplier accessing the process
+    /// * `partner_id` - ID of the partner accessing the process
     /// 
     /// # Returns
     /// 
@@ -809,7 +809,7 @@ pub async fn create_user(
     /// let access = queries::create_process_access(
     ///     &pool,
     ///     &process.id,
-    ///     &supplier.id
+    ///     &partner.id
     /// ).await?;
     /// ```
     /// 
@@ -823,7 +823,7 @@ pub async fn create_user(
     pub async fn create_process_access(
         pool: &SqlitePool,
         process_id: &str,
-        supplier_id: &str,
+        partner_id: &str,
     ) -> Result<ProcessAccess, sqlx::Error> {
         let id = Uuid::new_v4().to_string();
         let accessed_at = Utc::now();
@@ -831,13 +831,13 @@ pub async fn create_user(
 
         sqlx::query(
             r#"
-            INSERT INTO process_accesses (id, process_id, supplier_id, accessed_at)
+            INSERT INTO process_accesses (id, process_id, partner_id, accessed_at)
             VALUES (?1, ?2, ?3, ?4)
             "#,
         )
         .bind(&id)
         .bind(process_id)
-        .bind(supplier_id)
+        .bind(partner_id)
         .bind(&accessed_at_str)
         .execute(pool)
         .await?;
@@ -845,7 +845,7 @@ pub async fn create_user(
         Ok(ProcessAccess {
             id,
             process_id: process_id.to_string(),
-            supplier_id: supplier_id.to_string(),
+            partner_id: partner_id.to_string(),
             accessed_at,
         })
     }
@@ -853,8 +853,8 @@ pub async fn create_user(
     /// Lists all access events for processes owned by a client.
     /// 
     /// This function retrieves a comprehensive audit trail showing when
-    /// suppliers have accessed the client's processes. It includes denormalized
-    /// data (process titles, descriptions, status, and supplier usernames) for easier reporting.
+    /// partners have accessed the client's processes. It includes denormalized
+    /// data (process titles, descriptions, status, and partner usernames) for easier reporting.
     /// 
     /// # Error Handling
     /// 
@@ -880,7 +880,7 @@ pub async fn create_user(
     /// ```rust
     /// let accesses = queries::list_process_accesses_by_client(&pool, &client_id).await?;
     /// for access in accesses {
-    ///     match (&access.supplier_username, &access.accessed_at) {
+    ///     match (&access.partner_username, &access.accessed_at) {
     ///         (Some(username), Some(accessed_at)) => {
     ///             println!("{} accessed '{}' ({}): {} at {}", 
     ///                 username, 
@@ -906,13 +906,13 @@ pub async fn create_user(
     /// This function performs a LEFT OUTER JOIN across three tables:
     /// - `processes`: Main table with process data (always present)
     /// - `process_accesses`: Access records (optional - may be None for processes without access)
-    /// - `users`: To get supplier usernames (optional - may be None when no user data)
+    /// - `users`: To get partner usernames (optional - may be None when no user data)
     /// 
     /// # Return Behavior
     /// 
     /// - Always returns process data (`process_id`, `process_title`, `process_description`, `process_status`)
-    /// - Access data is optional (`id`, `supplier_id`, `accessed_at`) - None when no access exists
-    /// - Supplier username is optional - None when no matching user found
+    /// - Access data is optional (`id`, `partner_id`, `accessed_at`) - None when no access exists
+    /// - Partner username is optional - None when no matching user found
     /// 
     /// Results are ordered by access time (newest first, nulls last) for chronological review.
     pub async fn list_process_accesses_by_client(
@@ -928,15 +928,15 @@ pub async fn create_user(
             SELECT 
                 pa.id,
                 p.id as process_id,
-                pa.supplier_id,
+                pa.partner_id,
                 pa.accessed_at,
                 p.title as process_title,
                 p.description as process_description,
                 p.status as process_status,
-                u.username as supplier_username
+                u.username as partner_username
             FROM processes p
             LEFT OUTER JOIN process_accesses pa ON pa.process_id = p.id
-            LEFT OUTER JOIN users u ON pa.supplier_id = u.id
+            LEFT OUTER JOIN users u ON pa.partner_id = u.id
             WHERE p.client_id = ?1
             ORDER BY pa.accessed_at DESC NULLS LAST
             "#,
@@ -1014,8 +1014,8 @@ pub async fn create_user(
 
         // Handle optional fields safely
         let id = row.try_get::<String, _>("id").ok();
-        let supplier_id = row.try_get::<String, _>("supplier_id").ok();
-        let supplier_username = row.try_get::<String, _>("supplier_username").ok();
+        let partner_id = row.try_get::<String, _>("partner_id").ok();
+        let partner_username = row.try_get::<String, _>("partner_username").ok();
 
         // Handle optional accessed_at field with careful datetime parsing
         let accessed_at = match row.try_get::<String, _>("accessed_at") {
@@ -1042,12 +1042,12 @@ pub async fn create_user(
         Ok(ProcessAccessWithDetails {
             id,
             process_id,
-            supplier_id,
+            partner_id,
             accessed_at,
             process_title,
             process_description,
             process_status,
-            supplier_username,
+            partner_username,
         })
     }
 

@@ -53,7 +53,7 @@ Contract Information:
 - Title: ${contract.title}
 - Status: ${contract.status}
 - Client ID: ${contract.clientId}
-- Supplier ID: ${contract.supplierId}
+- Partner ID: ${contract.partnerId}
     `.trim();
 
     navigator.clipboard.writeText(info).then(() => {

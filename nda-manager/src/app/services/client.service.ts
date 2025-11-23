@@ -11,7 +11,7 @@ export interface Client {
   password: string;
   stellar_public_key?: string;
   isClient(): boolean;
-  isSupplier(): boolean;
+  isPartner(): boolean;
 }
 
 @Injectable({
@@ -31,7 +31,7 @@ export class ClientService {
         password: '', // Password is not stored for security reasons
         stellar_public_key: currentUser.stellar_public_key,
         isClient: () => currentUser.roles.includes('client' as UserRole),
-        isSupplier: () => currentUser.roles.includes('supplier' as UserRole)
+        isPartner: () => currentUser.roles.includes('partner' as UserRole)
       };
     }
     return null;

@@ -15,7 +15,7 @@ export class ContractService {
   error = signal<string | null>(null);
 
   // constructor(private http: HttpClient) {}
-  constructor() {}
+  constructor() { }
 
 
   createContract(contractData: Partial<Contract>): Observable<Contract | null> {
@@ -36,9 +36,10 @@ export class ContractService {
 
     const newContract: Contract = {
       clientId: client.id,
-      supplierId: contractData.supplierId || '',
+      partnerId: contractData.partnerId || '',
       status: contractData.status || 'pending',
-      data: { ...(contractData.data || {}),
+      data: {
+        ...(contractData.data || {}),
         created_at: new Date().toISOString()
       },
       title: contractData.title,
@@ -90,20 +91,18 @@ export class ContractService {
       this.loading.set(false);
       return of([]);
     }
-    
+
     return this.processService.getNotifications(client.id).pipe(
       map((processes) => {
-        const contracts = processes.map(p => {
-          return {
-            id: p.process_id,
-            title: p.process_title,
-            description: p.process_description,
-            data: { info: 'Omitted', created_at: p.accessed_at || '' },
-            status: p.process_status,
-            clientId: client.id,
-            supplierId: p.supplier_id,
-          } as Contract;
-        });
+        const contracts = processes.map(p => ({
+          id: p.process_id,
+          title: p.process_title,
+          description: p.process_description,
+          data: { info: 'Omitted', created_at: p.accessed_at || '' },
+          status: p.process_status,
+          clientId: client.id,
+          partnerId: p.partner_id,
+        } as Contract));
         this.contracts.set(contracts);
         return contracts;
       }),
@@ -117,7 +116,7 @@ export class ContractService {
       })
     );
   }
-  
+
   shareContract(shareData: ShareRequest): Observable<ShareResponse> {
     console.log('🔗 Sharing contract:', shareData);
 
@@ -131,7 +130,7 @@ export class ContractService {
 
     // Descomente o código abaixo para fazer a chamada real à API
     //
-    
+
     // return this.http.post<ShareResponse>(`${environment.apiUrl}/processes/share`, shareData).pipe(
     //   tap(response => {
     //     console.log('✅ Contract shared successfully:', response);
