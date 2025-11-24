@@ -631,7 +631,7 @@ pub async fn refresh_token(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
     // Revoke old refresh token
-    state.token_blacklist.revoke(&claims.jti).await;
+    state.token_blacklist.revoke(&claims.jti, claims.exp).await;
     
     Ok(ResponseJson(LoginResponse {
         user: user.into(),
@@ -705,14 +705,14 @@ pub async fn logout_user(
     // Validate and revoke access token if provided
     if let Some(access_token) = &payload.access_token {
         if let Ok(claims) = jwt::validate_token(access_token, &state.jwt_secret) {
-            state.token_blacklist.revoke(&claims.jti).await;
+            state.token_blacklist.revoke(&claims.jti, claims.exp).await;
         }
     }
     
     // Validate and revoke refresh token if provided
     if let Some(refresh_token) = &payload.refresh_token {
         if let Ok(claims) = jwt::validate_token(refresh_token, &state.jwt_secret) {
-            state.token_blacklist.revoke(&claims.jti).await;
+            state.token_blacklist.revoke(&claims.jti, claims.exp).await;
         }
     }
     

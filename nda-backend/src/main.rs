@@ -232,6 +232,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create token blacklist for logout/revocation
     let token_blacklist = jwt::TokenBlacklist::new();
+    
+    // Start background task to cleanup expired tokens every hour
+    let _cleanup_handle = token_blacklist.start_cleanup_task(60);
+    tracing::info!("Started token blacklist cleanup task (runs every 60 minutes)");
 
     // Create application state for dependency injection
     let state = Arc::new(AppState { 

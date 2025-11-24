@@ -34,7 +34,7 @@
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use utoipa::ToSchema;
@@ -106,44 +106,49 @@ impl Claims {
 
 /// Token blacklist for managing revoked tokens.
 /// 
-/// This structure maintains an in-memory set of revoked JWT IDs.
+/// This structure maintains an in-memory map of revoked JWT IDs with their expiration timestamps.
 /// Tokens are checked against this blacklist during validation.
+/// Expired tokens are automatically cleaned up periodically.
 /// 
 /// ## Thread Safety
 /// 
-/// Uses `Arc<RwLock<HashSet>>` for thread-safe concurrent access.
+/// Uses `Arc<RwLock<HashMap>>` for thread-safe concurrent access.
 #[derive(Clone)]
 pub struct TokenBlacklist {
-    revoked: Arc<RwLock<HashSet<String>>>,
+    /// Maps JWT ID to expiration timestamp (Unix timestamp)
+    revoked: Arc<RwLock<HashMap<String, i64>>>,
 }
 
 impl TokenBlacklist {
     /// Create a new empty token blacklist.
     pub fn new() -> Self {
         Self {
-            revoked: Arc::new(RwLock::new(HashSet::new())),
+            revoked: Arc::new(RwLock::new(HashMap::new())),
         }
     }
     
-    /// Add a token to the blacklist.
+    /// Add a token to the blacklist with its expiration timestamp.
     /// 
     /// # Arguments
     /// 
     /// * `jti` - JWT ID to revoke
+    /// * `exp` - Expiration timestamp (Unix timestamp)
     /// 
     /// # Examples
     /// 
     /// ```rust
     /// use nda_backend::jwt::TokenBlacklist;
+    /// use chrono::Utc;
     /// 
     /// #[tokio::main]
     /// async fn main() {
     ///     let blacklist = TokenBlacklist::new();
-    ///     blacklist.revoke("token-id-123").await;
+    ///     let exp = Utc::now().timestamp() + 900; // 15 minutes
+    ///     blacklist.revoke("token-id-123", exp).await;
     /// }
     /// ```
-    pub async fn revoke(&self, jti: &str) {
-        self.revoked.write().await.insert(jti.to_string());
+    pub async fn revoke(&self, jti: &str, exp: i64) {
+        self.revoked.write().await.insert(jti.to_string(), exp);
     }
     
     /// Check if a token is revoked.
@@ -156,7 +161,7 @@ impl TokenBlacklist {
     /// 
     /// Returns `true` if the token is revoked, `false` otherwise.
     pub async fn is_revoked(&self, jti: &str) -> bool {
-        self.revoked.read().await.contains(jti)
+        self.revoked.read().await.contains_key(jti)
     }
     
     /// Get the total number of revoked tokens.
@@ -171,6 +176,77 @@ impl TokenBlacklist {
     /// Should be used carefully, typically only for maintenance or testing.
     pub async fn clear(&self) {
         self.revoked.write().await.clear();
+    }
+    
+    /// Remove expired tokens from the blacklist.
+    /// 
+    /// This method should be called periodically to prevent memory bloat.
+    /// It removes all tokens whose expiration timestamp is in the past.
+    /// 
+    /// # Returns
+    /// 
+    /// Returns the number of expired tokens removed.
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use nda_backend::jwt::TokenBlacklist;
+    /// 
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let blacklist = TokenBlacklist::new();
+    ///     let removed = blacklist.cleanup_expired().await;
+    ///     println!("Removed {} expired tokens", removed);
+    /// }
+    /// ```
+    pub async fn cleanup_expired(&self) -> usize {
+        let now = Utc::now().timestamp();
+        let mut revoked = self.revoked.write().await;
+        let initial_count = revoked.len();
+        
+        // Remove all tokens with expiration timestamp in the past
+        revoked.retain(|_, &mut exp| exp > now);
+        
+        let removed = initial_count - revoked.len();
+        if removed > 0 {
+            tracing::info!("Cleaned up {} expired tokens from blacklist", removed);
+        }
+        removed
+    }
+    
+    /// Start a background task that periodically cleans up expired tokens.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `interval_minutes` - How often to run cleanup (in minutes)
+    /// 
+    /// # Returns
+    /// 
+    /// Returns a tokio task handle that can be used to cancel the cleanup task.
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use nda_backend::jwt::TokenBlacklist;
+    /// 
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let blacklist = TokenBlacklist::new();
+    ///     let handle = blacklist.start_cleanup_task(60); // Run every hour
+    ///     
+    ///     // Cleanup will run automatically in the background
+    ///     // Cancel with: handle.abort();
+    /// }
+    /// ```
+    pub fn start_cleanup_task(&self, interval_minutes: u64) -> tokio::task::JoinHandle<()> {
+        let blacklist = self.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(interval_minutes * 60));
+            loop {
+                interval.tick().await;
+                blacklist.cleanup_expired().await;
+            }
+        })
     }
 }
 
@@ -488,15 +564,72 @@ mod tests {
     async fn test_token_blacklist() {
         let blacklist = TokenBlacklist::new();
         let jti = "test-token-id";
+        let exp = Utc::now().timestamp() + 900; // 15 minutes
 
         assert!(!blacklist.is_revoked(jti).await);
         
-        blacklist.revoke(jti).await;
+        blacklist.revoke(jti, exp).await;
         assert!(blacklist.is_revoked(jti).await);
         
         assert_eq!(blacklist.count().await, 1);
         
         blacklist.clear().await;
+        assert_eq!(blacklist.count().await, 0);
+    }
+    
+    #[tokio::test]
+    async fn test_cleanup_expired_tokens() {
+        let blacklist = TokenBlacklist::new();
+        
+        // Add expired token (1 second in the past)
+        let expired_jti = "expired-token";
+        let expired_exp = Utc::now().timestamp() - 1;
+        blacklist.revoke(expired_jti, expired_exp).await;
+        
+        // Add valid token (15 minutes in the future)
+        let valid_jti = "valid-token";
+        let valid_exp = Utc::now().timestamp() + 900;
+        blacklist.revoke(valid_jti, valid_exp).await;
+        
+        // Both tokens should be in blacklist
+        assert_eq!(blacklist.count().await, 2);
+        assert!(blacklist.is_revoked(expired_jti).await);
+        assert!(blacklist.is_revoked(valid_jti).await);
+        
+        // Cleanup should remove only the expired token
+        let removed = blacklist.cleanup_expired().await;
+        assert_eq!(removed, 1);
+        assert_eq!(blacklist.count().await, 1);
+        
+        // Expired token should be gone, valid token should remain
+        assert!(!blacklist.is_revoked(expired_jti).await);
+        assert!(blacklist.is_revoked(valid_jti).await);
+    }
+    
+    #[tokio::test]
+    async fn test_cleanup_task() {
+        let blacklist = TokenBlacklist::new();
+        
+        // Add expired token
+        let expired_jti = "expired-token";
+        let expired_exp = Utc::now().timestamp() - 1;
+        blacklist.revoke(expired_jti, expired_exp).await;
+        
+        assert_eq!(blacklist.count().await, 1);
+        
+        // Start cleanup task with very short interval (1 second for testing)
+        let handle = tokio::spawn({
+            let blacklist = blacklist.clone();
+            async move {
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                blacklist.cleanup_expired().await;
+            }
+        });
+        
+        // Wait for cleanup to run
+        handle.await.unwrap();
+        
+        // Expired token should be removed
         assert_eq!(blacklist.count().await, 0);
     }
 }
