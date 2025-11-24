@@ -693,6 +693,9 @@ pub async fn refresh_token(
         (status = 400, description = "No tokens provided"),
         (status = 500, description = "Internal server error")
     ),
+    security(
+        ("bearer_auth" = [])
+    ),
     tag = "User Management"
 )]
 pub async fn logout_user(
@@ -788,9 +791,13 @@ pub async fn logout_user(
     request_body = CreateProcessRequest,
     responses(
         (status = 200, description = "Process created successfully", body = ProcessResponse),
+        (status = 401, description = "Unauthorized - Invalid or missing token"),
         (status = 403, description = "User doesn't have client role"),
         (status = 422, description = "Client ID not found"),
         (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
     ),
     tag = "Process Management"
 )]
@@ -1181,9 +1188,14 @@ pub async fn access_process(
     ),
     responses(
         (status = 200, description = "Processes retrieved successfully", body = [ProcessResponse]),
+        (status = 401, description = "Unauthorized - Invalid or missing token"),
         (status = 400, description = "Missing client_id parameter"),
+        (status = 403, description = "Forbidden - Cannot access other user's processes"),
         (status = 404, description = "Client not found"),
         (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
     ),
     tag = "Process Management"
 )]
