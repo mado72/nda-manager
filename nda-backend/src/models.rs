@@ -229,6 +229,7 @@ pub struct ProcessShare {
 /// - Timestamps provide chronological access history
 /// - Failed access attempts are also recorded
 /// - Access patterns can be analyzed for security monitoring
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct ProcessAccess {
     pub id: String,
@@ -549,6 +550,7 @@ impl User {
     /// # Returns
     /// 
     /// Returns `true` if the user can act as a client.
+    #[allow(dead_code)]
     pub fn is_client(&self) -> bool {
         self.has_role("client")
     }

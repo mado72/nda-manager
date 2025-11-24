@@ -820,6 +820,7 @@ pub async fn create_user(
     /// - Monitoring unauthorized access attempts  
     /// - Usage analytics for process owners
     /// - Legal evidence in case of disputes
+    #[allow(dead_code)]
     pub async fn create_process_access(
         pool: &SqlitePool,
         process_id: &str,

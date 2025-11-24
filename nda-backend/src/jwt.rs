@@ -167,6 +167,7 @@ impl TokenBlacklist {
     /// Get the total number of revoked tokens.
     /// 
     /// Useful for monitoring and debugging.
+    #[allow(dead_code)]
     pub async fn count(&self) -> usize {
         self.revoked.read().await.len()
     }
@@ -174,8 +175,9 @@ impl TokenBlacklist {
     /// Clear all revoked tokens.
     /// 
     /// Should be used carefully, typically only for maintenance or testing.
+    #[allow(dead_code)]
     pub async fn clear(&self) {
-        self.revoked.write().await.clear();
+        self.revoked.write().await.clear()
     }
     
     /// Remove expired tokens from the blacklist.
