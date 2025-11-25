@@ -38,12 +38,10 @@ export class ContractService {
       clientId: client.id,
       partnerId: contractData.partnerId || '',
       status: contractData.status || 'pending',
-      data: {
-        ...(contractData.data || {}),
-        created_at: new Date().toISOString()
-      },
+      data: contractData.data || { type: 'contents', content: '' },
       title: contractData.title,
       description: contractData.description,
+      created_at: new Date().toISOString(),
     };
 
     return this.processService.createProcess({
@@ -98,10 +96,11 @@ export class ContractService {
           id: p.process_id,
           title: p.process_title,
           description: p.process_description,
-          data: { info: 'Omitted', created_at: p.accessed_at || '' },
+          data: { type: 'contents', content: 'Omitted' },
           status: p.process_status,
           clientId: client.id,
           partnerId: p.partner_id,
+          created_at: new Date().toISOString(),
         } as Contract));
         this.contracts.set(contracts);
         return contracts;
