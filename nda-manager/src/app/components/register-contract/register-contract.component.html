@@ -1,85 +1,637 @@
-<div class="register-container">
+<div class="wizard-container">
   <!-- Header -->
-  <div class="register-header">
-    <h2 class="register-title">
+  <div class="wizard-header">
+    <h2 class="wizard-title">
       <svg class="title-icon" fill="currentColor" viewBox="0 0 20 20">
         <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
         <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6.5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 014 11.5V5z" clip-rule="evenodd"/>
       </svg>
       {{ contractId() ? 'Edit Contract' : 'New Contract' }}
     </h2>
-    <p class="register-subtitle">
-      {{ contractId() ? 'Update the contract information' : 'Fill in the contract details below' }}
-    </p>
+    
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+      <div class="step-item" [class.active]="currentStep() >= 1" [class.completed]="currentStep() > 1">
+        <div class="step-number">1</div>
+        <div class="step-label">Basic Information</div>
+      </div>
+      <div class="step-connector" [class.completed]="currentStep() > 1"></div>
+      <div class="step-item" [class.active]="currentStep() >= 2" [class.completed]="currentStep() > 2">
+        <div class="step-number">2</div>
+        <div class="step-label">Contract Type</div>
+      </div>
+      <div class="step-connector" [class.completed]="currentStep() > 2"></div>
+      <div class="step-item" [class.active]="currentStep() >= 3">
+        <div class="step-number">3</div>
+        <div class="step-label">Contract Details</div>
+      </div>
+    </div>
   </div>
 
   <!-- Form -->
-  <form (ngSubmit)="onSubmit()" class="register-form">
+  <form (ngSubmit)="onSubmit()" class="wizard-form">
     <!-- Error/Success Messages -->
     @if (message()) {
       <app-message-container [message]="message()" />
     }
 
-    <!-- Title Field -->
-    <div class="form-group">
-      <label for="title" class="form-label">Contract Title *</label>
-      <input
-        type="text"
-        id="title"
-        name="title"
-        class="form-input"
-        placeholder="Enter contract title"
-        [ngModel]="title()"
-        (ngModelChange)="title.set($event)"
-        [disabled]="loading()"
-        required>
-    </div>
+    <!-- Step 1: Basic Information -->
+    @if (currentStep() === 1) {
+      <div class="step-content">
+        <h3 class="step-title">Basic Contract Information</h3>
+        <p class="step-description">Enter the basic details for your contract</p>
+        
+        <div class="form-group">
+          <label for="title" class="form-label">Contract Title *</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            class="form-input"
+            placeholder="Enter contract title"
+            [ngModel]="title()"
+            (ngModelChange)="title.set($event)"
+            [disabled]="loading()"
+            required>
+        </div>
 
-    <!-- Description Field -->
-    <div class="form-group">
-      <label for="description" class="form-label">Description *</label>
-      <textarea
-        id="description"
-        name="description"
-        class="form-textarea"
-        placeholder="Enter contract description"
-        [ngModel]="description()"
-        (ngModelChange)="description.set($event)"
-        [disabled]="loading()"
-        required></textarea>
-    </div>
+        <div class="form-group">
+          <label for="description" class="form-label">Description *</label>
+          <textarea
+            id="description"
+            name="description"
+            class="form-textarea"
+            placeholder="Enter contract description"
+            [ngModel]="description()"
+            (ngModelChange)="description.set($event)"
+            [disabled]="loading()"
+            required></textarea>
+        </div>
+      </div>
+    }
 
-    <!-- URI Field -->
-    <div class="form-group">
-      <label for="uri" class="form-label">Contract URI *</label>
-      <input
-        type="text"
-        id="uri"
-        name="uri"
-        class="form-input"
-        placeholder="Enter contract uri"
-        [ngModel]="uri()"
-        (ngModelChange)="uri.set($event)"
-        [disabled]="loading()"
-        required>
-    </div>
+    <!-- Step 2: Contract Type Selection -->
+    @if (currentStep() === 2) {
+      <div class="step-content">
+        <h3 class="step-title">Choose Contract Type</h3>
+        <p class="step-description">Select how you want to share the contract information</p>
+        
+        <div class="contract-type-grid">
+          <div class="contract-type-card" 
+               [class.selected]="selectedContractType() === 'url'"
+               (click)="selectContractType('url')">
+            <div class="card-icon">
+              <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <h4>Contract URL</h4>
+            <p>Provide a URL where partners can access the contract information</p>
+          </div>
+
+          <div class="contract-type-card"
+               [class.selected]="selectedContractType() === 'contents'"
+               (click)="selectContractType('contents')">
+            <div class="card-icon">
+              <svg fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0h8v12H6V4z" clip-rule="evenodd"/>
+                <path d="M8 6h4v2H8V6zM8 10h4v2H8v-2z"/>
+              </svg>
+            </div>
+            <h4>Contract Contents</h4>
+            <p>Share text content directly that partners can view and print</p>
+          </div>
+
+          <div class="contract-type-card"
+               [class.selected]="selectedContractType() === 'model'"
+               (click)="selectContractType('model')">
+            <div class="card-icon">
+              <svg fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 001 1h6a1 1 0 001-1V3a2 2 0 012 2v6.5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 014 11.5V5z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <h4>Contract Model</h4>
+            <p>Use a structured form with specific contract fields and party information</p>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Step 3: Contract Details -->
+    @if (currentStep() === 3) {
+      <div class="step-content">
+        <!-- URL Type -->
+        @if (selectedContractType() === 'url') {
+          <h3 class="step-title">Contract URL</h3>
+          <p class="step-description">Provide the URL where partners can access contract information</p>
+          
+          <div class="form-group">
+            <label for="uri" class="form-label">Contract URI *</label>
+            <input
+              type="url"
+              id="uri"
+              name="uri"
+              class="form-input"
+              placeholder="https://example.com/contract-details"
+              [ngModel]="uri()"
+              (ngModelChange)="uri.set($event)"
+              [disabled]="loading()"
+              required>
+          </div>
+        }
+
+        <!-- Contents Type -->
+        @if (selectedContractType() === 'contents') {
+          <h3 class="step-title">Contract Contents</h3>
+          <p class="step-description">Enter the contract text that partners will be able to view</p>
+          
+          <div class="form-group">
+            <label for="content" class="form-label">Contract Content *</label>
+            <textarea
+              id="content"
+              name="content"
+              class="form-textarea large"
+              placeholder="Enter the contract content here..."
+              [ngModel]="content()"
+              (ngModelChange)="content.set($event)"
+              [disabled]="loading()"
+              required></textarea>
+          </div>
+        }
+
+        <!-- Model Type -->
+        @if (selectedContractType() === 'model') {
+          <h3 class="step-title">Contract Model Details</h3>
+          <p class="step-description">Fill in the structured contract information</p>
+          
+          <!-- Proprietary Company -->
+          <div class="form-group">
+            <label for="proprietaryCompany" class="form-label">Proprietary Company Name *</label>
+            <input
+              type="text"
+              id="proprietaryCompany"
+              class="form-input"
+              placeholder="Company that owns the negotiated object"
+              [ngModel]="proprietaryCompanyName()"
+              (ngModelChange)="proprietaryCompanyName.set($event)"
+              [disabled]="loading()"
+              required>
+          </div>
+
+          <!-- Scope of Discussion -->
+          <div class="form-group">
+            <label for="scope" class="form-label">Scope of Discussion *</label>
+            <textarea
+              id="scope"
+              class="form-textarea"
+              placeholder="Nature of the object to be negotiated"
+              [ngModel]="scopeOfDiscussion()"
+              (ngModelChange)="scopeOfDiscussion.set($event)"
+              [disabled]="loading()"
+              required></textarea>
+          </div>
+
+          <!-- Agreement Value -->
+          <div class="form-group">
+            <label for="agreementValue" class="form-label">Agreement Value *</label>
+            <input
+              type="text"
+              id="agreementValue"
+              class="form-input"
+              placeholder="Contract value"
+              [ngModel]="agreementValue()"
+              (ngModelChange)="agreementValue.set($event)"
+              [disabled]="loading()"
+              required>
+          </div>
+
+          <!-- Authorized Contact Person -->
+          <div class="contact-section">
+            <h4 class="section-title">Authorized Contact Person *</h4>
+            <div class="contact-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Name *</label>
+                  <input
+                    type="text"
+                    class="form-input"
+                    placeholder="Full name"
+                    [ngModel]="authorizedContactPerson().name"
+                    (ngModelChange)="updateAuthorizedContact('name', $event)"
+                    [disabled]="loading()"
+                    required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Entity Type *</label>
+                  <select
+                    class="form-select"
+                    [ngModel]="authorizedContactPerson().entityType"
+                    (ngModelChange)="updateAuthorizedContact('entityType', $event)"
+                    [disabled]="loading()">
+                    <option value="individual">Individual</option>
+                    <option value="company">Company</option>
+                  </select>
+                </div>
+              </div>
+              
+              @if (authorizedContactPerson().entityType === 'company') {
+                <div class="form-group">
+                  <label class="form-label">Company Name *</label>
+                  <input
+                    type="text"
+                    class="form-input"
+                    placeholder="Company name"
+                    [ngModel]="authorizedContactPerson().companyName"
+                    (ngModelChange)="updateAuthorizedContact('companyName', $event)"
+                    [disabled]="loading()">
+                </div>
+              }
+
+              <!-- Address -->
+              <div class="form-group">
+                <label class="form-label">Address *</label>
+                <div class="address-grid">
+                  <input
+                    type="text"
+                    class="form-input"
+                    placeholder="Street"
+                    [ngModel]="authorizedContactPerson().address.street"
+                    (ngModelChange)="updateAuthorizedContactAddress('street', $event)"
+                    [disabled]="loading()">
+                  <input
+                    type="text"
+                    class="form-input"
+                    placeholder="City"
+                    [ngModel]="authorizedContactPerson().address.city"
+                    (ngModelChange)="updateAuthorizedContactAddress('city', $event)"
+                    [disabled]="loading()">
+                  <input
+                    type="text"
+                    class="form-input"
+                    placeholder="State"
+                    [ngModel]="authorizedContactPerson().address.state"
+                    (ngModelChange)="updateAuthorizedContactAddress('state', $event)"
+                    [disabled]="loading()">
+                  <input
+                    type="text"
+                    class="form-input"
+                    placeholder="Postal Code"
+                    [ngModel]="authorizedContactPerson().address.postalCode"
+                    (ngModelChange)="updateAuthorizedContactAddress('postalCode', $event)"
+                    [disabled]="loading()">
+                  <input
+                    type="text"
+                    class="form-input"
+                    placeholder="Country"
+                    [ngModel]="authorizedContactPerson().address.country"
+                    (ngModelChange)="updateAuthorizedContactAddress('country', $event)"
+                    [disabled]="loading()">
+                </div>
+              </div>
+
+              <!-- Identification -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Identification Type *</label>
+                  <select
+                    class="form-select"
+                    [ngModel]="authorizedContactPerson().identification.type"
+                    (ngModelChange)="updateAuthorizedContactIdentification('type', $event)"
+                    [disabled]="loading()">
+                    <option value="cpf">CPF</option>
+                    <option value="cnpj">CNPJ</option>
+                    <option value="passport">Passport</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Identification Number *</label>
+                  <input
+                    type="text"
+                    class="form-input"
+                    placeholder="Document number"
+                    [ngModel]="authorizedContactPerson().identification.number"
+                    (ngModelChange)="updateAuthorizedContactIdentification('number', $event)"
+                    [disabled]="loading()">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Official Email *</label>
+                <input
+                  type="email"
+                  class="form-input"
+                  placeholder="official@email.com"
+                  [ngModel]="authorizedContactPerson().officialEmail"
+                  (ngModelChange)="updateAuthorizedContact('officialEmail', $event)"
+                  [disabled]="loading()"
+                  required>
+              </div>
+            </div>
+          </div>
+
+          <!-- Disclosing Parties -->
+          <div class="parties-section">
+            <div class="section-header">
+              <h4 class="section-title">Disclosing Parties *</h4>
+              <button type="button" class="btn-add" (click)="addDisclosingParty()" [disabled]="loading()">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Add Party
+              </button>
+            </div>
+            
+            @for (party of disclosingParties(); track $index) {
+              <div class="party-card">
+                <div class="card-header">
+                  <h5>Disclosing Party {{ $index + 1 }}</h5>
+                  @if (disclosingParties().length > 1) {
+                    <button type="button" class="btn-remove" (click)="removeDisclosingParty($index)">
+                      <svg fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      </svg>
+                    </button>
+                  }
+                </div>
+                
+                <!-- Contact form for each party (similar to authorized contact) -->
+                <div class="contact-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Name *</label>
+                      <input
+                        type="text"
+                        class="form-input"
+                        placeholder="Full name"
+                        [ngModel]="party.name"
+                        (ngModelChange)="updateDisclosingParty($index, 'name', $event)"
+                        [disabled]="loading()"
+                        required>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Entity Type *</label>
+                      <select
+                        class="form-select"
+                        [ngModel]="party.entityType"
+                        (ngModelChange)="updateDisclosingParty($index, 'entityType', $event)"
+                        [disabled]="loading()">
+                        <option value="individual">Individual</option>
+                        <option value="company">Company</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  @if (party.entityType === 'company') {
+                    <div class="form-group">
+                      <label class="form-label">Company Name *</label>
+                      <input
+                        type="text"
+                        class="form-input"
+                        placeholder="Company name"
+                        [ngModel]="party.companyName"
+                        (ngModelChange)="updateDisclosingParty($index, 'companyName', $event)"
+                        [disabled]="loading()">
+                    </div>
+                  }
+
+                  <div class="form-group">
+                    <label class="form-label">Official Email *</label>
+                    <input
+                      type="email"
+                      class="form-input"
+                      placeholder="official@email.com"
+                      [ngModel]="party.officialEmail"
+                      (ngModelChange)="updateDisclosingParty($index, 'officialEmail', $event)"
+                      [disabled]="loading()"
+                      required>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Receiving Parties -->
+          <div class="parties-section">
+            <div class="section-header">
+              <h4 class="section-title">Receiving Parties *</h4>
+              <button type="button" class="btn-add" (click)="addReceivingParty()" [disabled]="loading()">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Add Party
+              </button>
+            </div>
+            
+            @for (party of receivingParties(); track $index) {
+              <div class="party-card">
+                <div class="card-header">
+                  <h5>Receiving Party {{ $index + 1 }}</h5>
+                  @if (receivingParties().length > 1) {
+                    <button type="button" class="btn-remove" (click)="removeReceivingParty($index)">
+                      <svg fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      </svg>
+                    </button>
+                  }
+                </div>
+                
+                <div class="contact-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Name *</label>
+                      <input
+                        type="text"
+                        class="form-input"
+                        placeholder="Full name"
+                        [ngModel]="party.name"
+                        (ngModelChange)="updateReceivingParty($index, 'name', $event)"
+                        [disabled]="loading()"
+                        required>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Entity Type *</label>
+                      <select
+                        class="form-select"
+                        [ngModel]="party.entityType"
+                        (ngModelChange)="updateReceivingParty($index, 'entityType', $event)"
+                        [disabled]="loading()">
+                        <option value="individual">Individual</option>
+                        <option value="company">Company</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  @if (party.entityType === 'company') {
+                    <div class="form-group">
+                      <label class="form-label">Company Name *</label>
+                      <input
+                        type="text"
+                        class="form-input"
+                        placeholder="Company name"
+                        [ngModel]="party.companyName"
+                        (ngModelChange)="updateReceivingParty($index, 'companyName', $event)"
+                        [disabled]="loading()">
+                    </div>
+                  }
+
+                  <div class="form-group">
+                    <label class="form-label">Official Email *</label>
+                    <input
+                      type="email"
+                      class="form-input"
+                      placeholder="official@email.com"
+                      [ngModel]="party.officialEmail"
+                      (ngModelChange)="updateReceivingParty($index, 'officialEmail', $event)"
+                      [disabled]="loading()"
+                      required>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Fee Structure -->
+          <div class="fee-section">
+            <div class="section-header">
+              <h4 class="section-title">Fee Structure</h4>
+              <button type="button" class="btn-add" (click)="addFeeStructureEntry()" [disabled]="loading()">
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                </svg>
+                Add Entry
+              </button>
+            </div>
+            
+            @for (entry of feeStructure(); track $index) {
+              <div class="fee-card">
+                <div class="card-header">
+                  <h5>Fee Entry {{ $index + 1 }}</h5>
+                  @if (feeStructure().length > 1) {
+                    <button type="button" class="btn-remove" (click)="removeFeeStructureEntry($index)">
+                      <svg fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                      </svg>
+                    </button>
+                  }
+                </div>
+                
+                <div class="fee-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Party Name</label>
+                      <input
+                        type="text"
+                        class="form-input"
+                        placeholder="Party name"
+                        [ngModel]="entry.partyName"
+                        (ngModelChange)="updateFeeEntry($index, 'partyName', $event)"
+                        [disabled]="loading()">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Role</label>
+                      <select
+                        class="form-select"
+                        [ngModel]="entry.role"
+                        (ngModelChange)="updateFeeEntry($index, 'role', $event)"
+                        [disabled]="loading()">
+                        <option value="disclosing">Disclosing</option>
+                        <option value="receiving">Receiving</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Fee Percentage (%)</label>
+                      <input
+                        type="number"
+                        class="form-input"
+                        placeholder="0.00"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        [ngModel]="entry.feePercentage"
+                        (ngModelChange)="updateFeeEntry($index, 'feePercentage', $event)"
+                        [disabled]="loading()">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Fixed Fee</label>
+                      <input
+                        type="number"
+                        class="form-input"
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        [ngModel]="entry.fixedFee"
+                        (ngModelChange)="updateFeeEntry($index, 'fixedFee', $event)"
+                        [disabled]="loading()">
+                    </div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea
+                      class="form-textarea"
+                      placeholder="Fee description and conditions"
+                      [ngModel]="entry.description"
+                      (ngModelChange)="updateFeeEntry($index, 'description', $event)"
+                      [disabled]="loading()"></textarea>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
 
     <!-- Form Actions -->
     <div class="form-actions">
+      @if (currentStep() > 1) {
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="previousStep()"
+          [disabled]="loading()">
+          <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Previous
+        </button>
+      }
+
       <button
         type="submit"
         class="btn btn-primary"
-        [disabled]="loading() || !title() || !description() || !uri()">
+        [disabled]="loading() || !canProceedToNextStep()">
         @if (!loading()) {
-          <span>{{ contractId() ? 'Update Contract' : 'Register Contract' }}</span>
+          <span>
+            @if (currentStep() < totalSteps) {
+              Next
+            } @else {
+              {{ contractId() ? 'Update Contract' : 'Register Contract' }}
+            }
+          </span>
         } @else {
           <span class="loading-content">
             <svg class="loading-spinner btn-icon" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            {{ contractId() ? 'Updating...' : 'Registering...' }}
+            @if (currentStep() < totalSteps) {
+              Processing...
+            } @else {
+              {{ contractId() ? 'Updating...' : 'Registering...' }}
+            }
           </span>
+        }
+        
+        @if (currentStep() < totalSteps) {
+          <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         }
       </button>
 
