@@ -1,0 +1,177 @@
+@if (isOpen()) {
+  <div class="modal-backdrop" 
+       [class.modal-open]="isOpen()" 
+       (click)="onClose()">
+    
+    <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3 class="modal-title">{{ title() }}</h3>
+      <button type="button" 
+              class="btn-close" 
+              title="Close modal"
+              (click)="onClose()"
+              [disabled]="loading()">
+        <svg fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <form (ngSubmit)="onSave()" #form="ngForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Name *</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder="Full name"
+              [ngModel]="editContact.name"
+              (ngModelChange)="onFieldChange('name', $event)"
+              [disabled]="loading()"
+              required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Entity Type *</label>
+            <select
+              class="form-select"
+              title="Select entity type"
+              [ngModel]="editContact.entityType"
+              (ngModelChange)="onFieldChange('entityType', $event)"
+              [disabled]="loading()"
+              required>
+              <option value="individual">Individual</option>
+              <option value="company">Company</option>
+            </select>
+          </div>
+        </div>
+
+        @if (editContact.entityType === 'company') {
+          <div class="form-group">
+            <label class="form-label">Company Name *</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder="Company name"
+              [ngModel]="editContact.companyName"
+              (ngModelChange)="onFieldChange('companyName', $event)"
+              [disabled]="loading()"
+              required>
+          </div>
+        }
+
+        <div class="form-group">
+          <label class="form-label">Address *</label>
+          <div class="address-container">
+            <div class="address-row">
+              <input
+                type="text"
+                class="form-input"
+                placeholder="Street"
+                [ngModel]="editContact.address.street"
+                (ngModelChange)="onAddressChange('street', $event)"
+                [disabled]="loading()"
+                required>
+            </div>
+            <div class="address-row two-columns">
+              <input
+                type="text"
+                class="form-input"
+                placeholder="City"
+                [ngModel]="editContact.address.city"
+                (ngModelChange)="onAddressChange('city', $event)"
+                [disabled]="loading()"
+                required>
+              <input
+                type="text"
+                class="form-input"
+                placeholder="State"
+                [ngModel]="editContact.address.state"
+                (ngModelChange)="onAddressChange('state', $event)"
+                [disabled]="loading()"
+                required>
+            </div>
+            <div class="address-row two-columns">
+              <input
+                type="text"
+                class="form-input"
+                placeholder="Postal Code"
+                [ngModel]="editContact.address.postalCode"
+                (ngModelChange)="onAddressChange('postalCode', $event)"
+                [disabled]="loading()"
+                required>
+              <input
+                type="text"
+                class="form-input"
+                placeholder="Country"
+                [ngModel]="editContact.address.country"
+                (ngModelChange)="onAddressChange('country', $event)"
+                [disabled]="loading()"
+                required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Identification Type *</label>
+            <select
+              class="form-select"
+              title="Select identification type"
+              [ngModel]="editContact.identification.type"
+              (ngModelChange)="onIdentificationChange('type', $event)"
+              [disabled]="loading()"
+              required>
+              <option value="cpf">CPF</option>
+              <option value="cnpj">CNPJ</option>
+              <option value="passport">Passport</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Identification Number *</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder="Document number"
+              [ngModel]="editContact.identification.number"
+              (ngModelChange)="onIdentificationChange('number', $event)"
+              [disabled]="loading()"
+              required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Official Email *</label>
+          <input
+            type="email"
+            class="form-input"
+            placeholder="official@email.com"
+            [ngModel]="editContact.officialEmail"
+            (ngModelChange)="onFieldChange('officialEmail', $event)"
+            [disabled]="loading()"
+            required>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" 
+              class="btn-secondary" 
+              (click)="onClose()"
+              [disabled]="loading()">
+        Cancel
+      </button>
+      <button type="button" 
+              class="btn-primary" 
+              (click)="onSave()"
+              [disabled]="loading()">
+        @if (loading()) {
+          <span class="loading-spinner"></span>
+        }
+        Save Party
+      </button>
+    </div>
+    </div>
+  </div>
+}
