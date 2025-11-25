@@ -1,8 +1,8 @@
 import { Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ContactInfo, FeeStructureEntry } from '../../../models/contract.model';
+import { ContactInfo, FeeStructureEntry, PartyInfo } from '../../../models/contract.model';
 import { ContactPersonFormComponent } from '../contact-person-form/contact-person-form.component';
-import { ContractPartiesManagementComponent } from '../contract-parties-management/contract-parties-management.component';
+import { UnifiedPartiesManagementComponent } from '../unified-parties-management/unified-parties-management.component';
 import { ContractFeeStructureComponent } from '../contract-fee-structure/contract-fee-structure.component';
 
 @Component({
@@ -11,7 +11,7 @@ import { ContractFeeStructureComponent } from '../contract-fee-structure/contrac
   imports: [
     FormsModule, 
     ContactPersonFormComponent, 
-    ContractPartiesManagementComponent,
+    UnifiedPartiesManagementComponent,
     ContractFeeStructureComponent
   ],
   templateUrl: './contract-model-details-step.component.html',
@@ -25,8 +25,7 @@ export class ContractModelDetailsStepComponent {
   
   // Contact and parties
   authorizedContactPerson = input.required<ContactInfo>();
-  disclosingParties = input.required<ContactInfo[]>();
-  receivingParties = input.required<ContactInfo[]>();
+  parties = input.required<PartyInfo[]>();
   
   // Fee structure
   feeStructure = input.required<FeeStructureEntry[]>();
@@ -38,8 +37,7 @@ export class ContractModelDetailsStepComponent {
   scopeOfDiscussionChange = output<string>();
   agreementValueChange = output<string>();
   authorizedContactPersonChange = output<ContactInfo>();
-  disclosingPartiesChange = output<ContactInfo[]>();
-  receivingPartiesChange = output<ContactInfo[]>();
+  partiesChange = output<PartyInfo[]>();
   feeStructureChange = output<FeeStructureEntry[]>();
 
   onProprietaryCompanyNameChange(value: string) {
@@ -58,12 +56,8 @@ export class ContractModelDetailsStepComponent {
     this.authorizedContactPersonChange.emit(contact);
   }
 
-  onDisclosingPartiesChange(parties: ContactInfo[]) {
-    this.disclosingPartiesChange.emit(parties);
-  }
-
-  onReceivingPartiesChange(parties: ContactInfo[]) {
-    this.receivingPartiesChange.emit(parties);
+  onPartiesChange(parties: PartyInfo[]) {
+    this.partiesChange.emit(parties);
   }
 
   onFeeStructureChange(feeStructure: FeeStructureEntry[]) {

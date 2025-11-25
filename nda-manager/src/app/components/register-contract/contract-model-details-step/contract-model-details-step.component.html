@@ -8,6 +8,7 @@
     <input
       type="text"
       id="proprietaryCompany"
+      name="proprietaryCompany"
       class="form-input"
       placeholder="Company that owns the negotiated object"
       [ngModel]="proprietaryCompanyName()"
@@ -21,6 +22,7 @@
     <label for="scope" class="form-label">Scope of Discussion *</label>
     <textarea
       id="scope"
+      name="scope"
       class="form-textarea"
       placeholder="Nature of the object to be negotiated"
       [ngModel]="scopeOfDiscussion()"
@@ -35,6 +37,7 @@
     <input
       type="text"
       id="agreementValue"
+      name="agreementValue"
       class="form-input"
       placeholder="Contract value"
       [ngModel]="agreementValue()"
@@ -54,23 +57,12 @@
     </app-contact-person-form>
   </div>
 
-  <!-- Disclosing Parties -->
-  <app-contract-parties-management
-    [parties]="disclosingParties()"
+  <!-- All Parties (Unified Management) -->
+  <app-unified-parties-management
+    [parties]="parties()"
     [loading]="loading()"
-    title="Disclosing Parties"
-    singularTitle="Disclosing Party"
-    (partiesChange)="onDisclosingPartiesChange($event)">
-  </app-contract-parties-management>
-
-  <!-- Receiving Parties -->
-  <app-contract-parties-management
-    [parties]="receivingParties()"
-    [loading]="loading()"
-    title="Receiving Parties"
-    singularTitle="Receiving Party"
-    (partiesChange)="onReceivingPartiesChange($event)">
-  </app-contract-parties-management>
+    (partiesChange)="onPartiesChange($event)">
+  </app-unified-parties-management>
 
   <!-- Fee Structure -->
   <app-contract-fee-structure

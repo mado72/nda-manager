@@ -59,16 +59,14 @@
           [scopeOfDiscussion]="scopeOfDiscussion()"
           [agreementValue]="agreementValue()"
           [authorizedContactPerson]="authorizedContactPerson()"
-          [disclosingParties]="disclosingParties()"
-          [receivingParties]="receivingParties()"
+          [parties]="parties()"
           [feeStructure]="feeStructure()"
           [loading]="loading()"
           (proprietaryCompanyNameChange)="proprietaryCompanyName.set($event)"
           (scopeOfDiscussionChange)="scopeOfDiscussion.set($event)"
           (agreementValueChange)="agreementValue.set($event)"
           (authorizedContactPersonChange)="authorizedContactPerson.set($event)"
-          (disclosingPartiesChange)="disclosingParties.set($event)"
-          (receivingPartiesChange)="receivingParties.set($event)"
+          (partiesChange)="parties.set($event)"
           (feeStructureChange)="feeStructure.set($event)">
         </app-contract-model-details-step>
       }

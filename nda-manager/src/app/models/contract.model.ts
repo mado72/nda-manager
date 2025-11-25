@@ -37,13 +37,18 @@ export interface ContractContents {
 
 export interface ContractModel {
   type: 'model';
-  disclosingParties: ContactInfo[];
-  receivingParties: ContactInfo[];
+  parties: PartyInfo[];
   scopeOfDiscussion: string;
   agreementValue: string;
   feeStructure: FeeStructureEntry[];
   proprietaryCompanyName: string;
   authorizedContactPerson: ContactInfo;
+}
+
+export type PartyType = 'disclosing' | 'receiving' | 'witness';
+
+export interface PartyInfo extends ContactInfo {
+  partyType: PartyType;
 }
 
 export interface ContactInfo {

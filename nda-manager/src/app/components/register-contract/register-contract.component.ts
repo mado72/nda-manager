@@ -10,6 +10,8 @@ import {
   ContractContents, 
   ContractModel, 
   ContactInfo, 
+  PartyInfo, 
+  PartyType,
   Address, 
   IdentificationDocument, 
   FeeStructureEntry 
@@ -66,8 +68,7 @@ export class RegisterContractComponent implements OnInit {
   content = signal('');
   
   // Model Type
-  disclosingParties = signal<ContactInfo[]>([this.createEmptyContact()]);
-  receivingParties = signal<ContactInfo[]>([this.createEmptyContact()]);
+  parties = signal<PartyInfo[]>([this.createEmptyParty('disclosing'), this.createEmptyParty('receiving')]);
   scopeOfDiscussion = signal('');
   agreementValue = signal('');
   feeStructure = signal<FeeStructureEntry[]>([this.createEmptyFeeEntry()]);
@@ -112,8 +113,20 @@ export class RegisterContractComponent implements OnInit {
           this.content.set(data.content || '');
           break;
         case 'model':
-          this.disclosingParties.set(data.disclosingParties || [this.createEmptyContact()]);
-          this.receivingParties.set(data.receivingParties || [this.createEmptyContact()]);
+          // Handle backward compatibility
+          if (data.parties) {
+            this.parties.set(data.parties);
+          } else {
+            // Convert old structure to new
+            const parties: PartyInfo[] = [];
+            if (data.disclosingParties) {
+              parties.push(...data.disclosingParties.map((p: ContactInfo) => ({ ...p, partyType: 'disclosing' as PartyType })));
+            }
+            if (data.receivingParties) {
+              parties.push(...data.receivingParties.map((p: ContactInfo) => ({ ...p, partyType: 'receiving' as PartyType })));
+            }
+            this.parties.set(parties.length > 0 ? parties : [this.createEmptyParty('disclosing'), this.createEmptyParty('receiving')]);
+          }
           this.scopeOfDiscussion.set(data.scopeOfDiscussion || '');
           this.agreementValue.set(data.agreementValue || '');
           this.feeStructure.set(data.feeStructure || [this.createEmptyFeeEntry()]);
@@ -169,15 +182,18 @@ export class RegisterContractComponent implements OnInit {
   }
 
   isModelDataValid(): boolean {
+    const parties = this.parties();
+    const disclosingParties = parties.filter(p => p.partyType === 'disclosing');
+    const receivingParties = parties.filter(p => p.partyType === 'receiving');
+    
     return !!(
-      this.disclosingParties().length > 0 &&
-      this.receivingParties().length > 0 &&
+      disclosingParties.length > 0 &&
+      receivingParties.length > 0 &&
       this.scopeOfDiscussion() &&
       this.agreementValue() &&
       this.proprietaryCompanyName() &&
       this.isContactValid(this.authorizedContactPerson()) &&
-      this.disclosingParties().every(contact => this.isContactValid(contact)) &&
-      this.receivingParties().every(contact => this.isContactValid(contact))
+      parties.every(party => this.isPartyValid(party))
     );
   }
 
@@ -196,12 +212,49 @@ export class RegisterContractComponent implements OnInit {
     );
   }
 
+  isPartyValid(party: PartyInfo): boolean {
+    return !!(
+      party.partyType &&
+      party.name &&
+      party.entityType &&
+      party.address.street &&
+      party.address.city &&
+      party.address.state &&
+      party.address.postalCode &&
+      party.address.country &&
+      party.identification.type &&
+      party.identification.number &&
+      party.officialEmail
+    );
+  }
+
   // Contract Type Selection
   selectContractType(type: ContractType) {
     this.selectedContractType.set(type);
   }
 
   // Helper Methods for Model Type
+  createEmptyParty(partyType: PartyType): PartyInfo {
+    return {
+      partyType,
+      name: '',
+      entityType: 'individual',
+      companyName: '',
+      address: {
+        street: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: ''
+      },
+      identification: {
+        type: 'cpf',
+        number: ''
+      },
+      officialEmail: ''
+    };
+  }
+
   createEmptyContact(): ContactInfo {
     return {
       name: '',
@@ -232,29 +285,7 @@ export class RegisterContractComponent implements OnInit {
     };
   }
 
-  addDisclosingParty() {
-    this.disclosingParties.set([...this.disclosingParties(), this.createEmptyContact()]);
-  }
 
-  removeDisclosingParty(index: number) {
-    const parties = this.disclosingParties();
-    if (parties.length > 1) {
-      parties.splice(index, 1);
-      this.disclosingParties.set([...parties]);
-    }
-  }
-
-  addReceivingParty() {
-    this.receivingParties.set([...this.receivingParties(), this.createEmptyContact()]);
-  }
-
-  removeReceivingParty(index: number) {
-    const parties = this.receivingParties();
-    if (parties.length > 1) {
-      parties.splice(index, 1);
-      this.receivingParties.set([...parties]);
-    }
-  }
 
   addFeeStructureEntry() {
     this.feeStructure.set([...this.feeStructure(), this.createEmptyFeeEntry()]);
@@ -303,8 +334,7 @@ export class RegisterContractComponent implements OnInit {
       case 'model':
         contractData = {
           type: 'model',
-          disclosingParties: this.disclosingParties(),
-          receivingParties: this.receivingParties(),
+          parties: this.parties(),
           scopeOfDiscussion: this.scopeOfDiscussion(),
           agreementValue: this.agreementValue(),
           feeStructure: this.feeStructure(),
@@ -347,8 +377,7 @@ export class RegisterContractComponent implements OnInit {
     this.selectedContractType.set(null);
     this.uri.set('');
     this.content.set('');
-    this.disclosingParties.set([this.createEmptyContact()]);
-    this.receivingParties.set([this.createEmptyContact()]);
+    this.parties.set([this.createEmptyParty('disclosing'), this.createEmptyParty('receiving')]);
     this.scopeOfDiscussion.set('');
     this.agreementValue.set('');
     this.feeStructure.set([this.createEmptyFeeEntry()]);
@@ -382,17 +411,7 @@ export class RegisterContractComponent implements OnInit {
     });
   }
 
-  updateDisclosingParty(index: number, field: keyof ContactInfo, value: any) {
-    const parties = [...this.disclosingParties()];
-    parties[index] = { ...parties[index], [field]: value };
-    this.disclosingParties.set(parties);
-  }
 
-  updateReceivingParty(index: number, field: keyof ContactInfo, value: any) {
-    const parties = [...this.receivingParties()];
-    parties[index] = { ...parties[index], [field]: value };
-    this.receivingParties.set(parties);
-  }
 
   updateFeeEntry(index: number, field: keyof FeeStructureEntry, value: any) {
     const entries = [...this.feeStructure()];
