@@ -5,3 +5,4 @@ pub mod handlers;
 pub mod database;
 pub mod crypto;
 pub mod auth;
+pub mod jwt;

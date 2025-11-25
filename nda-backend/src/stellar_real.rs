@@ -130,6 +130,7 @@ use sha2::{Sha256, Digest};
 pub struct StellarClient {
     horizon_url: String,
     client: Client,
+    #[allow(dead_code)]
     network_passphrase: String,
 }
 
@@ -256,6 +257,7 @@ pub struct Balance {
 /// - Process IDs to verify sharing permissions
 /// - Sharing metadata for audit trails
 /// - Access authorization proofs
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionRecord {
     pub id: String,
@@ -272,6 +274,7 @@ pub struct TransactionRecord {
 /// 
 /// Stellar API responses use embedded structures to organize
 /// related data and provide pagination information.
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionsResponse {
     #[serde(rename = "_embedded")]
@@ -282,6 +285,7 @@ pub struct TransactionsResponse {
 /// 
 /// Contains the actual list of transaction records returned
 /// from transaction history queries.
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EmbeddedTransactions {
     pub records: Vec<TransactionRecord>,
@@ -338,6 +342,7 @@ impl StellarClient {
     /// let client = StellarClient::new_mainnet();
     /// // Ensure accounts are properly funded before use
     /// ```
+    #[allow(dead_code)]
     pub fn new_mainnet() -> Self {
         Self {
             horizon_url: "https://horizon.stellar.org".to_string(),
@@ -647,6 +652,7 @@ impl StellarClient {
     ///     // Grant access to encrypted content
     /// }
     /// ```
+    #[allow(dead_code)]
     pub async fn verify_process_access(
         &self,
         process_id: &str,
@@ -695,6 +701,7 @@ impl StellarClient {
     /// 
     /// This is a private method used internally for access verification.
     /// Transaction data is publicly available on the blockchain.
+    #[allow(dead_code)]
     async fn get_account_transactions(&self, account_id: &str) -> Result<Vec<TransactionRecord>, Box<dyn Error>> {
         let url = format!("{}/accounts/{}/transactions?limit=200&order=desc", self.horizon_url, account_id);
         
@@ -741,6 +748,7 @@ impl StellarClient {
     /// - Structured memo formats (JSON, protobuf)
     /// - Cryptographic commitments
     /// - Operation-specific metadata
+    #[allow(dead_code)]
     fn transaction_contains_process(&self, transaction: &TransactionRecord, process_id: &str) -> Result<bool, Box<dyn Error>> {
         // Check transaction memo field
         if let Some(memo) = &transaction.memo {
@@ -786,6 +794,7 @@ impl StellarClient {
     ///     return Err("Cannot connect to Stellar network".into());
     /// }
     /// ```
+    #[allow(dead_code)]
     pub async fn test_connection(&self) -> Result<bool, Box<dyn Error>> {
         let url = format!("{}/", self.horizon_url);
         
@@ -818,6 +827,7 @@ impl StellarClient {
     }
 
     /// Cria conta de teste e financia automaticamente
+    #[allow(dead_code)]
     pub async fn create_test_account(&self) -> Result<StellarAccount, Box<dyn Error>> {
         println!("🧪 Criando conta de teste...");
         
@@ -843,6 +853,7 @@ impl StellarClient {
     }
 
     /// Obtém saldo XLM de uma conta
+    #[allow(dead_code)]
     pub async fn get_xlm_balance(&self, account_id: &str) -> Result<String, Box<dyn Error>> {
         let account = self.get_account(account_id).await?;
         

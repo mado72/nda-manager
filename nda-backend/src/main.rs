@@ -21,12 +21,14 @@
 //! 
 //! ### User Management
 //! - `POST /api/users/register` - Register new users with Stellar accounts
-//! - `POST /api/users/login` - User authentication
+//! - `POST /api/users/login` - User authentication (returns JWT tokens)
 //! - `POST /api/users/auto-login` - Automatic login using localStorage data
+//! - `POST /api/users/refresh` - Refresh access token using refresh token
+//! - `POST /api/users/logout` - Logout and blacklist tokens
 //! 
-//! ### Process Management
-//! - `POST /api/processes` - Create new encrypted NDA processes
-//! - `GET /api/processes` - List processes owned by a client
+//! ### Process Management (🔒 JWT Required)
+//! - `POST /api/processes` - Create new encrypted NDA processes (requires "client" role)
+//! - `GET /api/processes` - List processes owned by a client (requires authentication)
 //! 
 //! ### Sharing & Access
 //! - `POST /api/processes/share` - Share processes via blockchain transactions
@@ -35,6 +37,12 @@
 //! 
 //! ## Security Features
 //! 
+//! - **JWT Authentication**: Stateless authentication with access and refresh tokens
+//!   - Access tokens: 15 minutes lifetime
+//!   - Refresh tokens: 7 days lifetime
+//!   - Token blacklist for immediate revocation
+//!   - Role-based authorization (client, partner, admin)
+//! - **Password Security**: Bcrypt hashing with automatic salt generation
 //! - **End-to-End Encryption**: All sensitive content encrypted with AES-256-GCM
 //! - **Blockchain Verification**: Immutable sharing records on Stellar network
 //! - **Access Control**: Cryptographically verified sharing permissions
@@ -54,6 +62,8 @@
 //! 
 //! The application can be configured via environment variables:
 //! - `DATABASE_URL`: SQLite database path (default: `sqlite:./stellar_mvp.db`)
+//! - `JWT_SECRET`: Secret key for JWT signing (REQUIRED for production, min 32 chars)
+//! - `RUST_LOG`: Logging level (trace, debug, info, warn, error)
 //! - Server binds to `0.0.0.0:3000` by default
 
 use axum::{
@@ -63,6 +73,8 @@ use axum::{
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 mod models;
 mod handlers;
@@ -70,8 +82,100 @@ mod database;
 mod crypto;
 mod stellar_real;
 mod auth;
+mod jwt;
 
-use handlers::AppState;
+use handlers::{AppState, ListProcessesQuery};
+use models::*;
+
+/// OpenAPI documentation structure
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        handlers::health_check,
+        handlers::register_user,
+        handlers::login_user,
+        handlers::auto_login_user,
+        handlers::refresh_token,
+        handlers::logout_user,
+        handlers::create_process,
+        handlers::share_process,
+        handlers::access_process,
+        handlers::list_processes,
+        handlers::get_notifications,
+    ),
+    components(
+        schemas(
+            RegisterRequest,
+            LoginRequest,
+            AutoLoginRequest,
+            RefreshTokenRequest,
+            LogoutRequest,
+            CreateProcessRequest,
+            ShareProcessRequest,
+            AccessProcessRequest,
+            UserResponse,
+            LoginResponse,
+            ProcessResponse,
+            ProcessShare,
+            ProcessAccessResponse,
+            ProcessAccessWithDetails,
+            HealthResponse,
+            ListProcessesQuery,
+            jwt::Claims,
+        )
+    ),
+    tags(
+        (name = "Health", description = "Health check endpoints"),
+        (name = "User Management", description = "User registration and authentication"),
+        (name = "Process Management", description = "NDA process creation and listing"),
+        (name = "Sharing & Access", description = "Blockchain-secured sharing and content access"),
+        (name = "Audit & Compliance", description = "Access notifications and audit trails")
+    ),
+    info(
+        title = "NDA Backend API",
+        version = "1.0.0",
+        description = "Blockchain-secured Non-Disclosure Agreement (NDA) contract management system with JWT authentication, AES-256-GCM encryption, and Stellar network integration.\n\n## Authentication\n\nThis API uses JWT (JSON Web Tokens) for authentication:\n\n1. **Login**: POST `/api/users/login` to receive `access_token` and `refresh_token`\n2. **Access Token**: Valid for 15 minutes - use in `Authorization: Bearer <token>` header\n3. **Refresh Token**: Valid for 7 days - use to obtain new access tokens\n4. **Logout**: POST `/api/users/logout` to revoke tokens\n\n## Protected Endpoints\n\nEndpoints marked with 🔒 require JWT authentication:\n- POST `/api/processes` - Requires \"client\" role\n- GET `/api/processes` - Requires authentication\n- POST `/api/users/logout` - Requires authentication",
+        contact(
+            name = "API Support",
+            email = "support@nda-backend.com"
+        ),
+        license(
+            name = "MIT",
+            url = "https://opensource.org/licenses/MIT"
+        )
+    ),
+    modifiers(&SecurityAddon)
+)]
+struct ApiDoc;
+
+/// Security scheme for JWT Bearer authentication in Swagger UI
+struct SecurityAddon;
+
+impl utoipa::Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
+        
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "bearer_auth",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("JWT")
+                        .description(Some(
+                            "Enter your JWT access token.\n\n\
+                            To obtain a token:\n\
+                            1. Use POST /api/users/login with your credentials\n\
+                            2. Copy the 'access_token' from the response\n\
+                            3. Click 'Authorize' button and paste the token\n\n\
+                            Token format: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        ))
+                        .build()
+                )
+            )
+        }
+    }
+}
 
 /// Application entry point.
 /// 
@@ -119,8 +223,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to database and run migrations
     let pool = database::init_database().await?;
 
+    // Get JWT secret from environment or use default (WARNING: use strong secret in production)
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| {
+            tracing::warn!("JWT_SECRET not set, using default (NOT SECURE FOR PRODUCTION)");
+            "default-jwt-secret-change-this-in-production-min-32-chars".to_string()
+        });
+
+    // Create token blacklist for logout/revocation
+    let token_blacklist = jwt::TokenBlacklist::new();
+    
+    // Start background task to cleanup expired tokens every hour
+    let _cleanup_handle = token_blacklist.start_cleanup_task(60);
+    tracing::info!("Started token blacklist cleanup task (runs every 60 minutes)");
+
     // Create application state for dependency injection
-    let state = Arc::new(AppState { pool });
+    let state = Arc::new(AppState { 
+        pool,
+        jwt_secret,
+        token_blacklist,
+    });
 
     // Configure API routes with RESTful design
     let app = Router::new()
@@ -131,6 +253,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/users/register", post(handlers::register_user))
         .route("/api/users/login", post(handlers::login_user))
         .route("/api/users/auto-login", post(handlers::auto_login_user))
+        .route("/api/users/refresh", post(handlers::refresh_token))
+        .route("/api/users/logout", post(handlers::logout_user))
         
         // Process management endpoints - CRUD operations for NDA processes
         .route("/api/processes", post(handlers::create_process))  // Create encrypted process
@@ -142,6 +266,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         // Audit and compliance endpoint - access notifications for process owners
         .route("/api/notifications", get(handlers::get_notifications))
+        
+        // Swagger UI for API documentation
+        .merge(SwaggerUi::new("/swagger-ui")
+            .url("/api-docs/openapi.json", ApiDoc::openapi()))
+        
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -149,8 +278,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     println!("🚀 Server running at http://localhost:3000");
     println!("📊 Health check available at http://localhost:3000/health");
-    println!("📋 API documentation: All endpoints support JSON request/response");
-    println!("🔐 Security: AES-256-GCM encryption + Stellar blockchain integration");
+    println!("📖 Swagger UI available at http://localhost:3000/swagger-ui");
+    println!("📄 OpenAPI spec at http://localhost:3000/api-docs/openapi.json");
+    println!("🔐 Security: JWT authentication + AES-256-GCM encryption + Stellar blockchain");
     
     axum::serve(listener, app).await?;
 

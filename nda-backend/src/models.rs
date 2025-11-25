@@ -73,6 +73,7 @@
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;
+use utoipa::ToSchema;
 
 /// User account with Stellar blockchain integration.
 /// 
@@ -201,7 +202,7 @@ pub struct Process {
 /// - Cryptographically verifiable sharing permissions
 /// - Dispute resolution through blockchain evidence
 /// - Time-stamped sharing events for legal requirements
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct ProcessShare {
     pub id: String,
     pub process_id: String,
@@ -228,6 +229,7 @@ pub struct ProcessShare {
 /// - Timestamps provide chronological access history
 /// - Failed access attempts are also recorded
 /// - Access patterns can be analyzed for security monitoring
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct ProcessAccess {
     pub id: String,
@@ -267,7 +269,7 @@ pub struct ProcessAccess {
 /// - `partner_username`: Optional when partner user data is not available
 /// 
 /// The `process_*` fields are always present as they come from the main processes table.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ProcessAccessWithDetails {
     pub id: Option<String>,
     pub process_id: String,
@@ -313,7 +315,7 @@ pub struct ProcessAccessWithDetails {
 ///   "roles": ["client", "partner"]
 /// }
 /// ```
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct RegisterRequest {
     pub username: String,
     pub name: String,
@@ -337,7 +339,7 @@ pub struct RegisterRequest {
 /// - Password field exists for future security enhancement
 /// - Production systems should implement proper password hashing
 /// - Consider adding JWT tokens for session management
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
@@ -359,7 +361,7 @@ pub struct LoginRequest {
 /// - This endpoint relies on client-side data persistence
 /// - Should be used only for convenience, not as primary authentication
 /// - Consider implementing session tokens for enhanced security
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AutoLoginRequest {
     pub user_name: String,
     pub user_id: String,
@@ -384,7 +386,7 @@ pub struct AutoLoginRequest {
 /// 2. A unique encryption key is generated
 /// 3. Process is associated with the client user
 /// 4. Encrypted data is stored in the database
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateProcessRequest {
     pub title: String,
     pub description: String,
@@ -410,7 +412,7 @@ pub struct CreateProcessRequest {
 /// 2. Creation of a Stellar blockchain transaction
 /// 3. Recording of the transaction hash for audit
 /// 4. Granting of access permissions to the partner
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct ShareProcessRequest {
     pub process_id: String,
     pub partner_public_key: String,
@@ -436,7 +438,7 @@ pub struct ShareProcessRequest {
 /// 3. Validates partner credentials
 /// 4. Logs the access event for audit
 /// 5. Decrypts and returns the content
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AccessProcessRequest {
     pub process_id: String,
     pub partner_public_key: String,
@@ -468,7 +470,7 @@ pub struct AccessProcessRequest {
 /// - Excludes `stellar_secret_key` for security
 /// - Safe for JSON serialization in API responses
 /// - Automatically converted from [`User`] via `From` trait
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UserResponse {
     pub id: String,
     pub username: String,
@@ -548,6 +550,7 @@ impl User {
     /// # Returns
     /// 
     /// Returns `true` if the user can act as a client.
+    #[allow(dead_code)]
     pub fn is_client(&self) -> bool {
         self.has_role("client")
     }
@@ -625,7 +628,7 @@ impl From<User> for UserResponse {
 /// - Excludes `encrypted_content` and `encryption_key` for security
 /// - Safe for public API responses and process listings
 /// - Automatically converted from [`Process`] via `From` trait
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ProcessResponse {
     pub id: String,
     pub title: String,
@@ -698,7 +701,7 @@ impl From<Process> for ProcessResponse {
 /// 
 /// This model is used exclusively for successful process access operations
 /// where the partner has proven authorization to view the content.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ProcessAccessResponse {
     pub process_id: String,
     pub title: String,
@@ -721,8 +724,109 @@ pub struct ProcessAccessResponse {
 /// 
 /// This model is used by the `/health` endpoint to provide structured
 /// health information that can be consumed by monitoring systems.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct HealthResponse {
     pub status: String,
     pub timestamp: DateTime<Utc>,
+}
+
+/// Login response with JWT tokens.
+/// 
+/// Contains user information and JWT tokens for authentication.
+/// The access token should be stored in memory, while the refresh
+/// token should be stored securely (e.g., HttpOnly cookie).
+/// 
+/// # Fields
+/// 
+/// * `user` - User information (without sensitive data)
+/// * `access_token` - Short-lived JWT for API authentication (15 min)
+/// * `refresh_token` - Long-lived JWT for token renewal (7 days)
+/// * `token_type` - Token type (always "Bearer")
+/// * `expires_in` - Access token expiration time in seconds
+/// 
+/// # Security Best Practices
+/// 
+/// - Access token: Store in memory (JavaScript variable)
+/// - Refresh token: Store in secure HttpOnly cookie or secure storage
+/// - Never store tokens in localStorage (XSS vulnerability)
+/// - Always use HTTPS in production
+/// 
+/// # Usage
+/// 
+/// ```json
+/// {
+///   "user": {
+///     "id": "user-123",
+///     "username": "john@example.com",
+///     "roles": ["client"]
+///   },
+///   "access_token": "eyJhbGc...",
+///   "refresh_token": "eyJhbGc...",
+///   "token_type": "Bearer",
+///   "expires_in": 900
+/// }
+/// ```
+#[derive(Debug, Serialize, ToSchema)]
+pub struct LoginResponse {
+    pub user: UserResponse,
+    pub access_token: String,
+    pub refresh_token: String,
+    pub token_type: String,
+    pub expires_in: i64,
+}
+
+/// Refresh token request payload.
+/// 
+/// Contains the refresh token to be exchanged for new access and refresh tokens.
+/// 
+/// # Fields
+/// 
+/// * `refresh_token` - Valid refresh token from previous login/refresh
+/// 
+/// # Security Notes
+/// 
+/// - Refresh tokens are long-lived (7 days)
+/// - Old refresh token is revoked when new one is issued
+/// - Tokens are validated and checked against blacklist
+/// 
+/// # Usage
+/// 
+/// ```json
+/// {
+///   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+/// }
+/// ```
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct RefreshTokenRequest {
+    pub refresh_token: String,
+}
+
+/// Logout request payload.
+/// 
+/// Contains the tokens to be revoked during logout.
+/// Both access and refresh tokens should be provided.
+/// 
+/// # Fields
+/// 
+/// * `access_token` - Current access token to revoke
+/// * `refresh_token` - Current refresh token to revoke
+/// 
+/// # Security Notes
+/// 
+/// - Both tokens are added to the blacklist
+/// - Revoked tokens cannot be used for authentication
+/// - Frontend should clear all stored tokens after logout
+/// 
+/// # Usage
+/// 
+/// ```json
+/// {
+///   "access_token": "eyJhbGc...",
+///   "refresh_token": "eyJhbGc..."
+/// }
+/// ```
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct LogoutRequest {
+    pub access_token: Option<String>,
+    pub refresh_token: Option<String>,
 }

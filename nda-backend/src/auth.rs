@@ -43,29 +43,3 @@ impl Auth {
         verify(password, hash)
     }
 }
-
-/// Authentication error types for better error handling.
-#[derive(Debug)]
-pub enum AuthError {
-    HashingError(bcrypt::BcryptError),
-    InvalidCredentials,
-    UserNotFound,
-}
-
-impl From<bcrypt::BcryptError> for AuthError {
-    fn from(error: bcrypt::BcryptError) -> Self {
-        AuthError::HashingError(error)
-    }
-}
-
-impl std::fmt::Display for AuthError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AuthError::HashingError(e) => write!(f, "Password hashing error: {}", e),
-            AuthError::InvalidCredentials => write!(f, "Invalid username or password"),
-            AuthError::UserNotFound => write!(f, "User not found"),
-        }
-    }
-}
-
-impl std::error::Error for AuthError {}

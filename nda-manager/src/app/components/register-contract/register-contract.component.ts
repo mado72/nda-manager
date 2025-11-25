@@ -3,12 +3,13 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ContractService } from '../../services/contract.service';
 import { ClientService } from '../../services/client.service';
+import { MessageContainer } from '../message-container/message-container';
 
 
 @Component({
   selector: 'app-register-contract',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, MessageContainer],
   templateUrl: './register-contract.component.html',
   styleUrl: './register-contract.component.scss'
 })

@@ -21,7 +21,9 @@ The system allows companies to create, share, and control access to confidential
 ### 👥 **User Management**
 - Automatic registration with automatically generated Stellar wallets
 - User types: Client (NDA creator) and Partner (recipient)
-- Secure authentication with credential verification
+- **JWT-based authentication** with access and refresh tokens
+- Secure token blacklist for logout and revocation
+- Credential verification with bcrypt password hashing
 
 ### 📄 **NDA Process Management**
 - Creation of confidential processes with end-to-end encryption
@@ -39,9 +41,11 @@ The system allows companies to create, share, and control access to confidential
 
 ### **Technology Stack**
 - **Web Framework**: Axum (asynchronous HTTP server)
+- **Authentication**: JWT (JSON Web Tokens) with HS256 algorithm
 - **Blockchain**: Stellar network integration
 - **Database**: SQLite with SQLx for type-safe queries
 - **Cryptography**: AES-256-GCM + Ed25519 with hardware acceleration
+- **Password Hashing**: Bcrypt for secure credential storage
 - **Async Runtime**: Tokio for high-performance I/O operations
 - **Logging**: Tracing for structured logging
 
@@ -53,6 +57,8 @@ src/
 ├── handlers.rs       # REST API HTTP request handlers
 ├── database.rs       # Database operations and connection management
 ├── crypto.rs         # AES-256-GCM encryption for sensitive content
+├── jwt.rs            # JWT token generation, validation and blacklist
+├── auth.rs           # Authentication utilities and password hashing
 ├── stellar_real.rs   # Stellar blockchain integration
 └── bin/
     └── test_stellar.rs # Blockchain testing utilities
@@ -88,8 +94,14 @@ cargo run
 
 ### **Environment Variables**
 ```bash
-# Optional database configuration
+# Database configuration
 DATABASE_URL=sqlite:./stellar_mvp.db  # Default: sqlite:./stellar_mvp.db
+
+# JWT configuration (REQUIRED for production)
+JWT_SECRET=your-secure-secret-min-32-chars  # Use strong secret in production
+
+# Logging level
+RUST_LOG=debug  # Options: trace, debug, info, warn, error
 ```
 
 ### **Main Dependencies**
@@ -119,6 +131,10 @@ ed25519-dalek = "1.0"
 sha2 = "0.10"
 hex = "0.4"
 rand = "0.7"
+
+# Authentication and Security
+bcrypt = "0.15"
+jsonwebtoken = "9.2"
 
 # Logging
 tracing = "0.1"
@@ -173,17 +189,66 @@ Content-Type: application/json
     "password": "password123"
 }
 ```
-**Purpose**: Secure user authentication with credential validation.
+**Purpose**: Secure user authentication with credential validation and JWT token generation.
+
+**Response**:
+```json
+{
+    "user": {
+        "id": "uuid",
+        "username": "user@company.com",
+        "stellar_public_key": "GXXX...",
+        "roles": ["client"]
+    },
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+- **access_token**: Valid for 15 minutes, use for API authentication
+- **refresh_token**: Valid for 7 days, use to obtain new access tokens
+
+#### **Refresh Token**
+```http
+POST /api/users/refresh
+Content-Type: application/json
+
+{
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+**Purpose**: Obtain a new access token without re-entering credentials.
+
+**Response**:
+```json
+{
+    "user": { ... },
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+#### **User Logout**
+```http
+POST /api/users/logout
+Content-Type: application/json
+Authorization: Bearer <access_token>
+
+{
+    "token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+**Purpose**: Invalidate tokens by adding them to the blacklist.
 
 ---
 
 ### **📄 NDA Process Management**
 CRUD operations for NDA processes with automatic encryption:
 
-#### **Create Process**
+#### **Create Process** 🔒 **Requires JWT**
 ```http
 POST /api/processes
 Content-Type: application/json
+Authorization: Bearer <access_token>
 
 {
     "client_username": "client@company.com",
@@ -193,11 +258,22 @@ Content-Type: application/json
 ```
 **Purpose**: Create encrypted process with AES-256-GCM. Content is automatically encrypted before storage.
 
-#### **List Processes**
+**Security**: 
+- Requires valid JWT access token
+- User must have "client" role
+- User can only create processes for themselves
+
+#### **List Processes** 🔒 **Requires JWT**
 ```http
-GET /api/processes?client_username=client@company.com
+GET /api/processes?client_id=<user-id>
+Authorization: Bearer <access_token>
 ```
 **Purpose**: List processes belonging to a specific client with basic information (without confidential content).
+
+**Security**:
+- Requires valid JWT access token
+- Users can only list their own processes
+- Admins can list any client's processes (if client_id is provided)
 
 ---
 
@@ -284,19 +360,31 @@ curl -X POST http://localhost:3000/api/users/register \
 
 #### **3. Authenticate Users**
 ```bash
-# Client login
+# Client login - Returns JWT tokens
 curl -X POST http://localhost:3000/api/users/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "client@company.com",
     "password": "password123"
   }'
+
+# Response includes access_token and refresh_token
+# Save the access_token for subsequent API calls
+
+# Example response:
+# {
+#   "user": { "id": "...", "username": "...", "roles": ["client"] },
+#   "access_token": "eyJhbGciOiJIUzI1NiIs...",
+#   "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
+# }
 ```
 
-#### **4. Create Encrypted NDA Process**
+#### **4. Create Encrypted NDA Process** 🔒
 ```bash
+# Use the access_token from login
 curl -X POST http://localhost:3000/api/processes \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <access_token>" \
   -d '{
     "client_username": "client@company.com",
     "title": "NDA - Alpha Confidential Project",
@@ -304,13 +392,17 @@ curl -X POST http://localhost:3000/api/processes \
   }'
 
 # Response: Process created with unique ID and AES-256-GCM encrypted content
+# Note: JWT authentication required - 401 Unauthorized if token is missing/invalid
 ```
 
-#### **5. List Processes**
+#### **5. List Processes** 🔒
 ```bash
-curl "http://localhost:3000/api/processes?client_username=client@company.com"
+# Use JWT token for authentication
+curl "http://localhost:3000/api/processes?client_id=<user-id>" \
+  -H "Authorization: Bearer <access_token>"
 
 # Response: List of processes without confidential content
+# Note: JWT authentication required - 401 Unauthorized if token is missing/invalid
 ```
 
 #### **6. Share via Stellar Blockchain**
@@ -402,6 +494,14 @@ curl "http://localhost:3000/api/notifications?client_username=client@company.com
 - **Unique keys**: Each NDA process has an exclusive randomly generated encryption key
 - **Hardware acceleration**: Uses hardware resources when available for optimized performance
 
+### **🔐 JWT Authentication & Authorization**
+- **Access Tokens**: Short-lived tokens (15 minutes) for API authentication
+- **Refresh Tokens**: Long-lived tokens (7 days) for obtaining new access tokens
+- **Token Blacklist**: In-memory blacklist for immediate token revocation on logout
+- **HS256 Algorithm**: HMAC SHA256 for secure token signing
+- **Role-Based Access**: User roles (client, partner, admin) for fine-grained permissions
+- **Stateless Authentication**: No session storage required on server
+
 ### **🔐 Cryptographic Access Control**
 - **Blockchain authorization**: Decentralized verification via transactions on the Stellar network
 - **Double verification**: Local database validation + immutable blockchain verification
@@ -419,6 +519,12 @@ curl "http://localhost:3000/api/notifications?client_username=client@company.com
 - **Real-time notifications**: Immediate alerts for owners when NDAs are accessed
 - **Precise timestamps**: Exact temporal recording for regulatory compliance
 - **Total traceability**: Ability to track the entire access and sharing chain
+
+### **🛡️ Password Security**
+- **Bcrypt Hashing**: Industry-standard password hashing with automatic salt generation
+- **Cost Factor**: Configurable work factor for future-proof security
+- **No Plaintext Storage**: Passwords never stored in readable format
+- **Timing Attack Protection**: Constant-time password comparison
 
 ### **🛡️ CORS Protection**
 - **Configurable CORS**: Protection against requests from unauthorized origins
@@ -479,10 +585,123 @@ CREATE TABLE process_accesses (
 - **process_shares**: Records authorized sharing via blockchain
 - **process_accesses**: Audit log of all accesses for compliance
 
+## 🔑 **JWT Authentication System**
+
+### **Token Types**
+
+#### **Access Token**
+- **Lifetime**: 15 minutes
+- **Purpose**: Authenticate API requests
+- **Usage**: Include in `Authorization: Bearer <token>` header
+- **Claims**: 
+  - `sub` (subject): User ID
+  - `username`: User's username
+  - `roles`: Array of user roles
+  - `exp` (expiration): Token expiration timestamp
+  - `iat` (issued at): Token creation timestamp
+
+#### **Refresh Token**
+- **Lifetime**: 7 days
+- **Purpose**: Obtain new access tokens without re-authentication
+- **Usage**: Send to `/api/users/refresh` endpoint
+- **Security**: Single-use tokens (blacklisted after refresh)
+
+### **Token Flow**
+
+```
+┌─────────────┐
+│   Login     │  → Returns access_token + refresh_token
+└─────────────┘
+      ↓
+┌─────────────┐
+│  API Call   │  → Use access_token in Authorization header
+└─────────────┘
+      ↓
+┌─────────────┐
+│ Token Valid?│  → Yes: Process request
+└─────────────┘  → No: Return 401 Unauthorized
+      ↓
+┌─────────────┐
+│   Expired?  │  → Use refresh_token to get new access_token
+└─────────────┘
+      ↓
+┌─────────────┐
+│   Logout    │  → Blacklist both tokens
+└─────────────┘
+```
+
+### **Protected Endpoints**
+
+The following endpoints require JWT authentication in the `Authorization` header:
+
+| Endpoint | Method | Required Role | Description |
+|----------|--------|--------------|-------------|
+| `/api/processes` | POST | `client` | Create new NDA process |
+| `/api/processes` | GET | `client`, `partner`, `admin` | List processes |
+| `/api/users/logout` | POST | Any authenticated | Logout and blacklist token |
+
+### **JWT Security Features**
+
+- ✅ **HMAC SHA256 Signature**: Cryptographically signed tokens prevent tampering
+- ✅ **Expiration Validation**: Automatic rejection of expired tokens
+- ✅ **Token Blacklist**: Immediate revocation on logout
+- ✅ **Role-Based Authorization**: Fine-grained access control per endpoint
+- ✅ **Thread-Safe Operations**: Concurrent token validation with Arc<RwLock>
+- ✅ **Comprehensive Testing**: Unit tests for all JWT operations
+
+### **Using JWT in API Calls**
+
+```bash
+# 1. Login to get tokens
+TOKEN_RESPONSE=$(curl -s -X POST http://localhost:3000/api/users/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"client@company.com","password":"password123"}')
+
+# 2. Extract access token
+ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.access_token')
+
+# 3. Use token in API calls
+curl -X POST http://localhost:3000/api/processes \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "client_username": "client@company.com",
+    "title": "NDA - Confidential Project",
+    "confidential_content": "Secret content..."
+  }'
+
+# 4. When access token expires, use refresh token
+REFRESH_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.refresh_token')
+
+NEW_TOKEN_RESPONSE=$(curl -s -X POST http://localhost:3000/api/users/refresh \
+  -H "Content-Type: application/json" \
+  -d "{\"refresh_token\":\"$REFRESH_TOKEN\"}")
+
+# 5. Logout to revoke tokens
+curl -X POST http://localhost:3000/api/users/logout \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d "{\"token\":\"$ACCESS_TOKEN\"}"
+```
+
+### **Error Responses**
+
+| Status Code | Error | Description |
+|------------|-------|-------------|
+| `401 Unauthorized` | Missing/Invalid Token | Token not provided or signature invalid |
+| `401 Unauthorized` | Token Expired | Access token lifetime exceeded |
+| `401 Unauthorized` | Token Revoked | Token in blacklist (after logout) |
+| `403 Forbidden` | Insufficient Permissions | User role doesn't match endpoint requirements |
+
 ### **🔄 Automatic Migrations**
 - Migrations are executed automatically on initialization
-- Location: `migrations/20241201000001_initial.sql`
+- Location: `migrations/` directory with timestamped files
 - Versioning: SQLx integrated version control
+- Recent migrations:
+  - Password hashing support
+  - User roles system
+  - Process descriptions
+  - Partner terminology updates
 ## 🌟 **Demonstrated Features**
 
 ### ✅ **Validated Use Cases**
@@ -513,12 +732,14 @@ https://stellar.expert/explorer/testnet/tx/[TRANSACTION_HASH]
 
 ### **📱 Planned Improvements**
 - [ ] **Web interface** with React/Next.js for improved usability
-- [ ] **JWT authentication** for secure and stateless sessions
+- [x] **JWT authentication** ✅ Implemented with access/refresh tokens
 - [ ] **Push notifications** in real-time via WebSockets
 - [ ] **Analytics dashboard** for usage and access metrics
 - [ ] **Webhooks API** for integration with external systems
 - [ ] **Multiple file format support** (PDF, DOC, etc.)
 - [ ] **Stellar Mainnet integration** for production
+- [ ] **Rate limiting** for API endpoints
+- [ ] **OAuth2 integration** for third-party authentication
 
 ### **⚡ Scalability and DevOps**
 - [ ] **Cloud deployment** (AWS/Azure) with Docker containers
@@ -590,6 +811,8 @@ This project is licensed under the MIT License. See the `LICENSE` file for more 
 
 ### **💡 Featured Technical Characteristics**
 - **Web Framework**: Axum (high performance, type-safe)
+- **Authentication**: JWT with HS256 (stateless, secure)
+- **Password Security**: Bcrypt hashing (industry standard)
 - **Runtime**: Tokio (asynchronous, efficient)
 - **Database**: SQLite + SQLx (automatic migrations)
 - **Blockchain**: Stellar SDK (real transactions)
@@ -597,3 +820,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for more 
 - **Logging**: Tracing (structured, debug-friendly)
 - **CORS**: Configurable protection
 - **Architecture**: Modular, scalable, maintainable
+- **API Documentation**: OpenAPI/Swagger UI integrated

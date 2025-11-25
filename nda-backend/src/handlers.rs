@@ -106,13 +106,14 @@
 use axum::{
     extract::{State, Json, Query},
     response::Json as ResponseJson,
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
 };
 use std::sync::Arc;
 use chrono::Utc;
 use serde::Deserialize;
 use uuid::Uuid;
 use sqlx;
+use utoipa::ToSchema;
 
 use crate::{
     models::*,
@@ -120,6 +121,7 @@ use crate::{
     crypto::{generate_key, encrypt_content, decrypt_content},
     database::queries,
     auth::Auth,
+    jwt,
 };
 
 /// Application state shared across all handlers.
@@ -131,6 +133,8 @@ use crate::{
 /// # Fields
 /// 
 /// * `pool` - SQLite connection pool for database operations
+/// * `jwt_secret` - Secret key for JWT token signing and validation
+/// * `token_blacklist` - Token revocation list for logout/security
 /// 
 /// # Thread Safety
 /// 
@@ -141,11 +145,15 @@ use crate::{
 /// # Security Considerations
 /// 
 /// - Database connections use prepared statements to prevent SQL injection
+/// - JWT secret must be at least 32 characters for security
+/// - Token blacklist is thread-safe with RwLock
 /// - All sensitive operations are logged for audit trails
 /// - Connection pool limits prevent resource exhaustion attacks
 #[derive(Clone)]
 pub struct AppState {
     pub pool: sqlx::SqlitePool,
+    pub jwt_secret: String,
+    pub token_blacklist: crate::jwt::TokenBlacklist,
 }
 
 /// Query parameters for endpoints that list processes.
@@ -165,7 +173,7 @@ pub struct AppState {
 /// ```
 /// GET /api/processes?client_id=client-uuid
 /// ```
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ListProcessesQuery {
     pub client_id: Option<String>,
 }
@@ -191,6 +199,14 @@ pub struct ListProcessesQuery {
 /// → 200 OK
 /// → {"status": "OK", "timestamp": "2024-01-01T00:00:00Z"}
 /// ```
+#[utoipa::path(
+    get,
+    path = "/health",
+    responses(
+        (status = 200, description = "Service is healthy", body = HealthResponse)
+    ),
+    tag = "Health"
+)]
 pub async fn health_check() -> ResponseJson<HealthResponse> {
     ResponseJson(HealthResponse {
         status: "OK".to_string(),
@@ -266,6 +282,17 @@ pub async fn health_check() -> ResponseJson<HealthResponse> {
 /// - A unique Stellar keypair (public/secret key)
 /// - Automatic testnet funding for immediate use
 /// - Integration ready for blockchain transactions
+#[utoipa::path(
+    post,
+    path = "/api/users/register",
+    request_body = RegisterRequest,
+    responses(
+        (status = 200, description = "User registered successfully", body = UserResponse),
+        (status = 409, description = "Username already exists"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "User Management"
+)]
 pub async fn register_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RegisterRequest>,
@@ -358,10 +385,21 @@ pub async fn register_user(
 /// - Passwords are hashed using bcrypt with salt for secure storage
 /// - Failed login attempts return generic "unauthorized" for security
 /// - Consider adding JWT tokens for session management and rate limiting
+#[utoipa::path(
+    post,
+    path = "/api/users/login",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = UserResponse),
+        (status = 401, description = "Invalid credentials"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "User Management"
+)]
 pub async fn login_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<LoginRequest>,
-) -> Result<ResponseJson<UserResponse>, StatusCode> {
+) -> Result<ResponseJson<LoginResponse>, StatusCode> {
     // Find user by username
     let user = queries::find_user_by_username(&state.pool, &payload.username)
         .await
@@ -376,7 +414,34 @@ pub async fn login_user(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    Ok(ResponseJson(user.into()))
+    // Parse roles
+    let roles: Vec<String> = serde_json::from_str(&user.roles)
+        .unwrap_or_else(|_| vec![user.roles.clone()]);
+
+    // Generate JWT tokens
+    let access_token = crate::jwt::generate_access_token(
+        &user.id,
+        &user.username,
+        roles.clone(),
+        &state.jwt_secret,
+    )
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let refresh_token = crate::jwt::generate_refresh_token(
+        &user.id,
+        &user.username,
+        roles,
+        &state.jwt_secret,
+    )
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(ResponseJson(LoginResponse {
+        user: user.into(),
+        access_token,
+        refresh_token,
+        token_type: "Bearer".to_string(),
+        expires_in: 900, // 15 minutes in seconds
+    }))
 }
 
 /// Performs automatic login using localStorage information.
@@ -430,6 +495,17 @@ pub async fn login_user(
 /// - Does not require password verification (convenient but less secure)
 /// - Suitable for maintaining user sessions in trusted environments
 /// - Consider implementing additional security measures for production use
+#[utoipa::path(
+    post,
+    path = "/api/users/auto-login",
+    request_body = AutoLoginRequest,
+    responses(
+        (status = 200, description = "Auto login successful", body = UserResponse),
+        (status = 401, description = "User not found or username mismatch"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "User Management"
+)]
 pub async fn auto_login_user(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AutoLoginRequest>,
@@ -446,6 +522,206 @@ pub async fn auto_login_user(
     }
 
     Ok(ResponseJson(user.into()))
+}
+
+/// Refresh access token using refresh token.
+/// 
+/// This endpoint allows clients to obtain new access and refresh tokens
+/// without requiring re-authentication. The old refresh token is revoked
+/// and a new pair of tokens is issued.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state with JWT secret and token blacklist
+/// * `payload` - Refresh token request containing the refresh token
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(ResponseJson<LoginResponse>)` - New tokens issued successfully
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **200 OK**: New tokens issued successfully
+/// - **401 Unauthorized**: Invalid, expired, or revoked token
+/// - **404 Not Found**: User not found
+/// - **500 Internal Server Error**: Token generation error
+/// 
+/// # Security
+/// 
+/// - Validates refresh token signature and expiration
+/// - Checks token against revocation blacklist
+/// - Revokes old refresh token after issuing new one
+/// - Fetches current user data to include latest roles
+/// 
+/// # Request Body
+/// 
+/// ```json
+/// {
+///   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+/// }
+/// ```
+/// 
+/// # Response Body
+/// 
+/// ```json
+/// {
+///   "user": {
+///     "id": "user-123",
+///     "username": "user@example.com",
+///     "roles": ["client"]
+///   },
+///   "access_token": "eyJhbGc...",
+///   "refresh_token": "eyJhbGc...",
+///   "token_type": "Bearer",
+///   "expires_in": 900
+/// }
+/// ```
+#[utoipa::path(
+    post,
+    path = "/api/users/refresh",
+    request_body = RefreshTokenRequest,
+    responses(
+        (status = 200, description = "Tokens refreshed successfully", body = LoginResponse),
+        (status = 401, description = "Invalid or expired refresh token"),
+        (status = 404, description = "User not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "User Management"
+)]
+pub async fn refresh_token(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RefreshTokenRequest>,
+) -> Result<ResponseJson<LoginResponse>, StatusCode> {
+    // Validate refresh token
+    let claims = jwt::validate_token(&payload.refresh_token, &state.jwt_secret)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    
+    // Check if token is revoked
+    if state.token_blacklist.is_revoked(&claims.jti).await {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    
+    // Fetch current user data
+    let user = queries::find_user_by_id(&state.pool, &claims.sub)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    
+    // Parse current roles
+    let roles: Vec<String> = serde_json::from_str(&user.roles)
+        .unwrap_or_else(|_| vec![user.roles.clone()]);
+    
+    // Generate new tokens
+    let new_access_token = jwt::generate_access_token(
+        &user.id,
+        &user.username,
+        roles.clone(),
+        &state.jwt_secret,
+    )
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let new_refresh_token = jwt::generate_refresh_token(
+        &user.id,
+        &user.username,
+        roles,
+        &state.jwt_secret,
+    )
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    // Revoke old refresh token
+    state.token_blacklist.revoke(&claims.jti, claims.exp).await;
+    
+    Ok(ResponseJson(LoginResponse {
+        user: user.into(),
+        access_token: new_access_token,
+        refresh_token: new_refresh_token,
+        token_type: "Bearer".to_string(),
+        expires_in: 900,
+    }))
+}
+
+/// Logout user and revoke tokens.
+/// 
+/// This endpoint revokes both access and refresh tokens, effectively
+/// logging out the user. The tokens are added to the blacklist and
+/// can no longer be used for authentication.
+/// 
+/// # Parameters
+/// 
+/// * `state` - Shared application state with token blacklist
+/// * `payload` - Logout request containing tokens to revoke
+/// 
+/// # Returns
+/// 
+/// Returns `Result` containing:
+/// - `Ok(StatusCode::NO_CONTENT)` - Logout successful
+/// - `Err(StatusCode)` - HTTP error code indicating failure reason
+/// 
+/// # HTTP Responses
+/// 
+/// - **204 No Content**: Logout successful, tokens revoked
+/// - **400 Bad Request**: No tokens provided
+/// - **500 Internal Server Error**: Token validation error
+/// 
+/// # Security
+/// 
+/// - Validates tokens before adding to blacklist
+/// - Accepts both access and refresh tokens
+/// - Frontend should clear all stored tokens after logout
+/// - Revoked tokens cannot be used even if not expired
+/// 
+/// # Request Body
+/// 
+/// ```json
+/// {
+///   "access_token": "eyJhbGc...",
+///   "refresh_token": "eyJhbGc..."
+/// }
+/// ```
+/// 
+/// # Response
+/// 
+/// - Status: 204 No Content (empty body)
+#[utoipa::path(
+    post,
+    path = "/api/users/logout",
+    request_body = LogoutRequest,
+    responses(
+        (status = 204, description = "Logout successful, tokens revoked"),
+        (status = 400, description = "No tokens provided"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    ),
+    tag = "User Management"
+)]
+pub async fn logout_user(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<LogoutRequest>,
+) -> Result<StatusCode, StatusCode> {
+    // Validate and revoke access token if provided
+    if let Some(access_token) = &payload.access_token {
+        if let Ok(claims) = jwt::validate_token(access_token, &state.jwt_secret) {
+            state.token_blacklist.revoke(&claims.jti, claims.exp).await;
+        }
+    }
+    
+    // Validate and revoke refresh token if provided
+    if let Some(refresh_token) = &payload.refresh_token {
+        if let Ok(claims) = jwt::validate_token(refresh_token, &state.jwt_secret) {
+            state.token_blacklist.revoke(&claims.jti, claims.exp).await;
+        }
+    }
+    
+    // Return 400 if no tokens were provided
+    if payload.access_token.is_none() && payload.refresh_token.is_none() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// Creates a new NDA process with encrypted content.
@@ -509,20 +785,48 @@ pub async fn auto_login_user(
 /// 2. Process record is created in database
 /// 3. Process can be shared with partners via blockchain transactions
 /// 4. Access events are logged for audit trails
+#[utoipa::path(
+    post,
+    path = "/api/processes",
+    request_body = CreateProcessRequest,
+    responses(
+        (status = 200, description = "Process created successfully", body = ProcessResponse),
+        (status = 401, description = "Unauthorized - Invalid or missing token"),
+        (status = 403, description = "User doesn't have client role"),
+        (status = 422, description = "Client ID not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    ),
+    tag = "Process Management"
+)]
 pub async fn create_process(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(payload): Json<CreateProcessRequest>,
 ) -> Result<ResponseJson<ProcessResponse>, StatusCode> {
-    // Find client by ID and verify client role
+    // Validate JWT token and extract claims
+    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
+    let claims = jwt::validate_auth_header(auth_header, &state.jwt_secret, &state.token_blacklist)
+        .await
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    
+    // Verify token user ID matches payload client ID
+    if claims.sub != payload.client_id {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    
+    // Verify user has client role in JWT claims
+    if !claims.roles.contains(&"client".to_string()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    
+    // Find client by ID (already validated via JWT)
     let client = queries::find_user_by_id(&state.pool, &payload.client_id)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
-        
-    // Verify user has client role
-    if !client.is_client() {
-        return Err(StatusCode::FORBIDDEN);
-    }
 
     let encryption_key = generate_key();
     let encrypted_content = encrypt_content(&payload.confidential_content, &encryption_key)
@@ -600,6 +904,17 @@ pub async fn create_process(
 /// - Transaction hash can be independently verified
 /// - Sharing permissions are cryptographically provable
 /// - Audit trail meets regulatory requirements
+#[utoipa::path(
+    post,
+    path = "/api/processes/share",
+    request_body = ShareProcessRequest,
+    responses(
+        (status = 200, description = "Process shared successfully", body = ProcessShare),
+        (status = 404, description = "Process or client not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Sharing & Access"
+)]
 pub async fn share_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ShareProcessRequest>,
@@ -710,6 +1025,18 @@ pub async fn share_process(
 /// - Access is logged for regulatory compliance
 /// - Failed access attempts are also logged
 /// - Sharing verification prevents unauthorized access
+#[utoipa::path(
+    post,
+    path = "/api/processes/access",
+    request_body = AccessProcessRequest,
+    responses(
+        (status = 200, description = "Access granted, content decrypted", body = ProcessAccessResponse),
+        (status = 403, description = "Process not shared with partner or insufficient role"),
+        (status = 404, description = "Process or partner not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Sharing & Access"
+)]
 pub async fn access_process(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AccessProcessRequest>,
@@ -853,11 +1180,43 @@ pub async fn access_process(
 /// - Only returns processes owned by the specified client
 /// - Encrypted content is not included in the response
 /// - Process access requires separate authorization via sharing
+#[utoipa::path(
+    get,
+    path = "/api/processes",
+    params(
+        ("client_id" = String, Query, description = "Client ID to filter processes")
+    ),
+    responses(
+        (status = 200, description = "Processes retrieved successfully", body = [ProcessResponse]),
+        (status = 401, description = "Unauthorized - Invalid or missing token"),
+        (status = 400, description = "Missing client_id parameter"),
+        (status = 403, description = "Forbidden - Cannot access other user's processes"),
+        (status = 404, description = "Client not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    ),
+    tag = "Process Management"
+)]
 pub async fn list_processes(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Query(params): Query<ListProcessesQuery>,
 ) -> Result<ResponseJson<Vec<ProcessResponse>>, StatusCode> {
-    let client_id = params.client_id.ok_or(StatusCode::BAD_REQUEST)?;
+    // Validate JWT token and extract claims
+    let auth_header = headers.get("authorization").and_then(|h| h.to_str().ok());
+    let claims = jwt::validate_auth_header(auth_header, &state.jwt_secret, &state.token_blacklist)
+        .await
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    
+    // Use client_id from query params if provided, otherwise use token user ID
+    let client_id = params.client_id.unwrap_or(claims.sub.clone());
+    
+    // Verify user is requesting their own processes or has appropriate role
+    if client_id != claims.sub && !claims.roles.contains(&"admin".to_string()) {
+        return Err(StatusCode::FORBIDDEN);
+    }
     
     // Find client by ID
     let client = queries::find_user_by_id(&state.pool, &client_id)
@@ -946,6 +1305,20 @@ pub async fn list_processes(
 /// - Only shows access to processes owned by the requesting client
 /// - Includes process descriptions, status, and partner usernames but not sensitive encrypted content
 /// - Ordered by access time (most recent first) for easy monitoring
+#[utoipa::path(
+    get,
+    path = "/api/notifications",
+    params(
+        ("client_id" = String, Query, description = "Client ID to retrieve notifications for")
+    ),
+    responses(
+        (status = 200, description = "Notifications retrieved successfully", body = [ProcessAccessWithDetails]),
+        (status = 400, description = "Missing client_id parameter"),
+        (status = 404, description = "Client not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Audit & Compliance"
+)]
 pub async fn get_notifications(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListProcessesQuery>,

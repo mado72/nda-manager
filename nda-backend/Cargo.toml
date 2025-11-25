@@ -25,6 +25,13 @@ dotenv = "0.15"
 url = "2.4"
 bcrypt = "0.17.1"
 
+# JWT Authentication
+jsonwebtoken = "9.2"
+
+# OpenAPI/Swagger
+utoipa = { version = "4.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
+
 # Stellar específico - versões compatíveis
 stellar-strkey = "0.0.8"
 ed25519-dalek = "1.0"

@@ -42,6 +42,21 @@ export interface UserResponse {
     created_at: string;
 }
 
+// JWT Authentication interfaces
+export interface LoginResponse {
+    user: UserResponse;
+    access_token: string;
+    refresh_token: string;
+}
+
+export interface RefreshTokenRequest {
+    refresh_token: string;
+}
+
+export interface LogoutRequest {
+    token: string;
+}
+
 // Utility functions for working with roles
 export class UserUtils {
     /**

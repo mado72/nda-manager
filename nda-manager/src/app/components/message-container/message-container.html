@@ -1,0 +1,8 @@
+<div [class]="containerClasses()">
+  <div class="message-content">
+    <svg class="message-icon" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" [attr.d]="iconPath()" clip-rule="evenodd"/>
+    </svg>
+    {{ message() }}
+  </div>
+</div>
