@@ -1,0 +1,17 @@
+<div class="step-content">
+  <h3 class="step-title">Contract Contents</h3>
+  <p class="step-description">Enter the contract text that partners will be able to view</p>
+  
+  <div class="form-group">
+    <label for="content" class="form-label">Contract Content *</label>
+    <textarea
+      id="content"
+      name="content"
+      class="form-textarea large"
+      placeholder="Enter the contract content here..."
+      [ngModel]="content()"
+      (ngModelChange)="onContentChange($event)"
+      [disabled]="loading()"
+      required></textarea>
+  </div>
+</div>

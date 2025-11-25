@@ -1,0 +1,90 @@
+<div class="fee-section">
+  <div class="section-header">
+    <h4 class="section-title">Fee Structure</h4>
+    <button type="button" class="btn-add" (click)="addFeeEntry()" [disabled]="loading()">
+      <svg fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+      </svg>
+      Add Entry
+    </button>
+  </div>
+  
+  @for (entry of feeStructure(); track $index) {
+    <div class="fee-card">
+      <div class="card-header">
+        <h5>Fee Entry {{ $index + 1 }}</h5>
+        @if (feeStructure().length > 1) {
+          <button type="button" class="btn-remove" (click)="removeFeeEntry($index)" [disabled]="loading()">
+            <svg fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        }
+      </div>
+      
+      <div class="fee-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Party Name</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder="Party name"
+              [ngModel]="entry.partyName"
+              (ngModelChange)="updateFeeEntry($index, 'partyName', $event)"
+              [disabled]="loading()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select
+              class="form-select"
+              [ngModel]="entry.role"
+              (ngModelChange)="updateFeeEntry($index, 'role', $event)"
+              [disabled]="loading()">
+              <option value="disclosing">Disclosing</option>
+              <option value="receiving">Receiving</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Fee Percentage (%)</label>
+            <input
+              type="number"
+              class="form-input"
+              placeholder="0.00"
+              min="0"
+              max="100"
+              step="0.01"
+              [ngModel]="entry.feePercentage"
+              (ngModelChange)="updateFeeEntry($index, 'feePercentage', $event)"
+              [disabled]="loading()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fixed Fee</label>
+            <input
+              type="number"
+              class="form-input"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              [ngModel]="entry.fixedFee"
+              (ngModelChange)="updateFeeEntry($index, 'fixedFee', $event)"
+              [disabled]="loading()">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea
+            class="form-textarea"
+            placeholder="Fee description and conditions"
+            [ngModel]="entry.description"
+            (ngModelChange)="updateFeeEntry($index, 'description', $event)"
+            [disabled]="loading()"></textarea>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,81 @@
+<div class="step-content">
+  <h3 class="step-title">Contract Model Details</h3>
+  <p class="step-description">Fill in the structured contract information</p>
+  
+  <!-- Proprietary Company -->
+  <div class="form-group">
+    <label for="proprietaryCompany" class="form-label">Proprietary Company Name *</label>
+    <input
+      type="text"
+      id="proprietaryCompany"
+      class="form-input"
+      placeholder="Company that owns the negotiated object"
+      [ngModel]="proprietaryCompanyName()"
+      (ngModelChange)="onProprietaryCompanyNameChange($event)"
+      [disabled]="loading()"
+      required>
+  </div>
+
+  <!-- Scope of Discussion -->
+  <div class="form-group">
+    <label for="scope" class="form-label">Scope of Discussion *</label>
+    <textarea
+      id="scope"
+      class="form-textarea"
+      placeholder="Nature of the object to be negotiated"
+      [ngModel]="scopeOfDiscussion()"
+      (ngModelChange)="onScopeOfDiscussionChange($event)"
+      [disabled]="loading()"
+      required></textarea>
+  </div>
+
+  <!-- Agreement Value -->
+  <div class="form-group">
+    <label for="agreementValue" class="form-label">Agreement Value *</label>
+    <input
+      type="text"
+      id="agreementValue"
+      class="form-input"
+      placeholder="Contract value"
+      [ngModel]="agreementValue()"
+      (ngModelChange)="onAgreementValueChange($event)"
+      [disabled]="loading()"
+      required>
+  </div>
+
+  <!-- Authorized Contact Person -->
+  <div class="contact-section">
+    <h4 class="section-title">Authorized Contact Person *</h4>
+    <app-contact-person-form
+      [contact]="authorizedContactPerson()"
+      [loading]="loading()"
+      [showRemove]="false"
+      (contactChange)="onAuthorizedContactPersonChange($event)">
+    </app-contact-person-form>
+  </div>
+
+  <!-- Disclosing Parties -->
+  <app-contract-parties-management
+    [parties]="disclosingParties()"
+    [loading]="loading()"
+    title="Disclosing Parties"
+    singularTitle="Disclosing Party"
+    (partiesChange)="onDisclosingPartiesChange($event)">
+  </app-contract-parties-management>
+
+  <!-- Receiving Parties -->
+  <app-contract-parties-management
+    [parties]="receivingParties()"
+    [loading]="loading()"
+    title="Receiving Parties"
+    singularTitle="Receiving Party"
+    (partiesChange)="onReceivingPartiesChange($event)">
+  </app-contract-parties-management>
+
+  <!-- Fee Structure -->
+  <app-contract-fee-structure
+    [feeStructure]="feeStructure()"
+    [loading]="loading()"
+    (feeStructureChange)="onFeeStructureChange($event)">
+  </app-contract-fee-structure>
+</div>

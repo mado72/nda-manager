@@ -1,0 +1,17 @@
+<!-- Step Indicator -->
+<div class="step-indicator">
+  <div class="step-item" [class.active]="currentStep() >= 1" [class.completed]="currentStep() > 1">
+    <div class="step-number">1</div>
+    <div class="step-label">Basic Information</div>
+  </div>
+  <div class="step-connector" [class.completed]="currentStep() > 1"></div>
+  <div class="step-item" [class.active]="currentStep() >= 2" [class.completed]="currentStep() > 2">
+    <div class="step-number">2</div>
+    <div class="step-label">Contract Type</div>
+  </div>
+  <div class="step-connector" [class.completed]="currentStep() > 2"></div>
+  <div class="step-item" [class.active]="currentStep() >= 3">
+    <div class="step-number">3</div>
+    <div class="step-label">Contract Details</div>
+  </div>
+</div>

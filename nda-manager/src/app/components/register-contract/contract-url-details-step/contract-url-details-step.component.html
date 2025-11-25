@@ -1,0 +1,18 @@
+<div class="step-content">
+  <h3 class="step-title">Contract URL</h3>
+  <p class="step-description">Provide the URL where partners can access contract information</p>
+  
+  <div class="form-group">
+    <label for="uri" class="form-label">Contract URI *</label>
+    <input
+      type="url"
+      id="uri"
+      name="uri"
+      class="form-input"
+      placeholder="https://example.com/contract-details"
+      [ngModel]="uri()"
+      (ngModelChange)="onUriChange($event)"
+      [disabled]="loading()"
+      required>
+  </div>
+</div>

@@ -1,0 +1,24 @@
+<div class="parties-section">
+  <div class="section-header">
+    <h4 class="section-title">{{ title() }} *</h4>
+    <button type="button" class="btn-add" (click)="addParty()" [disabled]="loading()">
+      <svg fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+      </svg>
+      Add {{ singularTitle() }}
+    </button>
+  </div>
+  
+  @for (party of parties(); track $index) {
+    <div class="party-card">
+      <app-contact-person-form
+        [contact]="party"
+        [loading]="loading()"
+        [showRemove]="parties().length > 1"
+        [title]="singularTitle() + ' ' + ($index + 1)"
+        (contactChange)="updateParty($index, $event)"
+        (remove)="removeParty($index)">
+      </app-contact-person-form>
+    </div>
+  }
+</div>

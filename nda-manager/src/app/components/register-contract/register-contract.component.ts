@@ -15,11 +15,32 @@ import {
   FeeStructureEntry 
 } from '../../models/contract.model';
 
+// Wizard components
+import { ContractWizardHeaderComponent } from './contract-wizard-header/contract-wizard-header.component';
+import { ContractWizardStepIndicatorComponent } from './contract-wizard-step-indicator/contract-wizard-step-indicator.component';
+import { ContractBasicInfoStepComponent } from './contract-basic-info-step/contract-basic-info-step.component';
+import { ContractTypeSelectionStepComponent } from './contract-type-selection-step/contract-type-selection-step.component';
+import { ContractUrlDetailsStepComponent } from './contract-url-details-step/contract-url-details-step.component';
+import { ContractContentsDetailsStepComponent } from './contract-contents-details-step/contract-contents-details-step.component';
+import { ContractModelDetailsStepComponent } from './contract-model-details-step/contract-model-details-step.component';
+import { ContractWizardActionsComponent } from './contract-wizard-actions/contract-wizard-actions.component';
+
 
 @Component({
   selector: 'app-register-contract',
   standalone: true,
-  imports: [FormsModule, MessageContainer],
+  imports: [
+    FormsModule, 
+    MessageContainer,
+    ContractWizardHeaderComponent,
+    ContractWizardStepIndicatorComponent,
+    ContractBasicInfoStepComponent,
+    ContractTypeSelectionStepComponent,
+    ContractUrlDetailsStepComponent,
+    ContractContentsDetailsStepComponent,
+    ContractModelDetailsStepComponent,
+    ContractWizardActionsComponent
+  ],
   templateUrl: './register-contract.component.html',
   styleUrl: './register-contract.component.scss'
 })
