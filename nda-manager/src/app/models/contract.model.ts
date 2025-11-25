@@ -58,6 +58,9 @@ export interface ContactInfo {
   address: Address;
   identification: IdentificationDocument;
   officialEmail: string;
+  // Company representative fields
+  companyEIN?: string; // EIN of the company being represented
+  representativeDocument?: IdentificationDocument; // Document of the person representing the company
 }
 
 export interface Address {

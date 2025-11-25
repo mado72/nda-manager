@@ -34,7 +34,12 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
       type: 'cpf',
       number: ''
     },
-    officialEmail: ''
+    officialEmail: '',
+    companyEIN: '',
+    representativeDocument: {
+      type: 'cpf',
+      number: ''
+    }
   });
 
   ngOnInit() {
@@ -61,10 +66,35 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
   }
 
   onFieldChange(field: keyof PartyInfo, value: any) {
-    this.editingContact.update(contact => ({
-      ...contact,
-      [field]: value
-    }));
+    this.editingContact.update(contact => {
+      const updatedContact = {
+        ...contact,
+        [field]: value
+      };
+      
+      // Initialize fields when entity type changes
+      if (field === 'entityType') {
+        if (value === 'company') {
+          // Initialize representative document if not exists
+          if (!updatedContact.representativeDocument) {
+            updatedContact.representativeDocument = {
+              type: 'cpf',
+              number: ''
+            };
+          }
+          // Initialize company EIN if not exists
+          if (!updatedContact.companyEIN) {
+            updatedContact.companyEIN = '';
+          }
+        } else {
+          // Clear company-specific fields for individuals
+          updatedContact.companyEIN = undefined;
+          updatedContact.representativeDocument = undefined;
+        }
+      }
+      
+      return updatedContact;
+    });
   }
 
   onAddressChange(field: keyof PartyInfo['address'], value: string) {
@@ -77,12 +107,14 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
     }));
   }
 
-  onIdentificationChange(field: keyof PartyInfo['identification'], value: string) {
+
+
+  onRepresentativeDocumentChange(field: 'type' | 'number', value: string) {
     this.editingContact.update(contact => ({
       ...contact,
-      identification: {
-        ...contact.identification,
-        [field]: value
+      representativeDocument: {
+        type: field === 'type' ? value as any : contact.representativeDocument?.type || 'cpf',
+        number: field === 'number' ? value : contact.representativeDocument?.number || ''
       }
     }));
   }
@@ -99,8 +131,15 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
       contact.address.state &&
       contact.address.postalCode &&
       contact.address.country &&
-      contact.identification.type &&
-      contact.identification.number &&
+      // For companies, ensure company EIN and representative document are filled
+      (contact.entityType !== 'company' || (
+        contact.companyEIN && 
+        contact.companyEIN.trim() &&
+        contact.representativeDocument &&
+        contact.representativeDocument.type &&
+        contact.representativeDocument.number &&
+        contact.representativeDocument.number.trim()
+      )) &&
       contact.officialEmail
     );
   }

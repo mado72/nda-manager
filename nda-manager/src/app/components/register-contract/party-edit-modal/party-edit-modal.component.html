@@ -68,17 +68,79 @@
         </div>
 
         @if (editContact.entityType === 'company') {
-          <div class="form-group">
-            <label class="form-label">Company Name *</label>
-            <input
-              type="text"
-              class="form-input"
-              placeholder="Company name"
-              name="companyName"
-              [ngModel]="editContact.companyName"
-              (ngModelChange)="onFieldChange('companyName', $event)"
-              [disabled]="loading()"
-              required>
+          <!-- Representative Information -->
+          <div class="representative-section">
+            <h5 class="section-subtitle">Company Representative Information</h5>
+            <p class="section-description">Information of the person representing this company</p>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Representative Document Type *</label>
+                <select
+                  class="form-select"
+                  title="Select representative document type"
+                  name="representativeDocumentType"
+                  [ngModel]="editContact.representativeDocument?.type || 'cpf'"
+                  (ngModelChange)="onRepresentativeDocumentChange('type', $event)"
+                  [disabled]="loading()"
+                  required>
+                  <option value="cpf">CPF</option>
+                  <option value="passport">Passport</option>
+                  <option value="other">Other ID</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Representative Document Number *</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  placeholder="Representative's document number"
+                  name="representativeDocumentNumber"
+                  [ngModel]="editContact.representativeDocument?.number || ''"
+                  (ngModelChange)="onRepresentativeDocumentChange('number', $event)"
+                  [disabled]="loading()"
+                  required>
+                @if (editContact.entityType === 'company' && !editContact.representativeDocument?.number) {
+                  <div class="validation-message error">
+                    Representative document is required for companies
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Company Name *</label>
+              <input
+                type="text"
+                class="form-input"
+                placeholder="Company name"
+                name="companyName"
+                [ngModel]="editContact.companyName"
+                (ngModelChange)="onFieldChange('companyName', $event)"
+                [disabled]="loading()"
+                required>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Company EIN *</label>
+              <input
+                type="text"
+                class="form-input"
+                placeholder="Company EIN/CNPJ"
+                name="companyEIN"
+                [ngModel]="editContact.companyEIN"
+                (ngModelChange)="onFieldChange('companyEIN', $event)"
+                [disabled]="loading()"
+                required>
+              @if (editContact.entityType === 'company' && (!editContact.companyEIN || !editContact.companyEIN.trim())) {
+                <div class="validation-message error">
+                  Company EIN is required for business entities
+                </div>
+              }
+            </div>
           </div>
         }
 
@@ -136,37 +198,6 @@
                 [disabled]="loading()"
                 required>
             </div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Identification Type *</label>
-            <select
-              class="form-select"
-              title="Select identification type"
-              name="identificationType"
-              [ngModel]="editContact.identification.type"
-              (ngModelChange)="onIdentificationChange('type', $event)"
-              [disabled]="loading()"
-              required>
-              <option value="cpf">CPF</option>
-              <option value="cnpj">CNPJ</option>
-              <option value="passport">Passport</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Identification Number *</label>
-            <input
-              type="text"
-              class="form-input"
-              placeholder="Document number"
-              name="identificationNumber"
-              [ngModel]="editContact.identification.number"
-              (ngModelChange)="onIdentificationChange('number', $event)"
-              [disabled]="loading()"
-              required>
           </div>
         </div>
 
