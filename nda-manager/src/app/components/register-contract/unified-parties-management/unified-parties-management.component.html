@@ -18,226 +18,202 @@
       </thead>
       <tbody>
         <!-- Disclosing Parties Section -->
-        <tr class="section-divider">
-          <td colspan="7" class="section-header-row">
+        @if (groupedParties().disclosing.length > 0) {
+          <tr class="section-divider">
+            <td colspan="7" class="section-header-row">
             <div class="section-header-content">
               <span class="section-title">{{ getPartyTypeDisplayName('disclosing') }}</span>
-              <button type="button" 
-                      class="btn-add-small" 
-                      (click)="addParty('disclosing')"
-                      [disabled]="loading()"
-                      title="Add Disclosing Party">
-                <svg fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-                </svg>
-                Add {{ getPartyTypeSingular('disclosing') }}
-              </button>
             </div>
-          </td>
-        </tr>
-        
-        @for (party of groupedParties().disclosing; track $index) {
-          <tr class="party-row">
-            <td>
-              <span class="party-type-badge disclosing">{{ getPartyTypeSingular('disclosing') }}</span>
-            </td>
-            <td>
-              <div class="party-name">
-                {{ party.name }}
-                @if (party.entityType === 'company' && party.companyName) {
-                  <div class="company-name">{{ party.companyName }}</div>
-                }
-              </div>
-            </td>
-            <td>
-              <span class="entity-type-badge" 
-                    [class.individual]="party.entityType === 'individual'"
-                    [class.company]="party.entityType === 'company'">
-                {{ getEntityTypeDisplay(party.entityType) }}
-              </span>
-            </td>
-            <td>{{ party.address.state }}</td>
-            <td>{{ getIdentificationDisplay(party) }}</td>
-            <td>{{ party.officialEmail }}</td>
-            <td>
-              <div class="action-buttons">
-                <button type="button" 
-                        class="btn-edit" 
-                        (click)="editParty(party, $index)"
-                        [disabled]="loading()"
-                        title="Edit party">
-                  <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                  </svg>
-                </button>
-                <button type="button" 
-                        class="btn-remove" 
-                        (click)="removeParty(party)"
-                        [disabled]="loading()"
-                        title="Remove party">
-                  <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd"/>
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                  </svg>
-                </button>
-              </div>
             </td>
           </tr>
-        } @empty {
-          <tr class="empty-row">
-            <td colspan="7" class="empty-message">
-              No disclosing parties added yet. Click "Add Disclosing Party" to get started.
-            </td>
-          </tr>
+          
+          @for (party of groupedParties().disclosing; track $index) {
+            <tr class="party-row">
+              <td>
+                <span class="party-type-badge disclosing">{{ getPartyTypeSingular('disclosing') }}</span>
+              </td>
+              <td>
+                <div class="party-name">
+                  {{ party.name }}
+                  @if (party.entityType === 'company' && party.companyName) {
+                    <div class="company-name">{{ party.companyName }}</div>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="entity-type-badge" 
+                      [class.individual]="party.entityType === 'individual'"
+                      [class.company]="party.entityType === 'company'">
+                  {{ getEntityTypeDisplay(party.entityType) }}
+                </span>
+              </td>
+              <td>{{ party.address.state }}</td>
+              <td>{{ getIdentificationDisplay(party) }}</td>
+              <td>{{ party.officialEmail }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button type="button" 
+                          class="btn-edit" 
+                          (click)="editParty(party, $index)"
+                          [disabled]="loading()"
+                          title="Edit party">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                    </svg>
+                  </button>
+                  <button type="button" 
+                          class="btn-remove" 
+                          (click)="removeParty(party)"
+                          [disabled]="loading()"
+                          title="Remove party">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
         }
 
         <!-- Receiving Parties Section -->
-        <tr class="section-divider">
-          <td colspan="7" class="section-header-row">
+        @if (groupedParties().receiving.length > 0) {
+          <tr class="section-divider">
+            <td colspan="7" class="section-header-row">
             <div class="section-header-content">
               <span class="section-title">{{ getPartyTypeDisplayName('receiving') }}</span>
-              <button type="button" 
-                      class="btn-add-small" 
-                      (click)="addParty('receiving')"
-                      [disabled]="loading()"
-                      title="Add Receiving Party">
-                <svg fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-                </svg>
-                Add {{ getPartyTypeSingular('receiving') }}
-              </button>
             </div>
-          </td>
-        </tr>
-        
-        @for (party of groupedParties().receiving; track $index) {
-          <tr class="party-row">
-            <td>
-              <span class="party-type-badge receiving">{{ getPartyTypeSingular('receiving') }}</span>
-            </td>
-            <td>
-              <div class="party-name">
-                {{ party.name }}
-                @if (party.entityType === 'company' && party.companyName) {
-                  <div class="company-name">{{ party.companyName }}</div>
-                }
-              </div>
-            </td>
-            <td>
-              <span class="entity-type-badge" 
-                    [class.individual]="party.entityType === 'individual'"
-                    [class.company]="party.entityType === 'company'">
-                {{ getEntityTypeDisplay(party.entityType) }}
-              </span>
-            </td>
-            <td>{{ party.address.state }}</td>
-            <td>{{ getIdentificationDisplay(party) }}</td>
-            <td>{{ party.officialEmail }}</td>
-            <td>
-              <div class="action-buttons">
-                <button type="button" 
-                        class="btn-edit" 
-                        (click)="editParty(party, $index)"
-                        [disabled]="loading()"
-                        title="Edit party">
-                  <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                  </svg>
-                </button>
-                <button type="button" 
-                        class="btn-remove" 
-                        (click)="removeParty(party)"
-                        [disabled]="loading()"
-                        title="Remove party">
-                  <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd"/>
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                  </svg>
-                </button>
-              </div>
             </td>
           </tr>
-        } @empty {
-          <tr class="empty-row">
-            <td colspan="7" class="empty-message">
-              No receiving parties added yet. Click "Add Receiving Party" to get started.
-            </td>
-          </tr>
+          
+          @for (party of groupedParties().receiving; track $index) {
+            <tr class="party-row">
+              <td>
+                <span class="party-type-badge receiving">{{ getPartyTypeSingular('receiving') }}</span>
+              </td>
+              <td>
+                <div class="party-name">
+                  {{ party.name }}
+                  @if (party.entityType === 'company' && party.companyName) {
+                    <div class="company-name">{{ party.companyName }}</div>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="entity-type-badge" 
+                      [class.individual]="party.entityType === 'individual'"
+                      [class.company]="party.entityType === 'company'">
+                  {{ getEntityTypeDisplay(party.entityType) }}
+                </span>
+              </td>
+              <td>{{ party.address.state }}</td>
+              <td>{{ getIdentificationDisplay(party) }}</td>
+              <td>{{ party.officialEmail }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button type="button" 
+                          class="btn-edit" 
+                          (click)="editParty(party, $index)"
+                          [disabled]="loading()"
+                          title="Edit party">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                    </svg>
+                  </button>
+                  <button type="button" 
+                          class="btn-remove" 
+                          (click)="removeParty(party)"
+                          [disabled]="loading()"
+                          title="Remove party">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
         }
 
         <!-- Witness Parties Section -->
-        <tr class="section-divider">
-          <td colspan="7" class="section-header-row">
+        @if (groupedParties().witness.length > 0) {
+          <tr class="section-divider">
+            <td colspan="7" class="section-header-row">
             <div class="section-header-content">
               <span class="section-title">{{ getPartyTypeDisplayName('witness') }}</span>
+            </div>
+            </td>
+          </tr>
+          
+          @for (party of groupedParties().witness; track $index) {
+            <tr class="party-row">
+              <td>
+                <span class="party-type-badge witness">{{ getPartyTypeSingular('witness') }}</span>
+              </td>
+              <td>
+                <div class="party-name">
+                  {{ party.name }}
+                  @if (party.entityType === 'company' && party.companyName) {
+                    <div class="company-name">{{ party.companyName }}</div>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="entity-type-badge" 
+                      [class.individual]="party.entityType === 'individual'"
+                      [class.company]="party.entityType === 'company'">
+                  {{ getEntityTypeDisplay(party.entityType) }}
+                </span>
+              </td>
+              <td>{{ party.address.state }}</td>
+              <td>{{ getIdentificationDisplay(party) }}</td>
+              <td>{{ party.officialEmail }}</td>
+              <td>
+                <div class="action-buttons">
+                  <button type="button" 
+                          class="btn-edit" 
+                          (click)="editParty(party, $index)"
+                          [disabled]="loading()"
+                          title="Edit party">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                    </svg>
+                  </button>
+                  <button type="button" 
+                          class="btn-remove" 
+                          (click)="removeParty(party)"
+                          [disabled]="loading()"
+                          title="Remove party">
+                    <svg fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+        
+        <!-- Add Party Buttons - Always visible -->
+        <tr class="add-party-section">
+          <td colspan="7" class="add-party-row">
+            <div class="add-party-buttons">
               <button type="button" 
-                      class="btn-add-small" 
-                      (click)="addParty('witness')"
+                      class="btn-add-party" 
+                      (click)="openAddPartyModal()"
                       [disabled]="loading()"
-                      title="Add Witness Party">
+                      title="Add Party">
                 <svg fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
                 </svg>
-                Add {{ getPartyTypeSingular('witness') }}
+                Add Party
               </button>
             </div>
           </td>
         </tr>
-        
-        @for (party of groupedParties().witness; track $index) {
-          <tr class="party-row">
-            <td>
-              <span class="party-type-badge witness">{{ getPartyTypeSingular('witness') }}</span>
-            </td>
-            <td>
-              <div class="party-name">
-                {{ party.name }}
-                @if (party.entityType === 'company' && party.companyName) {
-                  <div class="company-name">{{ party.companyName }}</div>
-                }
-              </div>
-            </td>
-            <td>
-              <span class="entity-type-badge" 
-                    [class.individual]="party.entityType === 'individual'"
-                    [class.company]="party.entityType === 'company'">
-                {{ getEntityTypeDisplay(party.entityType) }}
-              </span>
-            </td>
-            <td>{{ party.address.state }}</td>
-            <td>{{ getIdentificationDisplay(party) }}</td>
-            <td>{{ party.officialEmail }}</td>
-            <td>
-              <div class="action-buttons">
-                <button type="button" 
-                        class="btn-edit" 
-                        (click)="editParty(party, $index)"
-                        [disabled]="loading()"
-                        title="Edit party">
-                  <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                  </svg>
-                </button>
-                <button type="button" 
-                        class="btn-remove" 
-                        (click)="removeParty(party)"
-                        [disabled]="loading()"
-                        title="Remove party">
-                  <svg fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clip-rule="evenodd"/>
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-        } @empty {
-          <tr class="empty-row">
-            <td colspan="7" class="empty-message">
-              No witness parties added yet. Click "Add Witness Party" to get started.
-            </td>
-          </tr>
-        }
       </tbody>
     </table>
   </div>
@@ -247,7 +223,7 @@
     [isOpen]="isModalOpen()"
     [contact]="editingParty()"
     [loading]="loading()"
-    [title]="editingPartyIndex() === -1 ? 'Add ' + getPartyTypeSingular(selectedPartyType()) : 'Edit ' + getPartyTypeSingular(selectedPartyType())"
+    [title]="editingPartyIndex() === -1 ? 'Add Party' : 'Edit ' + getPartyTypeSingular(editingParty()?.partyType || 'disclosing')"
     (close)="onModalClose()"
     (save)="onModalSave($event)">
   </app-party-edit-modal>

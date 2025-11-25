@@ -1,6 +1,6 @@
 import { Component, input, output, signal, OnInit, OnChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ContactInfo } from '../../../models/contract.model';
+import { PartyInfo } from '../../../models/contract.model';
 
 @Component({
   selector: 'app-party-edit-modal',
@@ -11,14 +11,15 @@ import { ContactInfo } from '../../../models/contract.model';
 })
 export class PartyEditModalComponent implements OnInit, OnChanges {
   isOpen = input<boolean>(false);
-  contact = input<ContactInfo>();
+  contact = input<PartyInfo>();
   loading = input<boolean>(false);
   title = input<string>('Edit Party');
 
   close = output<void>();
-  save = output<ContactInfo>();
+  save = output<PartyInfo>();
 
-  private editingContact = signal<ContactInfo>({
+  private editingContact = signal<PartyInfo>({
+    partyType: 'disclosing',
     name: '',
     entityType: 'individual',
     companyName: '',
@@ -59,14 +60,14 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
     }
   }
 
-  onFieldChange(field: keyof ContactInfo, value: any) {
+  onFieldChange(field: keyof PartyInfo, value: any) {
     this.editingContact.update(contact => ({
       ...contact,
       [field]: value
     }));
   }
 
-  onAddressChange(field: keyof ContactInfo['address'], value: string) {
+  onAddressChange(field: keyof PartyInfo['address'], value: string) {
     this.editingContact.update(contact => ({
       ...contact,
       address: {
@@ -76,7 +77,7 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
     }));
   }
 
-  onIdentificationChange(field: keyof ContactInfo['identification'], value: string) {
+  onIdentificationChange(field: keyof PartyInfo['identification'], value: string) {
     this.editingContact.update(contact => ({
       ...contact,
       identification: {
@@ -89,6 +90,7 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
   private isValidForm(): boolean {
     const contact = this.editingContact();
     return !!(
+      contact.partyType &&
       contact.name &&
       contact.entityType &&
       (contact.entityType === 'individual' || contact.companyName) &&

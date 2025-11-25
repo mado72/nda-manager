@@ -31,6 +31,33 @@ export class UnifiedPartiesManagementComponent {
     };
   });
 
+  openAddPartyModal() {
+    // Open modal with empty party data, user will select type in modal
+    const emptyParty: PartyInfo = {
+      partyType: 'disclosing', // Default value, will be changed in modal
+      name: '',
+      entityType: 'individual',
+      companyName: '',
+      address: {
+        street: '',
+        city: '',
+        state: '',
+        postalCode: '',
+        country: ''
+      },
+      identification: {
+        type: 'cpf',
+        number: ''
+      },
+      officialEmail: ''
+    };
+    
+    this.editingParty.set(emptyParty);
+    this.editingPartyIndex.set(-1);
+    this.selectedPartyType.set('disclosing'); // Default for title display
+    this.isModalOpen.set(true);
+  }
+
   addParty(partyType: PartyType) {
     const emptyParty: PartyInfo = {
       partyType,
@@ -90,8 +117,7 @@ export class UnifiedPartiesManagementComponent {
 
   onModalSave(contact: any) {
     const party: PartyInfo = {
-      ...contact,
-      partyType: this.selectedPartyType()
+      ...contact
     };
 
     const updated = [...this.parties()];

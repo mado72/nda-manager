@@ -62,7 +62,7 @@
 
 .section-header-content {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   padding: 0.75rem 1rem;
   
@@ -248,6 +248,56 @@
   }
 }
 
+// Add Party Section
+.add-party-section {
+  background: #f9fafb;
+  
+  .add-party-row {
+    padding: 1.5rem 1rem;
+    text-align: center;
+  }
+}
+
+.add-party-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-add-party {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: #2563eb;
+  color: white;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 @media (max-width: 640px) {
   .parties-table {
     font-size: 0.8125rem;
@@ -269,5 +319,16 @@
       width: 0.75rem;
       height: 0.75rem;
     }
+  }
+
+  .add-party-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-add-party {
+    width: 100%;
+    max-width: 200px;
+    justify-content: center;
   }
 }
