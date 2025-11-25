@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 // import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { Contract, ShareRequest, ShareResponse } from '../models/contract.model';
 import { ClientService } from './client.service';
@@ -65,7 +65,7 @@ export class ContractService {
       catchError((err: any) => {
         console.error('❌ Error creating process:', err);
         this.error.set('Error creating process');
-        return of(null);
+        return throwError(() => err);
       }),
       finalize(() => {
         this.loading.set(false);

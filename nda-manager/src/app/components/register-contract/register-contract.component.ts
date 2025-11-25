@@ -29,15 +29,14 @@ export class RegisterContractComponent implements OnInit {
       this.loading.set(true);
       this.contractService.getContract(contractIdValue).subscribe({
         next: contract => {
-          if (contract) {
-            this.title.set(contract.title);
-            this.description.set(contract.description);
-            this.uri.set(contract.data?.uri || '');
-          }
-          this.loading.set(false);
+          this.title.set(contract.title);
+          this.description.set(contract.description);
+          this.uri.set(contract.data?.uri || '');
         },
         error: err => {
-          this.message.set('Error loading contract.');
+          this.message.set('Error loading contract: ' + (err.error?.message || err.message || 'Unknown error'));
+        },
+        complete: () => {
           this.loading.set(false);
         }
       });
@@ -69,15 +68,14 @@ export class RegisterContractComponent implements OnInit {
         this.title.set('');
         this.description.set('');
         this.uri.set('');
-        this.loading.set(false);
         setTimeout(() => {
           this.router.navigate(['/contracts']);
         }, 1200);
       },
       error: err => {
-        this.message.set('Error registering contract.');
-        this.loading.set(false);
-      }
+        this.message.set('Error registering contract: ' + (err.error?.message || err.message || 'Unknown error'));
+      },
+      complete: () => { this.loading.set(false); }
     });
   }
 
