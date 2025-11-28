@@ -20,124 +20,194 @@
     </div>
   }
 
-  <div class="form-row">
-    <div class="form-group">
-      <label class="form-label">Name *</label>
-      <input
-        type="text"
-        class="form-input"
-        placeholder="Full name"
-        [ngModel]="contact().name"
-        (ngModelChange)="onFieldChange('name', $event)"
-        [disabled]="loading()"
-        required>
+  <div class="form-container">
+    <!-- Basic Information -->
+    <div class="form-section">
+      <h5 class="section-subtitle">Basic Information</h5>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Name *</label>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="Full name"
+            [ngModel]="contact().name"
+            (ngModelChange)="onFieldChange('name', $event)"
+            [disabled]="loading()"
+            required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Entity Type *</label>
+          <select
+            class="form-select"
+            aria-label="Select contact person type"
+            [ngModel]="contact().entityType"
+            (ngModelChange)="onFieldChange('entityType', $event)"
+            [disabled]="loading()">
+            <option value="individual">Individual</option>
+            <option value="company">Company</option>
+          </select>
+        </div>
+      </div>
+      
+      @if (contact().entityType === 'company') {
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Company Name *</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder="Company name"
+              [ngModel]="contact().companyName"
+              (ngModelChange)="onFieldChange('companyName', $event)"
+              [disabled]="loading()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company EIN *</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder="XX-XXXXXXX"
+              [ngModel]="contact().companyEIN"
+              (ngModelChange)="onFieldChange('companyEIN', $event)"
+              [disabled]="loading()">
+          </div>
+        </div>
+      }
     </div>
-    <div class="form-group">
-      <label class="form-label">Entity Type *</label>
-      <select
-        class="form-select"
-        aria-label="Select contact person type"
-        [ngModel]="contact().entityType"
-        (ngModelChange)="onFieldChange('entityType', $event)"
-        [disabled]="loading()">
-        <option value="individual">Individual</option>
-        <option value="company">Company</option>
-      </select>
-    </div>
-  </div>
-  
-  @if (contact().entityType === 'company') {
-    <div class="form-group">
-      <label class="form-label">Company Name *</label>
-      <input
-        type="text"
-        class="form-input"
-        placeholder="Company name"
-        [ngModel]="contact().companyName"
-        (ngModelChange)="onFieldChange('companyName', $event)"
-        [disabled]="loading()">
-    </div>
-  }
 
-  <!-- Address -->
-  <div class="form-group">
-    <label class="form-label">Address *</label>
-    <div class="address-grid">
-      <input
-        type="text"
-        class="form-input"
-        placeholder="Street"
-        [ngModel]="contact().address.street"
-        (ngModelChange)="onAddressChange('street', $event)"
-        [disabled]="loading()">
-      <input
-        type="text"
-        class="form-input"
-        placeholder="City"
-        [ngModel]="contact().address.city"
-        (ngModelChange)="onAddressChange('city', $event)"
-        [disabled]="loading()">
-      <input
-        type="text"
-        class="form-input"
-        placeholder="State"
-        [ngModel]="contact().address.state"
-        (ngModelChange)="onAddressChange('state', $event)"
-        [disabled]="loading()">
-      <input
-        type="text"
-        class="form-input"
-        placeholder="Postal Code"
-        [ngModel]="contact().address.postalCode"
-        (ngModelChange)="onAddressChange('postalCode', $event)"
-        [disabled]="loading()">
-      <input
-        type="text"
-        class="form-input"
-        placeholder="Country"
-        [ngModel]="contact().address.country"
-        (ngModelChange)="onAddressChange('country', $event)"
-        [disabled]="loading()">
+    <!-- Address Section -->
+    <div class="form-section">
+      <h5 class="section-subtitle">Address Information</h5>
+      <div class="address-grid">
+        <div class="form-group">
+          <label class="form-label">Street *</label>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="Street address"
+            [ngModel]="contact().address.street"
+            (ngModelChange)="onAddressChange('street', $event)"
+            [disabled]="loading()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">City *</label>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="City"
+            [ngModel]="contact().address.city"
+            (ngModelChange)="onAddressChange('city', $event)"
+            [disabled]="loading()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">State *</label>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="State"
+            [ngModel]="contact().address.state"
+            (ngModelChange)="onAddressChange('state', $event)"
+            [disabled]="loading()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Postal Code *</label>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="Postal code"
+            [ngModel]="contact().address.postalCode"
+            (ngModelChange)="onAddressChange('postalCode', $event)"
+            [disabled]="loading()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Country *</label>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="Country"
+            [ngModel]="contact().address.country"
+            (ngModelChange)="onAddressChange('country', $event)"
+            [disabled]="loading()">
+        </div>
+      </div>
     </div>
-  </div>
 
-  <!-- Identification -->
-  <div class="form-row">
-    <div class="form-group">
-      <label class="form-label">Identification Type *</label>
-      <select
-        class="form-select"
-        aria-label="Select identification type"
-        [ngModel]="contact().identification.type"
-        (ngModelChange)="onIdentificationChange('type', $event)"
-        [disabled]="loading()">
-        <option value="cpf">CPF</option>
-        <option value="cnpj">CNPJ</option>
-        <option value="passport">Passport</option>
-        <option value="other">Other</option>
-      </select>
+    <!-- Personal Identification Section -->
+    <div class="form-section">
+      <h5 class="section-subtitle">{{ contact().entityType === 'company' ? 'Representative ' : '' }}Personal Identification</h5>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">{{ contact().entityType === 'company' ? 'Representative ' : '' }}ID Type *</label>
+          <select
+            class="form-select"
+            aria-label="Select identification type"
+            [ngModel]="contact().entityType === 'company' ? contact().representativeDocument?.type : contact().identification.type"
+            (ngModelChange)="onPersonalIdentificationChange('type', $event)"
+            [disabled]="loading()">
+            <option value="cpf">CPF</option>
+            <option value="passport">Passport</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ contact().entityType === 'company' ? 'Representative ' : '' }}ID Number *</label>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="Document number"
+            [ngModel]="contact().entityType === 'company' ? contact().representativeDocument?.number : contact().identification.number"
+            (ngModelChange)="onPersonalIdentificationChange('number', $event)"
+            [disabled]="loading()">
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Identification Number *</label>
-      <input
-        type="text"
-        class="form-input"
-        placeholder="Document number"
-        [ngModel]="contact().identification.number"
-        (ngModelChange)="onIdentificationChange('number', $event)"
-        [disabled]="loading()">
-    </div>
-  </div>
 
-  <div class="form-group">
-    <label class="form-label">Official Email *</label>
-    <input
-      type="email"
-      class="form-input"
-      placeholder="official@email.com"
-      [ngModel]="contact().officialEmail"
-      (ngModelChange)="onFieldChange('officialEmail', $event)"
-      [disabled]="loading()"
-      required>
+    @if (contact().entityType === 'company') {
+      <!-- Company Document Section -->
+      <div class="form-section">
+        <h5 class="section-subtitle">Company Legal Document</h5>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Company Document Type *</label>
+            <select
+              class="form-select"
+              aria-label="Select company document type"
+              [ngModel]="contact().identification.type"
+              (ngModelChange)="onIdentificationChange('type', $event)"
+              [disabled]="loading()">
+              <option value="cnpj">CNPJ</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company Document Number *</label>
+            <input
+              type="text"
+              class="form-input"
+              placeholder="CNPJ number"
+              [ngModel]="contact().identification.number"
+              (ngModelChange)="onIdentificationChange('number', $event)"
+              [disabled]="loading()">
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Contact Information Section -->
+    <div class="form-section">
+      <h5 class="section-subtitle">Contact Information</h5>
+      <div class="form-group">
+        <label class="form-label">Official Email *</label>
+        <input
+          type="email"
+          class="form-input"
+          placeholder="official@email.com"
+          [ngModel]="contact().officialEmail"
+          (ngModelChange)="onFieldChange('officialEmail', $event)"
+          [disabled]="loading()"
+          required>
+      </div>
+    </div>
   </div>
 </div>

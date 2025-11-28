@@ -4,6 +4,9 @@
   border: 1px solid #e5e7eb;
   padding: 2rem;
   margin-bottom: 2rem;
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .step-title {
@@ -64,6 +67,14 @@
 
 .contact-section {
   margin-bottom: 2rem;
+  overflow: hidden;
+  
+  // Ensure child components don't overflow
+  app-contact-person-form {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
 
 .section-title {
@@ -71,4 +82,16 @@
   font-weight: 600;
   color: #1f2937;
   margin: 0 0 1rem 0;
+}
+
+// Responsive design improvements
+@media (max-width: 768px) {
+  .step-content {
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
 }

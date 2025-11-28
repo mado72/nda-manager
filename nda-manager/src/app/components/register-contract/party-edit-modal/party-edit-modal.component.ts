@@ -119,6 +119,16 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
     }));
   }
 
+  onIdentificationChange(field: 'type' | 'number', value: string) {
+    this.editingContact.update(contact => ({
+      ...contact,
+      identification: {
+        type: field === 'type' ? value as any : contact.identification.type,
+        number: field === 'number' ? value : contact.identification.number
+      }
+    }));
+  }
+
   private isValidForm(): boolean {
     const contact = this.editingContact();
     return !!(
@@ -131,6 +141,8 @@ export class PartyEditModalComponent implements OnInit, OnChanges {
       contact.address.state &&
       contact.address.postalCode &&
       contact.address.country &&
+      contact.identification.type &&
+      contact.identification.number &&
       // For companies, ensure company EIN and representative document are filled
       (contact.entityType !== 'company' || (
         contact.companyEIN && 

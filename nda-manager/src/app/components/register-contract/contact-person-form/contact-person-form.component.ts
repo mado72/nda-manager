@@ -39,6 +39,25 @@ export class ContactPersonFormComponent {
     this.contactChange.emit(updated);
   }
 
+  onPersonalIdentificationChange(field: string, value: string) {
+    if (this.contact().entityType === 'company') {
+      // For companies, update the representativeDocument
+      const currentDoc = this.contact().representativeDocument || { type: 'cpf' as const, number: '' };
+      const updated = { 
+        ...this.contact(), 
+        representativeDocument: { ...currentDoc, [field]: value }
+      };
+      this.contactChange.emit(updated);
+    } else {
+      // For individuals, update the main identification
+      const updated = { 
+        ...this.contact(), 
+        identification: { ...this.contact().identification, [field]: value }
+      };
+      this.contactChange.emit(updated);
+    }
+  }
+
   onRemove() {
     this.remove.emit();
   }

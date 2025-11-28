@@ -1,16 +1,22 @@
 .contact-form {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1rem;
+  margin-right: 1rem;
+  max-width: calc(100% - 1rem);
 }
 
 .contact-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  padding: 1rem 1.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  margin: 0;
 }
 
 .contact-title {
@@ -55,6 +61,13 @@
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+
+  .form-group {
+    width: 100%;
+    box-sizing: border-box;
+  }
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -79,6 +92,8 @@
 
 .form-input, .form-select {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
@@ -103,13 +118,47 @@
   }
 }
 
+// Form container and sections
+.form-container {
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+  clear: both;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .address-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-  gap: 0.75rem;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0;
+
+  .form-group {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 1fr;
+  }
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   @media (max-width: 480px) {

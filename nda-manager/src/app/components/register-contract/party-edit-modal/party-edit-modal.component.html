@@ -142,6 +142,47 @@
               }
             </div>
           </div>
+
+          <!-- Company Legal Document Section -->
+          <div class="company-document-section">
+            <h5 class="section-subtitle">Company Legal Documentation</h5>
+            <p class="section-description">Legal identification documents for the company entity</p>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Company Document Type *</label>
+                <select
+                  class="form-select"
+                  title="Select company document type"
+                  name="companyDocumentType"
+                  [ngModel]="editContact.identification.type"
+                  (ngModelChange)="onIdentificationChange('type', $event)"
+                  [disabled]="loading()"
+                  required>
+                  <option value="cnpj">CNPJ</option>
+                  <option value="other">Other Business ID</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Company Document Number *</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  placeholder="Company CNPJ or business ID"
+                  name="companyDocumentNumber"
+                  [ngModel]="editContact.identification.number"
+                  (ngModelChange)="onIdentificationChange('number', $event)"
+                  [disabled]="loading()"
+                  required>
+                @if (editContact.entityType === 'company' && !editContact.identification.number) {
+                  <div class="validation-message error">
+                    Company legal document is required for business entities
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
         }
 
         <div class="form-group">

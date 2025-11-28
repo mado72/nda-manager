@@ -198,7 +198,7 @@ export class RegisterContractComponent implements OnInit {
   }
 
   isContactValid(contact: ContactInfo): boolean {
-    return !!(
+    const baseValid = !!(
       contact.name &&
       contact.entityType &&
       contact.address.street &&
@@ -210,6 +210,17 @@ export class RegisterContractComponent implements OnInit {
       contact.identification.number &&
       contact.officialEmail
     );
+
+    if (contact.entityType === 'company') {
+      return baseValid && !!(
+        contact.companyName &&
+        contact.companyEIN &&
+        contact.representativeDocument?.type &&
+        contact.representativeDocument?.number
+      );
+    }
+
+    return baseValid;
   }
 
   isPartyValid(party: PartyInfo): boolean {
@@ -271,7 +282,12 @@ export class RegisterContractComponent implements OnInit {
         type: 'cpf',
         number: ''
       },
-      officialEmail: ''
+      officialEmail: '',
+      companyEIN: '',
+      representativeDocument: {
+        type: 'cpf',
+        number: ''
+      }
     };
   }
 
